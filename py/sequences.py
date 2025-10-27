@@ -4,6 +4,7 @@
 # it should read from /data/swissprot.fasta.txt, if needing just sequence and identification
 
 import os
+from Bio import SwissProt
 
 def get_data_path(original_filename):
     """
@@ -54,44 +55,21 @@ def read_fasta_sequences():
 
 def read_dat_records():
     """
-    Reads and parses records from the swissprot.dat.txt file.
+    Reads and parses records from the swissprot.dat.txt file, yielding them one by one.
     """
     filepath = get_data_path('swissprot.dat.txt')
-    records = []
     try:
         with open(filepath, 'r') as f:
-            record_lines = []
-            for line in f:
-                if line.startswith('//'):
-                    if record_lines:
-                        records.append(parse_dat_record(record_lines))
-                        record_lines = []
-                else:
-                    record_lines.append(line)
+            for record in SwissProt.parse(f):
+                yield record
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
-    return records
-
-def parse_dat_record(lines):
-    """
-    Parses a single record from the .dat file.
-    """
-    record = {}
-    for line in lines:
-        key = line[:2]
-        value = line[5:].strip()
-        if key in record:
-            if isinstance(record[key], list):
-                record[key].append(value)
-            else:
-                record[key] = [record[key], value]
-        else:
-            record[key] = value
-    return record
 
 if __name__ == '__main__':
     fasta_data = read_fasta_sequences()
     print(f"Read {len(fasta_data)} sequences from FASTA file.")
 
-    dat_data = read_dat_records()
-    print(f"Read {len(dat_data)} records from .dat file.")
+    dat_records_iterator = read_dat_records()
+    # To count, we need to consume the iterator
+    dat_data_len = sum(1 for _ in dat_records_iterator)
+    print(f"Read {dat_data_len} records from .dat file.")
