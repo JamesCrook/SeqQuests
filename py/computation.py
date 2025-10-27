@@ -1,7 +1,7 @@
 import time
 import logging
 from typing import Dict, Any
-from .job_manager import ProgressMonitor
+from job_manager import ProgressMonitor
 
 logger = logging.getLogger(__name__)
 

@@ -5,8 +5,8 @@ import threading
 from typing import Dict, Any
 import logging
 
-from .job_manager import JobManager
-from .computation import run_computation
+from job_manager import JobManager
+from computation import run_computation
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
