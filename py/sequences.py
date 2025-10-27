@@ -10,11 +10,10 @@ def get_data_path(original_filename):
     Checks for data files in a user-specified path first, falling back
     to the default './data' directory if not found.
     """
-    user_path = '/Users/jamescrook/OpenSourceGit/Scorpios/SeqQuests/data'
-
+    user_path = '/Users/jamescrook/BigData/bio_sequence_data'
     filename_map = {
-        'swissprot.fasta.txt': 'sp_fasta.txt',
-        'swissprot.dat.txt': 'sp_dat.txt',
+        'swissprot.fasta.txt': 'uniprot_sprot.fasta',
+        'swissprot.dat.txt': 'uniprot_sprot.dat',
     }
 
     user_filename = filename_map.get(original_filename)
