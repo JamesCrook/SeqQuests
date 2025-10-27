@@ -90,7 +90,14 @@ def main():
     filtered_count = 0
     for record in filtered_records_iterator:
         filtered_count += 1
-        print(record.entry_name)
+        protein_id = record.accessions[0]
+        entry_name = record.entry_name
+        if 'RecName: Full=' in record.description:
+            name = record.description.split('RecName: Full=')[1].split(';')[0]
+        else:
+            name = record.description.split(';')[0]
+        description = record.description.split(';')[0]
+        print(protein_id, entry_name, name)
 
     print(f"Found {filtered_count} records matching the criteria.")
 
