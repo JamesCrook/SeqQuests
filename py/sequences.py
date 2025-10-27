@@ -5,12 +5,28 @@
 
 import os
 
-def get_data_path(filename):
-    # This is a placeholder for a more robust configuration.
-    # For now, it defaults to the 'data' directory.
-    # A real implementation would check a configured path first.
+def get_data_path(original_filename):
+    """
+    Checks for data files in a user-specified path first, falling back
+    to the default './data' directory if not found.
+    """
+    user_path = '/Users/jamescrook/OpenSourceGit/Scorpios/SeqQuests/data'
+
+    filename_map = {
+        'swissprot.fasta.txt': 'sp_fasta.txt',
+        'swissprot.dat.txt': 'sp_dat.txt',
+    }
+
+    user_filename = filename_map.get(original_filename)
+
+    if user_filename:
+        user_filepath = os.path.join(user_path, user_filename)
+        if os.path.exists(user_filepath):
+            return user_filepath
+
+    # Fallback to the original path
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(project_root, 'data', filename)
+    return os.path.join(project_root, 'data', original_filename)
 
 def read_fasta_sequences():
     """
