@@ -1,65 +1,65 @@
 
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Protein Analysis Monitor</title>
-        <link rel="stylesheet" type="text/css" href="/static/style.css">
-    </head>
-    <body>
-        <h1>Protein Similarity Analysis Monitor</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Protein Analysis Monitor</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+    <h1>Protein Similarity Analysis Monitor</h1>
 
-        <div id="controls">
-            <button onclick="addJob()">Add Job</button>
-            <button onclick="refreshJobs()">Refresh Jobs</button>
-            <div id="job-specific-controls" style="display: inline-block;">
-                <button id="startButton" onclick="startJob()" disabled>Start</button>
-                <button id="resumeButton" onclick="resumeJob()" disabled>Resume</button>
-                <button id="pauseButton" onclick="pauseJob()" disabled>Pause</button>
-                <button id="cancelButton" onclick="cancelJob()" disabled>Cancel</button>
-                <button id="configureButton" onclick="configureJob()" disabled>Configure</button>
-            </div>
+    <div id="controls">
+        <button onclick="addJob()">Add Job</button>
+        <button onclick="refreshJobs()">Refresh Jobs</button>
+        <div id="job-specific-controls" style="display: inline-block;">
+            <button id="startButton" onclick="startJob()" disabled>Start</button>
+            <button id="resumeButton" onclick="resumeJob()" disabled>Resume</button>
+            <button id="pauseButton" onclick="pauseJob()" disabled>Pause</button>
+            <button id="cancelButton" onclick="cancelJob()" disabled>Cancel</button>
+            <button id="configureButton" onclick="configureJob()" disabled>Configure</button>
+        </div>
+    </div>
+
+    <div id="pollControl">
+        <label>Poll Interval:
+            <select id="pollInterval" onchange="updatePollInterval()">
+                <option value="0">Manual Only</option>
+                <option value="500">0.5 seconds</option>
+                <option value="1000" selected>1 second</option>
+                <option value="5000">5 seconds</option>
+                <option value="10000">10 seconds</option>
+            </select>
+        </label>
+        <span id="pollStatus">Polling: Active</span>
+    </div>
+
+    <div id="main-content">
+        <div id="jobList">
+            <h3>Jobs</h3>
+            <div id="jobs"></div>
         </div>
 
-        <div id="pollControl">
-            <label>Poll Interval:
-                <select id="pollInterval" onchange="updatePollInterval()">
-                    <option value="0">Manual Only</option>
-                    <option value="500">0.5 seconds</option>
-                    <option value="1000" selected>1 second</option>
-                    <option value="5000">5 seconds</option>
-                    <option value="10000">10 seconds</option>
-                </select>
-            </label>
-            <span id="pollStatus">Polling: Active</span>
+        <div id="currentJob">
+            <h3>Current Job: <span id="currentJobId">None</span></h3>
+            <div id="status">Status: <span id="statusText">-</span></div>
+            <div id="jobType">Job Type: <span id="jobTypeText">-</span></div>
+            <div id="currentStep">Step: <span id="stepText">-</span></div>
+            <div id="job-details"></div>
         </div>
+    </div>
 
-        <div id="main-content">
-            <div id="jobList">
-                <h3>Jobs</h3>
-                <div id="jobs"></div>
-            </div>
+    <div id="log-container">
+        <h3>Log</h3>
+        <div id="log"></div>
+    </div>
 
-            <div id="currentJob">
-                <h3>Current Job: <span id="currentJobId">None</span></h3>
-                <div id="status">Status: <span id="statusText">-</span></div>
-                <div id="jobType">Job Type: <span id="jobTypeText">-</span></div>
-                <div id="currentStep">Step: <span id="stepText">-</span></div>
-                <div id="job-details"></div>
-            </div>
+    <div id="config-modal" style="display:none;">
+        <div id="modal-content">
+            <iframe id="config-iframe"></iframe>
+            <button onclick="closeModal()">Close</button>
         </div>
+    </div>
 
-        <div id="log-container">
-            <h3>Log</h3>
-            <div id="log"></div>
-        </div>
-
-        <div id="config-modal" style="display:none;">
-            <div id="modal-content">
-                <iframe id="config-iframe"></iframe>
-                <button onclick="closeModal()">Close</button>
-            </div>
-        </div>
-
-        <script src="/static/app.js"></script>
-    </body>
-    </html>
+    <script src="/static/app.js"></script>
+</body>
+</html>

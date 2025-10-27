@@ -1,60 +1,60 @@
 
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Configure Sequence Search Job</title>
-        <link rel="stylesheet" type="text/css" href="/static/style.css">
-    </head>
-    <body>
-        <h2>Configure Sequence Search Job</h2>
-        <form id="config-form">
-            <label for="sequence">Select a Protein Sequence:</label>
-            <select id="sequence" name="sequence">
-                <!-- Options will be populated by script -->
-            </select>
-            <br>
-            <button type="button" onclick="saveConfig()">Save Configuration</button>
-        </form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configure Sequence Search Job</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+    <h2>Configure Sequence Search Job</h2>
+    <form id="config-form">
+        <label for="sequence">Select a Protein Sequence:</label>
+        <select id="sequence" name="sequence">
+            <!-- Options will be populated by script -->
+        </select>
+        <br>
+        <button type="button" onclick="saveConfig()">Save Configuration</button>
+    </form>
 
-        <script>
-            function getJobIdFromUrl() {
-                const params = new URLSearchParams(window.location.search);
-                return params.get('job_id');
+    <script>
+        function getJobIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('job_id');
+        }
+
+        async function populateSequences() {
+            try {
+                const proteins = await parent.apiCall('/api/proteins');
+                const select = document.getElementById('sequence');
+                proteins.forEach(protein => {
+                    const option = document.createElement('option');
+                    option.value = protein[1];
+                    option.textContent = protein[0];
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                parent.addLog('Failed to load protein sequences.', 'error');
             }
+        }
 
-            async function populateSequences() {
-                try {
-                    const proteins = await parent.apiCall('/api/proteins');
-                    const select = document.getElementById('sequence');
-                    proteins.forEach(protein => {
-                        const option = document.createElement('option');
-                        option.value = protein[1];
-                        option.textContent = protein[0];
-                        select.appendChild(option);
-                    });
-                } catch (e) {
-                    parent.addLog('Failed to load protein sequences.', 'error');
-                }
+        async function saveConfig() {
+            const jobId = getJobIdFromUrl();
+            const sequence = document.getElementById('sequence').value;
+
+            const config = {
+                query_sequence: sequence
+            };
+
+            try {
+                await parent.apiCall(`/api/job/${jobId}/configure`, 'POST', { config });
+                parent.addLog(`Configuration for job ${jobId} saved.`, 'success');
+                parent.closeModal();
+            } catch (e) {
+                parent.addLog(`Failed to save configuration: ${e}`, 'error');
             }
+        }
 
-            async function saveConfig() {
-                const jobId = getJobIdFromUrl();
-                const sequence = document.getElementById('sequence').value;
-
-                const config = {
-                    query_sequence: sequence
-                };
-
-                try {
-                    await parent.apiCall(`/api/job/${jobId}/configure`, 'POST', { config });
-                    parent.addLog(`Configuration for job ${jobId} saved.`, 'success');
-                    parent.closeModal();
-                } catch (e) {
-                    parent.addLog(`Failed to save configuration: ${e}`, 'error');
-                }
-            }
-
-            window.addEventListener('load', populateSequences);
-        </script>
-    </body>
-    </html>
+        window.addEventListener('load', populateSequences);
+    </script>
+</body>
+</html>
