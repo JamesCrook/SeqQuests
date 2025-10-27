@@ -1,0 +1,229 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Protein Analysis Monitor (REST)</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            #status { font-weight: bold; }
+            #progress { margin: 20px 0; }
+            button { margin: 5px; padding: 10px; }
+            .stat { margin: 5px 0; }
+            .error { color: red; }
+            .success { color: green; }
+            .job-item {
+                padding: 10px;
+                margin: 5px 0;
+                background: #e8e8e8;
+                cursor: pointer;
+                border-radius: 5px;
+            }
+            .job-item:hover { background: #d0d0d0; }
+            .active-job { background: #c0e0c0; }
+            #pollControl {
+                margin: 10px 0;
+                padding: 10px;
+                background: #f0f0f0;
+                border-radius: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Protein Similarity Analysis Monitor (REST/Polling)</h1>
+
+        <div>
+            <button onclick="startComputation()">Start New Computation</button>
+            <button onclick="cancelComputation()">Cancel Current Job</button>
+            <button onclick="refreshJobs()">Refresh Jobs</button>
+        </div>
+
+        <div id="pollControl">
+            <label>Poll Interval:
+                <select id="pollInterval" onchange="updatePollInterval()">
+                    <option value="0">Manual Only</option>
+                    <option value="500">0.5 seconds</option>
+                    <option value="1000" selected>1 second</option>
+                    <option value="5000">5 seconds</option>
+                    <option value="10000">10 seconds</option>
+                    <option value="30000">30 seconds</option>
+                </select>
+            </label>
+            <span id="pollStatus" style="margin-left: 20px;">Polling: Active</span>
+        </div>
+
+        <div id="jobList" style="margin: 20px 0;">
+            <h3>Jobs</h3>
+            <div id="jobs"></div>
+        </div>
+
+        <div id="currentJob">
+            <h3>Current Job: <span id="currentJobId">None</span></h3>
+            <div id="status">Status: <span id="statusText">-</span></div>
+            <div id="currentStep">Step: <span id="stepText">-</span></div>
+
+            <div id="progress">
+                <div class="stat">Proteins: <span id="proteins">0</span></div>
+                <div class="stat">Progress: <span id="pairs">0</span> / <span id="totalPairs">0</span> pairs</div>
+                <div class="stat">Time: <span id="elapsed">0</span>s (remaining: <span id="remaining">0</span>s)</div>
+                <div class="stat">Memory: CPU <span id="cpuMem">0</span>MB, GPU <span id="gpuMem">0</span>MB</div>
+                <div class="stat">Bridges found: <span id="bridges">0</span></div>
+                <div class="stat">Last Update: <span id="lastUpdate">-</span></div>
+            </div>
+        </div>
+
+        <div id="log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; height: 200px; overflow-y: auto;">
+            <h3>Log</h3>
+        </div>
+
+        <script>
+            let currentJobId = null;
+            let pollTimer = null;
+            let pollInterval = 1000;
+            const log = document.getElementById('log');
+
+            function addLog(message, type = '') {
+                const timestamp = new Date().toLocaleTimeString();
+                const className = type ? ` class="${type}"` : '';
+                log.innerHTML += `<p${className}>[${timestamp}] ${message}</p>`;
+                log.scrollTop = log.scrollHeight;
+            }
+
+            function updatePollInterval() {
+                const select = document.getElementById('pollInterval');
+                pollInterval = parseInt(select.value);
+
+                // Clear existing timer
+                if (pollTimer) {
+                    clearTimeout(pollTimer);
+                    pollTimer = null;
+                }
+
+                // Update status
+                document.getElementById('pollStatus').textContent =
+                    pollInterval === 0 ? 'Polling: Disabled' : `Polling: Every ${pollInterval/1000}s`;
+
+                // Restart polling if enabled
+                if (pollInterval > 0 && currentJobId) {
+                    pollJobStatus();
+                }
+
+                addLog(`Poll interval set to ${pollInterval}ms`);
+            }
+
+            async function refreshJobs() {
+                try {
+                    const response = await fetch('/api/jobs');
+                    const jobs = await response.json();
+
+                    const jobsDiv = document.getElementById('jobs');
+                    jobsDiv.innerHTML = '';
+
+                    Object.entries(jobs).forEach(([jobId, status]) => {
+                        const div = document.createElement('div');
+                        div.className = 'job-item' + (jobId === currentJobId ? ' active-job' : '');
+                        div.innerHTML = `${jobId.substring(0, 8)}... - ${status}`;
+                        div.onclick = () => selectJob(jobId);
+                        jobsDiv.appendChild(div);
+                    });
+
+                    addLog('Jobs list refreshed');
+                } catch (e) {
+                    addLog(`Failed to refresh jobs: ${e}`, 'error');
+                }
+            }
+
+            function selectJob(jobId) {
+                currentJobId = jobId;
+                document.getElementById('currentJobId').textContent = jobId.substring(0, 12) + '...';
+                addLog(`Selected job: ${jobId}`);
+                refreshJobs();
+                pollJobStatus();
+            }
+
+            async function pollJobStatus() {
+                if (!currentJobId) return;
+
+                try {
+                    const response = await fetch(`/api/job/${currentJobId}/status`);
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            addLog('Job not found', 'error');
+                            currentJobId = null;
+                            return;
+                        }
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    updateDisplay(data);
+
+                    // Continue polling if job is active and interval is set
+                    if (pollInterval > 0 &&
+                        ['computing', 'initializing'].includes(data.status)) {
+                        pollTimer = setTimeout(pollJobStatus, pollInterval);
+                    }
+                } catch (e) {
+                    addLog(`Failed to poll status: ${e}`, 'error');
+                }
+            }
+
+            function updateDisplay(data) {
+                document.getElementById('statusText').textContent = data.status;
+                document.getElementById('stepText').textContent = data.current_step || '-';
+                document.getElementById('proteins').textContent = data.total_proteins;
+                document.getElementById('pairs').textContent = data.processed_pairs;
+                document.getElementById('totalPairs').textContent = data.total_pairs;
+                document.getElementById('elapsed').textContent = Math.round(data.elapsed_time);
+                document.getElementById('remaining').textContent = Math.round(data.estimated_remaining);
+                document.getElementById('cpuMem').textContent = Math.round(data.memory_usage_mb);
+                document.getElementById('gpuMem').textContent = Math.round(data.gpu_memory_mb);
+                document.getElementById('bridges').textContent = data.bridges_found;
+                document.getElementById('lastUpdate').textContent =
+                    new Date(data.last_update).toLocaleTimeString();
+            }
+
+            async function startComputation() {
+                try {
+                    const response = await fetch('/api/start_computation', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            n_proteins: 1000,
+                            batch_size: 100,
+                            threshold: -20
+                        })
+                    });
+                    const data = await response.json();
+                    addLog(`Computation started: Job ID ${data.job_id}`, 'success');
+                    selectJob(data.job_id);
+                    refreshJobs();
+                } catch (e) {
+                    addLog(`Failed to start computation: ${e}`, 'error');
+                }
+            }
+
+            async function cancelComputation() {
+                if (!currentJobId) {
+                    addLog('No job selected', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/job/${currentJobId}/cancel`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    addLog(`Cancel requested for job ${currentJobId}`);
+                } catch (e) {
+                    addLog(`Failed to cancel: ${e}`, 'error');
+                }
+            }
+
+            // Initialize on load
+            window.addEventListener('load', () => {
+                addLog('Page loaded, REST API ready');
+                refreshJobs();
+            });
+        </script>
+    </body>
+    </html>
