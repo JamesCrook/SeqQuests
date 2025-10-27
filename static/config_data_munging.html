@@ -1,0 +1,48 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Configure Data Munging Job</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+    </head>
+    <body>
+        <h2>Configure Data Munging Job</h2>
+        <form id="config-form">
+            <label for="organisms">Select Organisms:</label>
+            <select id="organisms" name="organisms" multiple>
+                <option value="human">Human</option>
+                <option value="rat">Rat</option>
+                <option value="ecoli">E. coli</option>
+                <option value="yeast">Yeast</option>
+                <option value="chicken">Chicken</option>
+                <option value="mouse">Mouse</option>
+            </select>
+            <br>
+            <button type="button" onclick="saveConfig()">Save Configuration</button>
+        </form>
+
+        <script>
+            function getJobIdFromUrl() {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('job_id');
+            }
+
+            async function saveConfig() {
+                const jobId = getJobIdFromUrl();
+                const organisms = Array.from(document.getElementById('organisms').selectedOptions).map(opt => opt.value);
+
+                const config = {
+                    organisms: organisms
+                };
+
+                try {
+                    await parent.apiCall(`/api/job/${jobId}/configure`, 'POST', { config });
+                    parent.addLog(`Configuration for job ${jobId} saved.`, 'success');
+                    parent.closeModal();
+                } catch (e) {
+                    parent.addLog(`Failed to save configuration: ${e}`, 'error');
+                }
+            }
+        </script>
+    </body>
+    </html>

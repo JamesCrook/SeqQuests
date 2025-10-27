@@ -1,0 +1,29 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Configure Computation Job</title>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+    </head>
+    <body>
+        <h2>Configure Computation Job</h2>
+        <p>This is a dummy job and has no configurable parameters.</p>
+        <p>You can start this job directly.</p>
+
+        <script>
+            // This script is minimal as there's no config to save.
+            // It primarily exists for consistency.
+            function getJobIdFromUrl() {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('job_id');
+            }
+
+            window.addEventListener('load', () => {
+                const jobId = getJobIdFromUrl();
+                if (jobId) {
+                    console.log(`Configuration page loaded for job: ${jobId}`);
+                }
+            });
+        </script>
+    </body>
+    </html>

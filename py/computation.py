@@ -1,11 +1,13 @@
 import time
 import logging
-from typing import Dict, Any
-from job_manager import ProgressMonitor
+from typing import Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from job_manager import Job
 
 logger = logging.getLogger(__name__)
 
-def run_computation(job: ProgressMonitor, config: Dict[str, Any] = None):
+def run_computation(job: "Job", config: Dict[str, Any] = None):
     try:
         n_proteins = config.get("n_proteins", 1000) if config else 1000
         total_pairs = n_proteins * (n_proteins + 1) // 2
@@ -21,6 +23,8 @@ def run_computation(job: ProgressMonitor, config: Dict[str, Any] = None):
 
         # Simulate computation
         for i in range(100):
+            while job.get_state()['status'] == 'paused':
+                time.sleep(1)
             # Check if cancelled
             if job.get_state()["status"] == "cancelling":
                 job.update(
