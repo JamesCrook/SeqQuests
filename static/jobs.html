@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Job Type</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .job-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select Job Type</h1>
+    <div>
+        <button class="job-button" onclick="createJob('data_munging')">Data Munging</button>
+        <button class="job-button" onclick="createJob('computation')">Computation</button>
+        <button class="job-button" onclick="createJob('sequence_search')">Sequence Search</button>
+    </div>
+
+    <script>
+        async function createJob(jobType) {
+            try {
+                const response = await fetch('/api/job', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ job_type: jobType }),
+                });
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    console.error('Failed to create job:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error creating job:', error);
+            }
+        }
+    </script>
+</body>
+</html>

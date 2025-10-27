@@ -2,26 +2,41 @@
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Configure Data Munging Job</title>
+        <title>Configure and Monitor Data Munging Job</title>
         <link rel="stylesheet" type="text/css" href="/static/style.css">
     </head>
     <body>
         <h2>Configure Data Munging Job</h2>
         <form id="config-form">
-            <label for="organisms">Select Organisms:</label>
-            <select id="organisms" name="organisms" multiple>
-                <option value="human">Human</option>
-                <option value="rat">Rat</option>
-                <option value="ecoli">E. coli</option>
-                <option value="yeast">Yeast</option>
-                <option value="chicken">Chicken</option>
-                <option value="mouse">Mouse</option>
-            </select>
+            <label>Select Organisms:</label>
+            <div id="organisms-checkboxes">
+                <label><input type="checkbox" name="organisms" value="human"> Human</label><br>
+                <label><input type="checkbox" name="organisms" value="rat"> Rat</label><br>
+                <label><input type="checkbox" name="organisms" value="ecoli"> E. coli</label><br>
+                <label><input type="checkbox" name="organisms" value="yeast"> Yeast</label><br>
+                <label><input type="checkbox" name="organisms" value="chicken"> Chicken</label><br>
+                <label><input type="checkbox" name="organisms" value="mouse"> Mouse</label><br>
+            </div>
             <br>
             <button type="button" onclick="saveConfig()">Save Configuration</button>
         </form>
 
+        <hr>
+
+        <h2>Job Progress</h2>
+        <div id="progress-container">
+            <p><strong>Sequences Examined:</strong> <span id="sequences-examined">0</span></p>
+            <p><strong>Proteins Processed:</strong> <span id="proteins-processed">0</span></p>
+            <p><strong>Most Recent Item:</strong> <span id="most-recent-item">-</span></p>
+            <h3>Last Ten Accepted Items:</h3>
+            <ul id="last-ten-accepted">
+            </ul>
+        </div>
+
         <script>
+            let pollInterval = 1000;
+            let pollTimer = null;
+
             function getJobIdFromUrl() {
                 const params = new URLSearchParams(window.location.search);
                 return params.get('job_id');
@@ -29,7 +44,8 @@
 
             async function saveConfig() {
                 const jobId = getJobIdFromUrl();
-                const organisms = Array.from(document.getElementById('organisms').selectedOptions).map(opt => opt.value);
+                const checkedBoxes = document.querySelectorAll('input[name="organisms"]:checked');
+                const organisms = Array.from(checkedBoxes).map(cb => cb.value);
 
                 const config = {
                     organisms: organisms
@@ -43,6 +59,42 @@
                     parent.addLog(`Failed to save configuration: ${e}`, 'error');
                 }
             }
+
+            async function pollJobStatus() {
+                if (pollTimer) clearTimeout(pollTimer);
+                const jobId = getJobIdFromUrl();
+                if (!jobId) return;
+
+                try {
+                    const data = await parent.apiCall(`/api/job/${jobId}/status`);
+                    updateProgressDisplay(data);
+                    if (['running', 'initializing'].includes(data.status)) {
+                        pollTimer = setTimeout(pollJobStatus, pollInterval);
+                    }
+                } catch (e) {
+                    parent.addLog(`Failed to poll status for job ${jobId}: ${e}`, 'error');
+                }
+            }
+
+            function updateProgressDisplay(data) {
+                document.getElementById('sequences-examined').textContent = data.sequences_examined || 0;
+                document.getElementById('proteins-processed').textContent = data.proteins_processed || 0;
+                document.getElementById('most-recent-item').textContent = data.most_recent_item || '-';
+
+                const acceptedList = document.getElementById('last-ten-accepted');
+                acceptedList.innerHTML = '';
+                if (data.last_ten_accepted && data.last_ten_accepted.length > 0) {
+                    data.last_ten_accepted.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        acceptedList.appendChild(li);
+                    });
+                }
+            }
+
+            window.addEventListener('load', () => {
+                pollJobStatus();
+            });
         </script>
     </body>
     </html>

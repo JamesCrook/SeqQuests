@@ -13,7 +13,7 @@ ORGANISM_MAP = {
     'mouse': 'Mus musculus',
 }
 
-def filter_proteins(records, organisms=None, require_go=False, require_ec=False, require_pfam=False, no_fragments=True, no_uncharacterized=True):
+def filter_proteins(records, organisms=None, require_go=False, require_ec=False, require_pfam=False, no_fragments=True, no_uncharacterized=True, require_any_feature=True):
     """
     Filters an iterator of protein records based on specified criteria.
     Yields records that match.
@@ -47,7 +47,7 @@ def filter_proteins(records, organisms=None, require_go=False, require_ec=False,
         has_pfam = any(ref[0] == 'Pfam' for ref in record.cross_references)
 
         # Mandatory filter: must have at least one of GO, EC, or Pfam
-        if not (has_go or has_ec or has_pfam):
+        if require_any_feature and not (has_go or has_ec or has_pfam):
             continue
 
         # Optional additional filters from command line

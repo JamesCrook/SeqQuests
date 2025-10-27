@@ -36,17 +36,7 @@ async function apiCall(url, method = 'GET', body = null) {
 
 // --- Job Management ---
 async function addJob() {
-    const jobType = prompt("Enter job type (computation, data_munging, sequence_search):");
-    if (jobType) {
-        try {
-            const data = await apiCall('/api/job', 'POST', { job_type: jobType });
-            addLog(`Job ${data.job_id} created of type ${jobType}`, 'success');
-            selectJob(data.job_id, jobType);
-            refreshJobs();
-        } catch (e) {
-            addLog(`Failed to create job: ${e}`, 'error');
-        }
-    }
+    window.location.href = '/jobs';
 }
 
 async function startJob() {
@@ -54,6 +44,7 @@ async function startJob() {
     try {
         await apiCall(`/api/job/${currentJobId}/start`, 'POST');
         addLog(`Job ${currentJobId} started.`);
+        pollJobStatus();
     } catch (e) {
         addLog(`Failed to start job: ${e}`, 'error');
     }
@@ -159,6 +150,13 @@ function updateDisplay(data) {
     document.getElementById('statusText').textContent = data.status;
     document.getElementById('jobTypeText').textContent = data.job_type;
     document.getElementById('currentStep').textContent = data.current_step || '-';
+
+    const configureButton = document.getElementById('configureButton');
+    if (['running', 'completed', 'failed', 'cancelled'].includes(data.status)) {
+        configureButton.textContent = 'View';
+    } else {
+        configureButton.textContent = 'Configure';
+    }
 
     const detailsDiv = document.getElementById('job-details');
     detailsDiv.innerHTML = ''; // Clear previous details

@@ -110,7 +110,9 @@ class DataMungingJob(Job):
     def __init__(self, job_id: str):
         super().__init__(job_id, "data_munging")
         self.state.update({
-            "filtered_organisms": 0,
+            "sequences_examined": 0,
+            "most_recent_item": "",
+            "last_ten_accepted": [],
             "proteins_processed": 0,
         })
 
@@ -119,19 +121,40 @@ class DataMungingJob(Job):
         try:
             organisms = self.state['config'].get('organisms', [])
             all_records = read_dat_records()
-            filtered_records = filter_proteins(all_records, organisms=organisms)
 
-            count = 0
-            for _ in filtered_records:
-                while self.state['status'] == 'paused':
-                    time.sleep(1)
+            sequences_examined = 0
+            proteins_processed = 0
+            last_ten_accepted = []
+
+            for record in all_records:
+                sequences_examined += 1
+                protein_id = record.accessions[0]
+                entry_name = record.entry_name
+                if 'RecName: Full=' in record.description:
+                    name = record.description.split('RecName: Full=')[1].split(';')[0]
+                else:
+                    name = record.description.split(';')[0]
+
+                most_recent_item = f"{protein_id} {entry_name} {name}"
+
+                if next(filter_proteins([record], organisms=organisms), None):
+                    proteins_processed += 1
+                    last_ten_accepted.append(most_recent_item)
+                    if len(last_ten_accepted) > 10:
+                        last_ten_accepted.pop(0)
+
+                self.update(
+                    sequences_examined=sequences_examined,
+                    proteins_processed=proteins_processed,
+                    most_recent_item=most_recent_item,
+                    last_ten_accepted=last_ten_accepted
+                )
+
                 if self.state['status'] == 'cancelled':
                     break
-                count += 1
-                self.update(proteins_processed=count)
 
             if self.state['status'] != 'cancelled':
-                self.update(status="completed", filtered_organisms=count)
+                self.update(status="completed")
         except Exception as e:
             logger.error(f"Job {self.job_id} failed: {e}")
             self.update(status="failed", errors=[str(e)])

@@ -118,6 +118,11 @@ async def read_root():
     """Serve the main index page."""
     return FileResponse('static/index.html')
 
+@app.get("/jobs")
+async def read_jobs():
+    """Serve the job selection page."""
+    return FileResponse('static/jobs.html')
+
 @app.get("/config/{job_type}")
 async def get_config_page(job_type: str):
     """Serve the configuration page for a given job type."""
