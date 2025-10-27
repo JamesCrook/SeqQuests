@@ -2,7 +2,87 @@ import torch
 import numpy as np
 from collections import Counter
 
+import torch
+import torch.nn.functional as F
+import numpy as np
+
 class FastNWS:
+    def __init__(self, device='cuda', batch_size=100):
+        self.device = device
+        self.batch_size = batch_size
+        
+        # BLOSUM62 as tensor
+        self.blosum62 = self.load_blosum62().to(device)
+        self.gap_open = -10
+        self.gap_extend = -1
+        
+    def compute_all_pairs(self, sequences):
+        """Compute full NxN score matrix"""
+        n = len(sequences)
+        
+        # Preallocate score matrix
+        scores = np.zeros((n, n), dtype=np.float32)
+        
+        # Convert sequences to tensors
+        seq_tensors = [self.sequence_to_tensor(s) for s in sequences]
+        
+        # Batch computation
+        for i in range(0, n, self.batch_size):
+            for j in range(i, n, self.batch_size):
+                batch_i = seq_tensors[i:i+self.batch_size]
+                batch_j = seq_tensors[j:j+self.batch_size]
+                
+                # Compute batch scores
+                batch_scores = self.batch_nws(batch_i, batch_j)
+                
+                # Fill score matrix (symmetric)
+                for bi, ii in enumerate(range(i, min(i+self.batch_size, n))):
+                    for bj, jj in enumerate(range(j, min(j+self.batch_size, n))):
+                        scores[ii, jj] = batch_scores[bi, bj]
+                        scores[jj, ii] = batch_scores[bi, bj]
+        
+        return scores
+    
+    def nws_wavefront_batch(seq1_batch, seq2_batch, match=1, mismatch=-1, gap=-1):
+        batch_size = seq1_batch.shape[0]
+        m, n = seq1_batch.shape[1], seq2_batch.shape[1]
+        
+        # Initialize DP matrix
+        dp = torch.zeros(batch_size, m+1, n+1, device='cuda')
+        
+        # Initialize boundaries
+        dp[:, :, 0] = torch.arange(m+1) * gap
+        dp[:, 0, :] = torch.arange(n+1) * gap
+        
+        # Wavefront computation
+        for diag in range(1, m + n + 1):
+            # Compute valid range for this diagonal
+            i_start = max(1, diag - n + 1)
+            i_end = min(m + 1, diag)
+            
+            # Parallel computation for all valid cells in diagonal
+            for i in range(i_start, i_end):
+                j = diag - i
+                if j > 0 and j <= n:
+                    match_score = (seq1_batch[:, i-1] == seq2_batch[:, j-1]) * match + \
+                                 (seq1_batch[:, i-1] != seq2_batch[:, j-1]) * mismatch
+                    
+                    dp[:, i, j] = torch.max(torch.stack([
+                        dp[:, i-1, j-1] + match_score,  # match/mismatch
+                        dp[:, i-1, j] + gap,            # deletion
+                        dp[:, i, j-1] + gap             # insertion
+                    ], dim=0), dim=0)[0]
+        
+        return dp[:, -1, -1]  # Return final scores
+
+    def batch_nws(self, seqs1, seqs2):
+        """Wavefront NWS for batches"""
+        # Implementation of wavefront algorithm
+        # Returns score matrix for all pairs in batch
+        pass
+
+
+class FastNwsDummy:
     def __init__(self, device='cuda', batch_size=100):
         self.device = device
         self.batch_size = batch_size
