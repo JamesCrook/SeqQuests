@@ -4,7 +4,7 @@
 # it should read from /data/swissprot.fasta.txt, if needing just sequence and identification
 
 import os
-from Bio import SwissProt
+from Bio import SwissProt, SeqIO
 
 def get_data_path(original_filename):
     """
@@ -30,28 +30,31 @@ def get_data_path(original_filename):
 
 def read_fasta_sequences():
     """
-    Reads sequences from the swissprot.fasta.txt file.
+    Reads sequences from the swissprot.fasta.txt file, yielding them one by one.
     """
     filepath = get_data_path('swissprot.fasta.txt')
-    sequences = []
     try:
         with open(filepath, 'r') as f:
-            header = None
-            sequence_lines = []
-            for line in f:
-                line = line.strip()
-                if line.startswith('>'):
-                    if header:
-                        sequences.append((header, ''.join(sequence_lines)))
-                    header = line
-                    sequence_lines = []
-                else:
-                    sequence_lines.append(line)
-            if header:
-                sequences.append((header, ''.join(sequence_lines)))
+            for record in SeqIO.parse(f, 'fasta'):
+                yield record
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
-    return sequences
+
+def get_sequence_by_identifier(identifier, sequence_iterator=None):
+    """
+    Retrieves a single sequence from the FASTA file by its accession number or index.
+    """
+    if sequence_iterator is None:
+        sequence_iterator = read_fasta_sequences()
+    if isinstance(identifier, str):
+        for record in sequence_iterator:
+            if identifier in record.id:
+                return (record.description, str(record.seq))
+    elif isinstance(identifier, int):
+        for i, record in enumerate(sequence_iterator):
+            if i == identifier:
+                return (record.description, str(record.seq))
+    return None
 
 def read_dat_records():
     """
@@ -65,11 +68,3 @@ def read_dat_records():
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
 
-if __name__ == '__main__':
-    fasta_data = read_fasta_sequences()
-    print(f"Read {len(fasta_data)} sequences from FASTA file.")
-
-    dat_records_iterator = read_dat_records()
-    # To count, we need to consume the iterator
-    dat_data_len = sum(1 for _ in dat_records_iterator)
-    print(f"Read {dat_data_len} records from .dat file.")

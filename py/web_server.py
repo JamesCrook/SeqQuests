@@ -7,7 +7,7 @@ import logging
 from pydantic import BaseModel
 
 from job_manager import JobManager
-from sequences import read_fasta_sequences
+import sequences
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -108,8 +108,28 @@ async def configure_job(job_id: str, request: JobConfigRequest):
 @app.get("/api/proteins")
 async def get_proteins():
     """Return the first 20 proteins from the FASTA file."""
-    proteins = read_fasta_sequences()
-    return proteins[:20]
+    protein_iterator = sequences.read_fasta_sequences()
+    proteins = []
+    for _ in range(20):
+        try:
+            record = next(protein_iterator)
+            proteins.append((record.description, str(record.seq)))
+        except StopIteration:
+            break
+    return proteins
+
+@app.get("/api/sequence/{identifier}")
+async def get_sequence(identifier: str):
+    """Get a single protein sequence by accession number or index."""
+    sequence_iterator = sequences.read_fasta_sequences()
+    if identifier.isdigit():
+        sequence_data = sequences.get_sequence_by_identifier(int(identifier), sequence_iterator)
+    else:
+        sequence_data = sequences.get_sequence_by_identifier(identifier, sequence_iterator)
+
+    if not sequence_data:
+        raise HTTPException(status_code=404, detail="Sequence not found")
+    return {"header": sequence_data[0], "sequence": sequence_data[1]}
 
 # --- Web UI Routes ---
 
