@@ -201,7 +201,6 @@ class SequenceSearchJob(Job):
                     continue
 
                 sequences_examined += 1
-                score = scorer.batch_nws([target_record.sequence], [record.sequence])[0][0]
 
                 protein_id = record.accessions[0]
                 entry_name = record.entry_name
@@ -209,6 +208,14 @@ class SequenceSearchJob(Job):
                     name = record.description.split('RecName: Full=')[1].split(';')[0]
                 else:
                     name = record.description.split(';')[0]
+
+                # Update the UI to show what we are working on *before* the expensive call.
+                self.update(
+                    sequences_examined=sequences_examined,
+                    most_recent_item=f"{protein_id} ..... {entry_name} {name}"
+                )
+
+                score = scorer.batch_nws([target_record.sequence], [record.sequence])[0][0]
 
                 most_recent_item = f"{protein_id} {score:.2f} {entry_name} {name}"
                 last_ten_accepted.append(most_recent_item)
