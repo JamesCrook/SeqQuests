@@ -45,6 +45,7 @@ async function startJob() {
         await apiCall(`/api/job/${currentJobId}/start`, 'POST');
         addLog(`Job ${currentJobId} started.`);
         pollJobStatus();
+        await refreshJobs();
     } catch (e) {
         addLog(`Failed to start job: ${e}`, 'error');
     }
@@ -55,6 +56,7 @@ async function pauseJob() {
     try {
         await apiCall(`/api/job/${currentJobId}/pause`, 'POST');
         addLog(`Job ${currentJobId} paused.`);
+        await refreshJobs();
     } catch (e) {
         addLog(`Failed to pause job: ${e}`, 'error');
     }
@@ -65,6 +67,7 @@ async function resumeJob() {
     try {
         await apiCall(`/api/job/${currentJobId}/resume`, 'POST');
         addLog(`Job ${currentJobId} resumed.`);
+        await refreshJobs();
     } catch (e) {
         addLog(`Failed to resume job: ${e}`, 'error');
     }
@@ -75,8 +78,22 @@ async function cancelJob() {
     try {
         await apiCall(`/api/job/${currentJobId}/cancel`, 'POST');
         addLog(`Job ${currentJobId} cancelled.`);
+        await refreshJobs();
     } catch (e) {
         addLog(`Failed to cancel job: ${e}`, 'error');
+    }
+}
+
+async function removeJob(jobId) {
+    try {
+        await apiCall(`/api/job/${jobId}/cancel`, 'POST');
+        addLog(`Job ${jobId} cancelled.`);
+        if (jobId === currentJobId) {
+            selectJob(null, null);
+        }
+        await refreshJobs();
+    } catch (e) {
+        addLog(`Failed to remove job: ${e}`, 'error');
     }
 }
 
@@ -100,8 +117,20 @@ async function refreshJobs() {
         Object.entries(jobs).forEach(([jobId, job]) => {
             const div = document.createElement('div');
             div.className = 'job-item' + (jobId === currentJobId ? ' active-job' : '');
-            div.innerHTML = `${jobId.substring(0, 8)}... - ${job.job_type} (${job.status})`;
-            div.onclick = () => selectJob(jobId, job.job_type);
+
+            const jobText = document.createElement('span');
+            jobText.innerHTML = `${jobId.substring(0, 8)}... - ${job.job_type} (${job.status})`;
+            jobText.onclick = () => selectJob(jobId, job.job_type);
+
+            const trashIcon = document.createElement('i');
+            trashIcon.className = 'fa fa-trash';
+            trashIcon.onclick = (e) => {
+                e.stopPropagation();
+                removeJob(jobId);
+            };
+
+            div.appendChild(jobText);
+            div.appendChild(trashIcon);
             jobsDiv.appendChild(div);
         });
     } catch (e) {
@@ -192,9 +221,23 @@ function updatePollInterval() {
 }
 
 // --- Initialization ---
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     addLog('Page loaded, API ready');
-    selectJob(null, null);
-    refreshJobs();
+    await refreshJobs();
     updatePollInterval();
+
+    const params = new URLSearchParams(window.location.search);
+    const jobIdFromUrl = params.get('job_id');
+
+    if (jobIdFromUrl) {
+        try {
+            const data = await apiCall(`/api/job/${jobIdFromUrl}/status`);
+            selectJob(jobIdFromUrl, data.job_type);
+        } catch (e) {
+            addLog(`Failed to select job from URL: ${e}`, 'error');
+            selectJob(null, null);
+        }
+    } else {
+        selectJob(null, null);
+    }
 });

@@ -9,12 +9,12 @@
     <form id="config-form">
         <label>Select Organisms:</label>
         <div id="organisms-checkboxes">
-            <label><input type="checkbox" name="organisms" value="human"> Human</label><br>
-            <label><input type="checkbox" name="organisms" value="rat"> Rat</label><br>
-            <label><input type="checkbox" name="organisms" value="ecoli"> E. coli</label><br>
-            <label><input type="checkbox" name="organisms" value="yeast"> Yeast</label><br>
-            <label><input type="checkbox" name="organisms" value="chicken"> Chicken</label><br>
-            <label><input type="checkbox" name="organisms" value="mouse"> Mouse</label><br>
+            <label><input type="checkbox" id="human" name="organisms" value="human"> Human</label><br>
+            <label><input type="checkbox" id="rat" name="organisms" value="rat"> Rat</label><br>
+            <label><input type="checkbox" id="ecoli" name="organisms" value="ecoli"> E. coli</label><br>
+            <label><input type="checkbox" id="yeast" name="organisms" value="yeast"> Yeast</label><br>
+            <label><input type="checkbox" id="chicken" name="organisms" value="chicken"> Chicken</label><br>
+            <label><input type="checkbox" id="mouse" name="organisms" value="mouse"> Mouse</label><br>
         </div>
         <br>
         <button type="button" onclick="saveConfig()">Save Configuration</button>
@@ -36,11 +36,11 @@
     <script>
         async function saveConfig() {
             const jobId = getJobIdFromUrl();
-            const checkedBoxes = document.querySelectorAll('input[name="organisms"]:checked');
-            const organisms = Array.from(checkedBoxes).map(cb => cb.value);
+            const organisms = ['human', 'rat', 'ecoli', 'yeast', 'chicken', 'mouse'];
+            const selectedOrganisms = organisms.filter(org => document.getElementById(org).checked);
 
             const config = {
-                organisms: organisms
+                organisms: selectedOrganisms
             };
 
             try {
@@ -69,6 +69,7 @@
         }
 
         window.addEventListener('load', () => {
+            loadJobConfig();
             pollJobStatus(updateProgressDisplay);
         });
     </script>

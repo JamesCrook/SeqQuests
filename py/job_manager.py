@@ -6,10 +6,10 @@ from typing import Dict, Any, Optional, Type
 import logging
 
 # Import job functions
-from py.computation import run_computation
-from py.data_munger import run_data_munging
-from py.seq_search import run_seq_search
-from py.sequences import read_dat_records
+from computation import run_computation
+from data_munger import run_data_munging
+from seq_search import run_seq_search
+from sequences import read_dat_records
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ class DataMungingJob(Job):
         logger.info(f"Data munging job {self.job_id} finished.")
 
 
-from py.nws import FastNwsDummy, FastNWS
+from nws import FastNwsDummy, FastNWS
 
 class SequenceSearchJob(Job):
     def __init__(self, job_id: str):

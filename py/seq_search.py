@@ -1,8 +1,8 @@
 # seq_search.py should gather scores for similarity between a chosen protein and each of the proteins in a chosen databsase.
 
 import argparse
-from py.sequences import read_dat_records
-from py.nws import FastNwsDummy, FastNWS
+from sequences import read_dat_records
+from nws import FastNwsDummy, FastNWS
 
 def find_target_record(identifier):
     """

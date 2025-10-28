@@ -13,13 +13,16 @@ def run_test():
 
         # Click the "Add Job" button to go to the job selection page
         page.click("text=Add Job")
+        page.wait_for_load_state()
 
         # Click the "Data Munging" button to create a new job
         page.click("text=Data Munging")
+        page.wait_for_load_state()
 
-        # Go back to the main page and select the newly created job
-        page.goto("http://localhost:8000")
+        # Select the newly created job
+        page.wait_for_selector(".job-item")
         page.click(".job-item")
+        page.wait_for_timeout(1000)
 
         # Click the "Configure" button to open the configuration modal
         page.click("#configureButton")

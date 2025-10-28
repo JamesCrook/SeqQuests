@@ -1,7 +1,7 @@
 # data_munger.py should use sequences.py to read sequences and filter.
 
 import argparse
-from py.sequences import read_dat_records
+from sequences import read_dat_records
 
 # Mapping of common names to scientific names for filtering
 ORGANISM_MAP = {
