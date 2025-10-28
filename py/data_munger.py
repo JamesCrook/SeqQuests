@@ -1,7 +1,7 @@
 # data_munger.py should use sequences.py to read sequences and filter.
 
 import argparse
-from sequences import read_dat_records
+from py.sequences import read_dat_records
 
 # Mapping of common names to scientific names for filtering
 ORGANISM_MAP = {
@@ -64,6 +64,54 @@ def filter_proteins(records, organisms=None, require_go=False, require_ec=False,
 
         yield record
 
+def run_data_munging(organisms=None, require_go=False, require_ec=False, require_pfam=False, job=None):
+    """
+    This function can be called from other modules.
+    The 'job' parameter is optional and is used for progress tracking.
+    """
+    all_records = read_dat_records()
+
+    # Correctly call the generator and convert to a list for processing
+    filtered_iterator = filter_proteins(
+        all_records,
+        organisms=organisms,
+        require_go=require_go,
+        require_ec=require_ec,
+        require_pfam=require_pfam
+    )
+
+    sequences_examined = 0
+    proteins_processed = 0
+    last_ten_accepted = []
+
+    # Iterate through the filtered results
+    for record in filtered_iterator:
+        sequences_examined += 1
+        protein_id = record.accessions[0]
+        entry_name = record.entry_name
+        name = record.description.split(';')[0]
+
+        most_recent_item = f"{protein_id} {entry_name} {name}"
+
+        proteins_processed += 1
+        last_ten_accepted.append(most_recent_item)
+        if len(last_ten_accepted) > 10:
+            last_ten_accepted.pop(0)
+
+        if job:
+            job.update(
+                sequences_examined=sequences_examined,
+                proteins_processed=proteins_processed,
+                most_recent_item=most_recent_item,
+                last_ten_accepted=last_ten_accepted
+            )
+        else:
+            # Print to console if not a job
+            print(most_recent_item)
+
+    if not job:
+        print(f"Found {proteins_processed} records matching the criteria.")
+
 def main():
     """
     Command-line interface for filtering protein data.
@@ -77,30 +125,12 @@ def main():
     args = parser.parse_args()
 
     print("Filtering protein data...")
-    all_records_iterator = read_dat_records()
-
-    filtered_records_iterator = filter_proteins(
-        all_records_iterator,
+    run_data_munging(
         organisms=args.organisms,
         require_go=args.require_go,
         require_ec=args.require_ec,
         require_pfam=args.require_pfam
     )
-
-    filtered_count = 0
-    for record in filtered_records_iterator:
-        filtered_count += 1
-        protein_id = record.accessions[0]
-        entry_name = record.entry_name
-        if 'RecName: Full=' in record.description:
-            name = record.description.split('RecName: Full=')[1].split(';')[0]
-        else:
-            name = record.description.split(';')[0]
-        description = record.description.split(';')[0]
-        print(protein_id, entry_name, name)
-
-    print(f"Found {filtered_count} records matching the criteria.")
-
 
 if __name__ == '__main__':
     main()

@@ -6,9 +6,10 @@ from typing import Dict, Any, Optional, Type
 import logging
 
 # Import job functions
-from computation import run_computation
-from data_munger import filter_proteins
-from sequences import read_dat_records, read_fasta_sequences
+from py.computation import run_computation
+from py.data_munger import run_data_munging
+from py.seq_search import run_seq_search
+from py.sequences import read_dat_records
 
 logger = logging.getLogger(__name__)
 
@@ -119,40 +120,14 @@ class DataMungingJob(Job):
     def run(self):
         logger.info(f"Running data munging job {self.job_id} with config {self.state['config']}")
         try:
-            organisms = self.state['config'].get('organisms', [])
-            all_records = read_dat_records()
-
-            sequences_examined = 0
-            proteins_processed = 0
-            last_ten_accepted = []
-
-            for record in all_records:
-                sequences_examined += 1
-                protein_id = record.accessions[0]
-                entry_name = record.entry_name
-                if 'RecName: Full=' in record.description:
-                    name = record.description.split('RecName: Full=')[1].split(';')[0]
-                else:
-                    name = record.description.split(';')[0]
-
-                most_recent_item = f"{protein_id} {entry_name} {name}"
-
-                if next(filter_proteins([record], organisms=organisms), None):
-                    proteins_processed += 1
-                    last_ten_accepted.append(most_recent_item)
-                    if len(last_ten_accepted) > 10:
-                        last_ten_accepted.pop(0)
-
-                self.update(
-                    sequences_examined=sequences_examined,
-                    proteins_processed=proteins_processed,
-                    most_recent_item=most_recent_item,
-                    last_ten_accepted=last_ten_accepted
-                )
-
-                if self.state['status'] == 'cancelled':
-                    break
-
+            config = self.state['config']
+            run_data_munging(
+                organisms=config.get('organisms', []),
+                require_go=config.get('require_go', False),
+                require_ec=config.get('require_ec', False),
+                require_pfam=config.get('require_pfam', False),
+                job=self
+            )
             if self.state['status'] != 'cancelled':
                 self.update(status="completed")
         except Exception as e:
@@ -161,7 +136,7 @@ class DataMungingJob(Job):
         logger.info(f"Data munging job {self.job_id} finished.")
 
 
-from nws import FastNwsDummy, FastNWS
+from py.nws import FastNwsDummy, FastNWS
 
 class SequenceSearchJob(Job):
     def __init__(self, job_id: str):
@@ -176,61 +151,12 @@ class SequenceSearchJob(Job):
     def run(self):
         logger.info(f"Running sequence search job {self.job_id} with config {self.state['config']}")
         try:
-            accession = self.state['config'].get('accession')
-            if not accession:
-                raise ValueError("Accession number not specified.")
-
-            use_fastnws = self.state['config'].get('use_fastnws', False)
-            scorer = FastNWS() if use_fastnws else FastNwsDummy()
-
-            all_records = list(read_dat_records())
-            target_record = None
-            for record in all_records:
-                if accession in record.accessions:
-                    target_record = record
-                    break
-
-            if not target_record:
-                raise ValueError(f"Protein with accession number {accession} not found.")
-
-            sequences_examined = 0
-            last_ten_accepted = []
-
-            for record in all_records:
-                if record == target_record:
-                    continue
-
-                sequences_examined += 1
-
-                protein_id = record.accessions[0]
-                entry_name = record.entry_name
-                if 'RecName: Full=' in record.description:
-                    name = record.description.split('RecName: Full=')[1].split(';')[0]
-                else:
-                    name = record.description.split(';')[0]
-
-                # Update the UI to show what we are working on *before* the expensive call.
-                self.update(
-                    sequences_examined=sequences_examined,
-                    most_recent_item=f"{protein_id} ..... {entry_name} {name}"
-                )
-
-                score = scorer.batch_nws([target_record.sequence], [record.sequence])[0][0]
-
-                most_recent_item = f"{protein_id} {score:.2f} {entry_name} {name}"
-                last_ten_accepted.append(most_recent_item)
-                if len(last_ten_accepted) > 10:
-                    last_ten_accepted.pop(0)
-
-                self.update(
-                    sequences_examined=sequences_examined,
-                    most_recent_item=most_recent_item,
-                    last_ten_accepted=last_ten_accepted,
-                )
-
-                if self.state['status'] == 'cancelled':
-                    break
-
+            config = self.state['config']
+            run_seq_search(
+                identifier=config.get('accession'),
+                use_fastnws=config.get('use_fastnws', False),
+                job=self
+            )
             if self.state['status'] != 'cancelled':
                 self.update(status="completed")
         except Exception as e:
