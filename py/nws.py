@@ -7,8 +7,11 @@ import torch.nn.functional as F
 import numpy as np
 
 class FastNWS:
-    def __init__(self, device='cuda', batch_size=100):
-        self.device = device
+    def __init__(self, device=None, batch_size=100):
+        if device is None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            self.device = device
         self.batch_size = batch_size
         
         # BLOSUM62 as tensor
@@ -83,8 +86,11 @@ class FastNWS:
 
 
 class FastNwsDummy:
-    def __init__(self, device='cuda', batch_size=100):
-        self.device = device
+    def __init__(self, device=None, batch_size=100):
+        if device is None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            self.device = device
         self.batch_size = batch_size
         
         # Amino acid order

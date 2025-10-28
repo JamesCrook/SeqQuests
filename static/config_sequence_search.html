@@ -8,41 +8,31 @@
 <body>
     <h2>Configure Sequence Search Job</h2>
     <form id="config-form">
-        <label for="sequence">Select a Protein Sequence:</label>
-        <select id="sequence" name="sequence">
-            <!-- Options will be populated by script -->
-        </select>
+        <label for="accession">Accession Number:</label>
+        <input type="text" id="accession" name="accession">
         <br>
         <button type="button" onclick="saveConfig()">Save Configuration</button>
     </form>
 
+    <hr>
+
+    <h2>Job Progress</h2>
+    <div id="progress-container">
+        <p><strong>Sequences Examined:</strong> <span id="sequences-examined">0</span></p>
+        <p><strong>Most Recent Item:</strong> <span id="most-recent-item">-</span></p>
+        <h3>Last Ten Results:</h3>
+        <ul id="last-ten-accepted">
+        </ul>
+    </div>
+
+    <script src="/static/job_monitor.js"></script>
     <script>
-        function getJobIdFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('job_id');
-        }
-
-        async function populateSequences() {
-            try {
-                const proteins = await parent.apiCall('/api/proteins');
-                const select = document.getElementById('sequence');
-                proteins.forEach(protein => {
-                    const option = document.createElement('option');
-                    option.value = protein[1];
-                    option.textContent = protein[0];
-                    select.appendChild(option);
-                });
-            } catch (e) {
-                parent.addLog('Failed to load protein sequences.', 'error');
-            }
-        }
-
         async function saveConfig() {
             const jobId = getJobIdFromUrl();
-            const sequence = document.getElementById('sequence').value;
+            const accession = document.getElementById('accession').value;
 
             const config = {
-                query_sequence: sequence
+                accession: accession
             };
 
             try {
@@ -54,7 +44,24 @@
             }
         }
 
-        window.addEventListener('load', populateSequences);
+        function updateProgressDisplay(data) {
+            document.getElementById('sequences-examined').textContent = data.sequences_examined || 0;
+            document.getElementById('most-recent-item').textContent = data.most_recent_item || '-';
+
+            const acceptedList = document.getElementById('last-ten-accepted');
+            acceptedList.innerHTML = '';
+            if (data.last_ten_accepted && data.last_ten_accepted.length > 0) {
+                data.last_ten_accepted.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    acceptedList.appendChild(li);
+                });
+            }
+        }
+
+        window.addEventListener('load', () => {
+            pollJobStatus(updateProgressDisplay);
+        });
     </script>
 </body>
 </html>

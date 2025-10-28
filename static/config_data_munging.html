@@ -32,15 +32,8 @@
         </ul>
     </div>
 
+    <script src="/static/job_monitor.js"></script>
     <script>
-        let pollInterval = 1000;
-        let pollTimer = null;
-
-        function getJobIdFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('job_id');
-        }
-
         async function saveConfig() {
             const jobId = getJobIdFromUrl();
             const checkedBoxes = document.querySelectorAll('input[name="organisms"]:checked');
@@ -56,22 +49,6 @@
                 parent.closeModal();
             } catch (e) {
                 parent.addLog(`Failed to save configuration: ${e}`, 'error');
-            }
-        }
-
-        async function pollJobStatus() {
-            if (pollTimer) clearTimeout(pollTimer);
-            const jobId = getJobIdFromUrl();
-            if (!jobId) return;
-
-            try {
-                const data = await parent.apiCall(`/api/job/${jobId}/status`);
-                updateProgressDisplay(data);
-                if (['running', 'initializing'].includes(data.status)) {
-                    pollTimer = setTimeout(pollJobStatus, pollInterval);
-                }
-            } catch (e) {
-                parent.addLog(`Failed to poll status for job ${jobId}: ${e}`, 'error');
             }
         }
 
@@ -92,7 +69,7 @@
         }
 
         window.addEventListener('load', () => {
-            pollJobStatus();
+            pollJobStatus(updateProgressDisplay);
         });
     </script>
 </body>

@@ -161,31 +161,68 @@ class DataMungingJob(Job):
         logger.info(f"Data munging job {self.job_id} finished.")
 
 
+from nws import FastNwsDummy, FastNWS
+
 class SequenceSearchJob(Job):
     def __init__(self, job_id: str):
         super().__init__(job_id, "sequence_search")
         self.state.update({
-            "query_sequence": "",
-            "matches_found": 0,
+            "accession": "",
+            "sequences_examined": 0,
+            "most_recent_item": "",
+            "last_ten_accepted": [],
         })
 
     def run(self):
         logger.info(f"Running sequence search job {self.job_id} with config {self.state['config']}")
         try:
-            query_sequence = self.state['config'].get('query_sequence')
-            if not query_sequence:
-                raise ValueError("Query sequence not specified.")
+            accession = self.state['config'].get('accession')
+            if not accession:
+                raise ValueError("Accession number not specified.")
 
-            all_sequences = read_fasta_sequences()
-            matches = 0
-            for header, sequence in all_sequences:
-                while self.state['status'] == 'paused':
-                    time.sleep(1)
+            use_fastnws = self.state['config'].get('use_fastnws', False)
+            scorer = FastNWS() if use_fastnws else FastNwsDummy()
+
+            all_records = list(read_dat_records())
+            target_record = None
+            for record in all_records:
+                if accession in record.accessions:
+                    target_record = record
+                    break
+
+            if not target_record:
+                raise ValueError(f"Protein with accession number {accession} not found.")
+
+            sequences_examined = 0
+            last_ten_accepted = []
+
+            for record in all_records:
+                if record == target_record:
+                    continue
+
+                sequences_examined += 1
+                score = scorer.batch_nws([target_record.sequence], [record.sequence])[0][0]
+
+                protein_id = record.accessions[0]
+                entry_name = record.entry_name
+                if 'RecName: Full=' in record.description:
+                    name = record.description.split('RecName: Full=')[1].split(';')[0]
+                else:
+                    name = record.description.split(';')[0]
+
+                most_recent_item = f"{protein_id} {score:.2f} {entry_name} {name}"
+                last_ten_accepted.append(most_recent_item)
+                if len(last_ten_accepted) > 10:
+                    last_ten_accepted.pop(0)
+
+                self.update(
+                    sequences_examined=sequences_examined,
+                    most_recent_item=most_recent_item,
+                    last_ten_accepted=last_ten_accepted,
+                )
+
                 if self.state['status'] == 'cancelled':
                     break
-                if query_sequence in sequence:
-                    matches += 1
-                    self.update(matches_found=matches)
 
             if self.state['status'] != 'cancelled':
                 self.update(status="completed")
