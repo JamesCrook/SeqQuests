@@ -4,7 +4,6 @@
 <head>
     <title>Protein Analysis Monitor</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
     <h1>Protein Similarity Analysis Monitor</h1>
@@ -14,9 +13,8 @@
         <button onclick="refreshJobs()">Refresh Jobs</button>
         <div id="job-specific-controls" style="display: inline-block;">
             <button id="startButton" onclick="startJob()" disabled>Start</button>
-            <button id="resumeButton" onclick="resumeJob()" disabled>Resume</button>
             <button id="pauseButton" onclick="pauseJob()" disabled>Pause</button>
-            <button id="cancelButton" onclick="cancelJob()" disabled>Cancel</button>
+            <button id="resumeButton" onclick="resumeJob()" disabled>Resume</button>
             <button id="configureButton" onclick="configureJob()" disabled>Configure</button>
         </div>
     </div>
@@ -40,13 +38,6 @@
             <div id="jobs"></div>
         </div>
 
-        <div id="currentJob">
-            <h3>Current Job: <span id="currentJobId">None</span></h3>
-            <div id="status">Status: <span id="statusText">-</span></div>
-            <div id="jobType">Job Type: <span id="jobTypeText">-</span></div>
-            <div id="currentStep">Step: <span id="stepText">-</span></div>
-            <div id="job-details"></div>
-        </div>
     </div>
 
     <div id="log-container">

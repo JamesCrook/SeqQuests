@@ -73,21 +73,10 @@ async function resumeJob() {
     }
 }
 
-async function cancelJob() {
-    if (!currentJobId) return;
-    try {
-        await apiCall(`/api/job/${currentJobId}/cancel`, 'POST');
-        addLog(`Job ${currentJobId} cancelled.`);
-        await refreshJobs();
-    } catch (e) {
-        addLog(`Failed to cancel job: ${e}`, 'error');
-    }
-}
-
 async function removeJob(jobId) {
     try {
-        await apiCall(`/api/job/${jobId}/cancel`, 'POST');
-        addLog(`Job ${jobId} cancelled.`);
+        await apiCall(`/api/job/${jobId}/delete`, 'POST');
+        addLog(`Job ${jobId} deleted.`);
         if (jobId === currentJobId) {
             selectJob(null, null);
         }
@@ -117,19 +106,26 @@ async function refreshJobs() {
         Object.entries(jobs).forEach(([jobId, job]) => {
             const div = document.createElement('div');
             div.className = 'job-item' + (jobId === currentJobId ? ' active-job' : '');
+            div.onclick = () => selectJob(jobId, job.job_type);
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
 
             const jobText = document.createElement('span');
             jobText.innerHTML = `${jobId.substring(0, 8)}... - ${job.job_type} (${job.status})`;
-            jobText.onclick = () => selectJob(jobId, job.job_type);
 
-            const trashIcon = document.createElement('i');
-            trashIcon.className = 'fa fa-trash';
+            const statusText = document.createElement('span');
+            statusText.innerHTML = "Compared: 0  Found: 0";
+
+            const trashIcon = document.createElement('span');
+            trashIcon.innerHTML = "🗑️"
             trashIcon.onclick = (e) => {
                 e.stopPropagation();
                 removeJob(jobId);
             };
 
             div.appendChild(jobText);
+            div.appendChild(statusText);
             div.appendChild(trashIcon);
             jobsDiv.appendChild(div);
         });
@@ -142,11 +138,8 @@ function selectJob(jobId, jobType) {
     currentJobId = jobId;
     currentJobType = jobType;
 
-    document.getElementById('currentJobId').textContent = jobId ? `${jobId.substring(0, 12)}...` : 'None';
-    document.getElementById('jobTypeText').textContent = jobType || '-';
-
     // Enable/disable buttons
-    const buttons = ['startButton', 'pauseButton', 'cancelButton', 'configureButton', 'resumeButton'];
+    const buttons = ['startButton', 'pauseButton', 'configureButton', 'resumeButton'];
     buttons.forEach(id => {
         document.getElementById(id).disabled = !jobId;
     });
@@ -176,9 +169,9 @@ async function pollJobStatus() {
 }
 
 function updateDisplay(data) {
-    document.getElementById('statusText').textContent = data.status;
-    document.getElementById('jobTypeText').textContent = data.job_type;
-    document.getElementById('currentStep').textContent = data.current_step || '-';
+    //document.getElementById('statusText').textContent = data.status;
+    //document.getElementById('jobTypeText').textContent = data.job_type;
+    //document.getElementById('currentStep').textContent = data.current_step || '-';
 
     const configureButton = document.getElementById('configureButton');
     if (['running', 'completed', 'failed', 'cancelled'].includes(data.status)) {
@@ -188,6 +181,8 @@ function updateDisplay(data) {
     }
 
     const detailsDiv = document.getElementById('job-details');
+    if( !detailsDiv )
+        return;
     detailsDiv.innerHTML = ''; // Clear previous details
 
     if (data.job_type === 'computation') {
