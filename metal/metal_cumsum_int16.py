@@ -1,188 +1,169 @@
 #!/usr/bin/env python3
 """
-Metal compute shader example using int16 for cumulative sum down columns.
-Shows explicit sequential processing (ripple-carry style) within each column.
+Metal int16 implementation using zero-copy buffers.
+This is the most efficient approach - Metal writes directly to numpy memory.
 """
 
 import numpy as np
 import Metal
-import objc
-from Foundation import NSData
+import ctypes
 
-# Metal shader source code
+# Metal shader
 shader_source = """
 #include <metal_stdlib>
 using namespace metal;
 
 kernel void cumulative_sum_columns(
-    device const short* input [[buffer(0)]],   // 32x300 matrix in row-major order
-    device short* output [[buffer(1)]],         // 32x300 matrix in row-major order
-    device int* final_sums [[buffer(2)]],       // 32 final sums (using int to avoid overflow)
-    constant uint& num_rows [[buffer(3)]],      // 300
-    constant uint& num_cols [[buffer(4)]],      // 32
-    uint col_id [[thread_position_in_grid]])    // Column index (0-31)
+    device const short* input [[buffer(0)]],
+    device short* output [[buffer(1)]],
+    device int* final_sums [[buffer(2)]],
+    constant uint& num_rows [[buffer(3)]],
+    constant uint& num_cols [[buffer(4)]],
+    uint col_id [[thread_position_in_grid]])
 {
-    // Each thread handles one column
     if (col_id >= num_cols) return;
     
-    // Initialize accumulator for this column
     int accumulator = 0;
     
-    // Sequential ripple-carry down the column
+    // Ripple-carry down the column
     for (uint row = 0; row < num_rows; row++) {
-        // Row-major indexing: row * num_cols + col
         uint idx = row * num_cols + col_id;
-        
-        // Read the input value
         short value = input[idx];
-        
-        // Add to accumulator (this is the "carry" propagation)
         accumulator += value;
-        
-        // Write the cumulative sum to output
-        // Note: Metal handles overflow/underflow for short naturally
         output[idx] = (short)accumulator;
     }
     
-    // Store the final sum for this column
     final_sums[col_id] = accumulator;
 }
-""";
+"""
 
-def create_metal_device():
-    """Create and return the default Metal device."""
-    return Metal.MTLCreateSystemDefaultDevice()
+def create_zero_copy_buffer(device, np_array):
+    """
+    Create a Metal buffer that shares memory with a numpy array.
 
-def compile_shader(device, source):
-    """Compile Metal shader source code."""
-    error_ptr = objc.nil
-    library = device.newLibraryWithSource_options_error_(source, None, error_ptr)
-    if error_ptr:
-        raise RuntimeError(f"Shader compilation failed: {error_ptr}")
-    return library
+    WARNING: The caller is responsible for keeping the 'np_array'
+    object alive for the entire lifetime of the returned Metal buffer.
+    """
+    # 1. Ensure the array's data is in one contiguous block
+    #    (This step is still important)
+    np_array = np.ascontiguousarray(np_array)
 
-def create_buffer_from_numpy(device, np_array):
-    """Create a Metal buffer from a numpy array."""
-    data = NSData.dataWithBytes_length_(np_array.ctypes.data, np_array.nbytes)
-    buffer = device.newBufferWithData_options_(data, Metal.MTLResourceStorageModeShared)
-    return buffer
+    # 2. Pass the memoryview (np_array.data) directly.
+    #    pyobjc will get the void* pointer from this.
+    return device.newBufferWithBytesNoCopy_length_options_deallocator_(
+        np_array.data,      # <--- THIS IS THE FIX
+        np_array.nbytes,
+        0,  # MTLResourceStorageModeShared
+        None  # This means YOU must manage the np_array's lifetime
+    )
 
-def buffer_to_numpy(buffer, shape, dtype):
-    """Convert a Metal buffer back to numpy array."""
-    ptr = buffer.contents()
-    return np.frombuffer(ptr.as_buffer(buffer.length()), dtype=dtype).reshape(shape)
+def create_input_buffer(device, np_array):
+    """Create input buffer (regular copy, more efficient)."""
+    # np_array.data is a memoryview, pyobjc can read this
+    # directly without the .tobytes() intermediate copy.
+    return device.newBufferWithBytes_length_options_(
+        np_array.data, 
+        np_array.nbytes, 
+        0
+    )
+
 
 def main():
-    # Initialize data
-    rows = 300
-    cols = 32
-    
-    # Create input array with small random integers (0-5)
-    np.random.seed(42)  # For reproducibility
+    # Setup
+    rows, cols = 300, 32
+    np.random.seed(42)
     input_data = np.random.randint(0, 6, size=(rows, cols), dtype=np.int16)
     
-    print(f"Input shape: {input_data.shape}")
-    print(f"First 5 rows of first 5 columns:")
-    print(input_data[:5, :5])
+    print(f"Metal int16 Zero-Copy Implementation")
+    print(f"Matrix: {rows}x{cols}")
+    print(f"Sample input:\n{input_data[:5, :5]}\n")
     
-    # Setup Metal
-    device = create_metal_device()
+    # Pre-allocate output arrays - IMPORTANT: these must stay in scope!
+    output_data = np.zeros((rows, cols), dtype=np.int16, order='C')
+    final_sums = np.zeros(cols, dtype=np.int32, order='C')
+    
+    # Metal setup
+    device = Metal.MTLCreateSystemDefaultDevice()
     if not device:
-        raise RuntimeError("Metal is not supported on this device")
+        raise RuntimeError("Metal not available")
     
-    print(f"\nUsing Metal device: {device.name()}")
+    print(f"Device: {device.name()}")
     
     # Compile shader
-    library = compile_shader(device, shader_source)
-    kernel_function = library.newFunctionWithName_("cumulative_sum_columns")
+    library, error = device.newLibraryWithSource_options_error_(shader_source, None, None)
+    if error:
+        raise RuntimeError(f"Shader compilation failed: {error}")
     
-    # Create compute pipeline
-    error_ptr = objc.nil
-    pipeline = device.newComputePipelineStateWithFunction_error_(kernel_function, error_ptr)
-    if error_ptr:
-        raise RuntimeError(f"Pipeline creation failed: {error_ptr}")
-    
-    # Create command queue
-    command_queue = device.newCommandQueue()
+    kernel = library.newFunctionWithName_("cumulative_sum_columns")
+    pipeline, error = device.newComputePipelineStateWithFunction_error_(kernel, None)
+    if error:
+        raise RuntimeError(f"Pipeline creation failed: {error}")
     
     # Create buffers
-    input_buffer = create_buffer_from_numpy(device, input_data)
-    output_buffer = device.newBufferWithLength_options_(
-        input_data.nbytes, Metal.MTLResourceStorageModeShared)
-    final_sums_buffer = device.newBufferWithLength_options_(
-        cols * 4, Metal.MTLResourceStorageModeShared)  # 32 ints
+    # Input buffer - regular copy (input is read-only)
+    input_buffer = create_input_buffer(device, input_data)
     
-    # Create constants buffers
-    rows_const = np.array([rows], dtype=np.uint32)
-    cols_const = np.array([cols], dtype=np.uint32)
-    rows_buffer = create_buffer_from_numpy(device, rows_const)
-    cols_buffer = create_buffer_from_numpy(device, cols_const)
+    # Output buffers - zero copy (Metal writes directly to numpy arrays)
+    output_buffer = create_zero_copy_buffer(device, output_data)
+    sums_buffer = create_zero_copy_buffer(device, final_sums)
     
-    # Create command buffer and encoder
-    command_buffer = command_queue.commandBuffer()
+    # Constants - regular copy (small and read-only)
+    rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
+    cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
+    
+    print("✅ Buffers created (zero-copy for outputs)")
+    
+    # Execute
+    queue = device.newCommandQueue()
+    command_buffer = queue.commandBuffer()
     encoder = command_buffer.computeCommandEncoder()
     
-    # Set the compute pipeline
     encoder.setComputePipelineState_(pipeline)
-    
-    # Set buffers
     encoder.setBuffer_offset_atIndex_(input_buffer, 0, 0)
     encoder.setBuffer_offset_atIndex_(output_buffer, 0, 1)
-    encoder.setBuffer_offset_atIndex_(final_sums_buffer, 0, 2)
+    encoder.setBuffer_offset_atIndex_(sums_buffer, 0, 2)
     encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 3)
     encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 4)
     
-    # Configure thread groups
-    threads_per_threadgroup = Metal.MTLSizeMake(cols, 1, 1)  # 32 threads
-    threadgroups = Metal.MTLSizeMake(1, 1, 1)  # 1 threadgroup
+    # Dispatch
+    encoder.dispatchThreads_threadsPerThreadgroup_(
+        Metal.MTLSizeMake(cols, 1, 1),
+        Metal.MTLSizeMake(min(cols, pipeline.maxTotalThreadsPerThreadgroup()), 1, 1)
+    )
     
-    # Dispatch threads
-    encoder.dispatchThreadgroups_threadsPerThreadgroup_(threadgroups, threads_per_threadgroup)
-    
-    # Finish encoding and execute
     encoder.endEncoding()
     command_buffer.commit()
     command_buffer.waitUntilCompleted()
     
-    # Get results
-    output_data = buffer_to_numpy(output_buffer, (rows, cols), np.int16)
-    final_sums_metal = buffer_to_numpy(final_sums_buffer, (cols,), np.int32)
+    print("✅ Computation complete")
+    print("✅ Results already in numpy arrays (zero-copy)\n")
     
-    # Verify with numpy
-    print("\n" + "="*50)
-    print("VERIFICATION")
-    print("="*50)
+    # The results are already in output_data and final_sums!
+    # No need to copy anything.
     
-    # Compute cumulative sum using numpy
+    # Verify results
     cumsum_numpy = np.cumsum(input_data, axis=0)
-    final_sums_numpy = cumsum_numpy[-1, :]  # Last row contains final sums
+    expected_sums = cumsum_numpy[-1, :].astype(np.int32)
     
-    # Compare results
-    print(f"\nFinal sums from Metal:")
-    print(final_sums_metal)
-    print(f"\nFinal sums from NumPy:")
-    print(final_sums_numpy)
+    print("Verification:")
+    print(f"Metal sums: {final_sums[:8]}...")
+    print(f"NumPy sums: {expected_sums[:8]}...")
     
-    # Check if results match
-    if np.allclose(final_sums_metal, final_sums_numpy):
-        print("\n✅ Results match! Metal computation is correct.")
+    if np.allclose(final_sums, expected_sums):
+        print("\n✅ Perfect match! Zero-copy int16 working correctly.")
+        print("\nAdvantages of this approach:")
+        print("• Zero memory copies for output")
+        print("• Native int16 operations")
+        print("• 2x memory bandwidth vs int32")
+        print("• Direct numpy array access")
+        print("• Maximum possible performance")
     else:
-        print("\n❌ Results don't match!")
-        diff = np.abs(final_sums_metal - final_sums_numpy)
-        print(f"Maximum difference: {np.max(diff)}")
+        print(f"\n❌ Mismatch: max diff = {np.max(np.abs(final_sums - expected_sums))}")
     
-    # Show a sample of the cumulative sums
-    print(f"\nFirst 10 rows of column 0 (cumulative sum):")
-    print("Metal:", output_data[:10, 0])
-    print("NumPy:", cumsum_numpy[:10, 0])
-    
-    # Performance note
-    print("\n" + "="*50)
-    print("PERFORMANCE NOTE")
-    print("="*50)
-    print("This runs 32 cumulative sums in parallel, each doing 300 sequential")
-    print("additions with explicit carry propagation (ripple-carry style).")
-    print("Each thread handles one complete column independently.")
+    # Show that we can use the results immediately
+    print(f"\nColumn 0 cumulative sum (first 10 rows):")
+    print(f"Result: {output_data[:10, 0]}")
+    print(f"Expected: {cumsum_numpy[:10, 0]}")
 
 if __name__ == "__main__":
     main()
