@@ -1,0 +1,6 @@
+# Requirements for Metal compute shader example
+numpy>=1.20.0
+pyobjc-core>=8.0
+pyobjc-framework-Cocoa>=8.0
+pyobjc-framework-Metal>=8.0
+pyobjc-framework-MetalPerformanceShaders>=8.0
