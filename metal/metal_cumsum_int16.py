@@ -70,6 +70,8 @@ def create_input_buffer(device, np_array):
 
 def main():
     # Setup
+    # rows is the number of amino acids in the probe sequence
+    # cols is the number of simultaneous jobs we are running.
     rows, cols = 300, 32
     np.random.seed(42)
     input_data = np.random.randint(0, 6, size=(rows, cols), dtype=np.int16)
@@ -100,18 +102,15 @@ def main():
         raise RuntimeError(f"Pipeline creation failed: {error}")
     
     # Create buffers
-    # Input buffer - regular copy (input is read-only)
-    input_buffer = create_input_buffer(device, input_data)
-    
-    # Output buffers - zero copy (Metal writes directly to numpy arrays)
-    output_buffer = create_zero_copy_buffer(device, output_data)
+    buffer_A = create_zero_copy_buffer(device, input_data)
+    buffer_B = create_zero_copy_buffer(device, output_data)
     sums_buffer = create_zero_copy_buffer(device, final_sums)
-    
+
     # Constants - regular copy (small and read-only)
     rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
     cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
     
-    print("✅ Buffers created (zero-copy for outputs)")
+    print("Buffers created (zero-copy for outputs)")
     
     # Execute
     queue = device.newCommandQueue()
@@ -119,8 +118,8 @@ def main():
     encoder = command_buffer.computeCommandEncoder()
     
     encoder.setComputePipelineState_(pipeline)
-    encoder.setBuffer_offset_atIndex_(input_buffer, 0, 0)
-    encoder.setBuffer_offset_atIndex_(output_buffer, 0, 1)
+    encoder.setBuffer_offset_atIndex_(buffer_A, 0, 0)
+    encoder.setBuffer_offset_atIndex_(buffer_B, 0, 1)
     encoder.setBuffer_offset_atIndex_(sums_buffer, 0, 2)
     encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 3)
     encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 4)
@@ -135,12 +134,7 @@ def main():
     command_buffer.commit()
     command_buffer.waitUntilCompleted()
     
-    print("✅ Computation complete")
-    print("✅ Results already in numpy arrays (zero-copy)\n")
-    
-    # The results are already in output_data and final_sums!
-    # No need to copy anything.
-    
+    print("Computation complete")
     # Verify results
     cumsum_numpy = np.cumsum(input_data, axis=0)
     expected_sums = cumsum_numpy[-1, :].astype(np.int32)
@@ -150,18 +144,14 @@ def main():
     print(f"NumPy sums: {expected_sums[:8]}...")
     
     if np.allclose(final_sums, expected_sums):
-        print("\n✅ Perfect match! Zero-copy int16 working correctly.")
-        print("\nAdvantages of this approach:")
-        print("• Zero memory copies for output")
-        print("• Native int16 operations")
-        print("• 2x memory bandwidth vs int32")
-        print("• Direct numpy array access")
-        print("• Maximum possible performance")
+        print("\n✅ Perfect match.")
     else:
         print(f"\n❌ Mismatch: max diff = {np.max(np.abs(final_sums - expected_sums))}")
     
     # Show that we can use the results immediately
     print(f"\nColumn 0 cumulative sum (first 10 rows):")
+    # input_data and output_data alternate, so in the protein search we need to
+    # select the right one.
     print(f"Result: {output_data[:10, 0]}")
     print(f"Expected: {cumsum_numpy[:10, 0]}")
 
