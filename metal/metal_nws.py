@@ -11,8 +11,6 @@ import ctypes
 
 # --- Shaders ---
 
-# CHANGED: This shader now operates col-wise.
-# One thread is launched per col.
 cumsum_shader_source = """
 #include <metal_stdlib>
 using namespace metal;
@@ -20,21 +18,21 @@ using namespace metal;
 kernel void cumulative_sum_cols( 
     device const short* input [[buffer(0)]],
     device short* output [[buffer(1)]],
-    device int* final_sums [[buffer(2)]],
-    constant uint& num_cols [[buffer(3)]],
-    constant uint& num_rows [[buffer(4)]],
+    device short* pam [[buffer(2)]],
+    device short* aa [[buffer(3)]],
+    device int* final_sums [[buffer(4)]],
+    constant uint& num_cols [[buffer(5)]],
+    constant uint& num_rows [[buffer(6)]],
     uint col_id [[thread_position_in_grid]])
 {
     if (col_id >= num_cols) return;
     
-    int accumulator = 0;
-    
+    short accumulator = 0;
     uint base_idx = col_id * num_rows;
-    
+
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
-        short value = input[idx];
-        accumulator += value;
+        accumulator += input[idx];
         output[idx] = (short)accumulator;
     }
     
@@ -46,16 +44,35 @@ nws_shader_source = """
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void nws_step(
-    device const short* input_buffer [[buffer(0)]],
-    device short* output_buffer [[buffer(1)]],
-    constant uint& num_cols [[buffer(2)]],
-    constant uint& num_rows [[buffer(3)]],
-    uint2 tid [[thread_position_in_grid]])
+kernel void nws_step( 
+    device const short* input [[buffer(0)]],
+    device short* output [[buffer(1)]],
+    device short* pam [[buffer(2)]],
+    device short* aa [[buffer(3)]],
+    device int* final_sums [[buffer(4)]],
+    constant uint& num_cols [[buffer(5)]],
+    constant uint& num_rows [[buffer(6)]],
+    uint col_id [[thread_position_in_grid]])
 {
-    if (tid.x >= num_rows || tid.y >= num_cols) return;
-    uint idx = tid.y * num_rows + tid.x;
-    output_buffer[idx] = input_buffer[idx] + 1;
+    if (col_id >= num_cols) return;
+    
+    short accumulator = 0;
+    
+    uint base_idx = col_id * num_rows+1;
+    uint base_nidx = aa[col_id] * num_rows;
+    
+    for (uint row = 1; row < num_rows; row++) {
+        uint idx = base_idx + row;
+        uint nidx = base_nidx + row;
+        short dValue = input[idx-1] + pam[nidx];
+        short hValue = input[idx];
+        accumulator = max( accumulator, hValue )-10;
+        accumulator = max( accumulator, dValue );
+        accumulator = max( accumulator, (short)0 );
+        output[idx] = (short)accumulator;
+    }
+    
+    final_sums[col_id] = accumulator;
 }
 """
 
@@ -97,7 +114,7 @@ def compile_shader(device, source, kernel_name):
 # --- Cumulative Sum Functions ---
 
 # CHANGED: The dispatch grid size is now a parameter
-def invoke_cumsum_pass(device, pipeline, buffer_input, buffer_output, buffer_sums, cols_buffer, rows_buffer, grid_width):
+def invoke_pass(device, pipeline, buffer_input, buffer_output, buffer_pam, buffer_aa, buffer_sums, cols_buffer, rows_buffer, grid_width):
     """Invokes one pass of the cumulative_sum shader."""
     
     queue = device.newCommandQueue()
@@ -107,9 +124,11 @@ def invoke_cumsum_pass(device, pipeline, buffer_input, buffer_output, buffer_sum
     encoder.setComputePipelineState_(pipeline)
     encoder.setBuffer_offset_atIndex_(buffer_input, 0, 0)
     encoder.setBuffer_offset_atIndex_(buffer_output, 0, 1)
-    encoder.setBuffer_offset_atIndex_(buffer_sums, 0, 2)
-    encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 3)
-    encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 4)
+    encoder.setBuffer_offset_atIndex_(buffer_pam, 0, 2)
+    encoder.setBuffer_offset_atIndex_(buffer_aa, 0, 3)
+    encoder.setBuffer_offset_atIndex_(buffer_sums, 0, 4)
+    encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 5)
+    encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 6)
     
     # CHANGED: Dispatch 1D grid, one thread per col
     # The grid_width is now colS, not rowS.
@@ -163,7 +182,10 @@ def test_cumsum(device):
     # Pre-allocate output arrays
     output_data = np.zeros((cols, rows), dtype=np.int16, order='C')
     final_sums = np.zeros(cols, dtype=np.int32, order='C')
-    
+
+    pam_data = np.zeros((rows *32), dtype=np.int16, order='C')
+    aa_data = np.zeros((cols), dtype=np.int16, order='C')
+
     # Compile
     pipeline = compile_shader(device, cumsum_shader_source, "cumulative_sum_cols")
     
@@ -171,13 +193,16 @@ def test_cumsum(device):
     buffer_input = create_zero_copy_buffer(device, input_data)
     buffer_output = create_zero_copy_buffer(device, output_data)
     buffer_sums = create_zero_copy_buffer(device, final_sums) # Uses new `final_sums`
+    buffer_pam = create_zero_copy_buffer(device, pam_data )
+    buffer_aa = create_zero_copy_buffer(device, aa_data )
+
     cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
     rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
     
     print("Buffers created (zero-copy)")
     
     # Invoke Shader
-    invoke_cumsum_pass(device, pipeline, buffer_input, buffer_output, buffer_sums, cols_buffer, rows_buffer, cols)
+    invoke_pass(device, pipeline, buffer_input, buffer_output, buffer_pam, buffer_aa, buffer_sums, cols_buffer, rows_buffer, cols)
     print("Computation complete")
 
     # Invoke Numpy
@@ -187,31 +212,7 @@ def test_cumsum(device):
     display_cumsum_results(input_data, output_data, final_sums, cumsum_numpy)
 
 
-# --- NWS (Needleman-Wunsch-Smith) Functions (Unchanged) ---
-
-def invoke_nws_pass(device, pipeline, buffer_in, buffer_out, cols_buffer, rows_buffer, cols, rows):
-    queue = device.newCommandQueue()
-    command_buffer = queue.commandBuffer()
-    encoder = command_buffer.computeCommandEncoder()
-    
-    encoder.setComputePipelineState_(pipeline)
-    encoder.setBuffer_offset_atIndex_(buffer_in, 0, 0)
-    encoder.setBuffer_offset_atIndex_(buffer_out, 0, 1)
-    encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 2)
-    encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 3)
-
-    max_threads = pipeline.maxTotalThreadsPerThreadgroup()
-    thread_width = min(rows, 32)
-    thread_height = min(cols, max_threads // thread_width)
-    threads_per_group = Metal.MTLSizeMake(thread_width, thread_height, 1)
-    
-    grid_size = Metal.MTLSizeMake(rows, cols, 1)
-    
-    encoder.dispatchThreads_threadsPerThreadgroup_(grid_size, threads_per_group)
-    
-    encoder.endEncoding()
-    command_buffer.commit()
-    command_buffer.waitUntilCompleted()
+# --- NWS (Needleman-Wunsch-Smith) Functions ---
 
 def display_nws_results(initial_data, final_data, num_steps):
     print("\nNWS Verification (Placeholder):")
@@ -226,23 +227,37 @@ def display_nws_results(initial_data, final_data, num_steps):
 
 def test_nws(device):
     print("\n--- Testing NWS Buffer Alternation ---")
-    cols, rows = 1024, 300
+    # Setup
+    cols, rows = 32, 300
     num_steps = 17
 
-    np.random.seed(42)    
+    np.random.seed(42)
     initial_data = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
     data_array_0 = initial_data.copy()
     data_array_1 = np.zeros((cols, rows), dtype=np.int16, order='C')
     
     print(f"Matrix: {cols}x{rows}, Steps: {num_steps}")
+    print(f"Sample input:\n{initial_data[:5, :5]}\n")
+    
+    final_sums = np.zeros(cols, dtype=np.int32, order='C')
+    pam_data = np.zeros((rows *32), dtype=np.int16, order='C')
+    aa_data = np.zeros((cols), dtype=np.int16, order='C')
 
+    # Compile
     pipeline = compile_shader(device, nws_shader_source, "nws_step")
-
+    
+    # Create buffers
     buffer_0 = create_zero_copy_buffer(device, data_array_0)
     buffer_1 = create_zero_copy_buffer(device, data_array_1)
+    buffer_sums = create_zero_copy_buffer(device, final_sums) # Uses new `final_sums`
+    buffer_pam = create_zero_copy_buffer(device, pam_data )
+    buffer_aa = create_zero_copy_buffer(device, aa_data )
+
     cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
     rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
-
+    
+    print("Buffers created (zero-copy)")
+    
     buffers = [buffer_0, buffer_1]
     
     print(f"Running {num_steps} steps of buffer alternation...")
@@ -251,9 +266,8 @@ def test_nws(device):
         out_idx = (step + 1) % 2
         
         print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
-        
-        invoke_nws_pass(device, pipeline, buffers[in_idx], buffers[out_idx], 
-                        cols_buffer, rows_buffer, cols, rows)
+    
+        invoke_pass(device, pipeline, buffers[in_idx], buffers[out_idx], buffer_pam, buffer_aa, buffer_sums, cols_buffer, rows_buffer, cols)
 
     final_array_np = [data_array_0, data_array_1][num_steps % 2]
     
@@ -268,8 +282,8 @@ def main():
         raise RuntimeError("Metal not available")
     print(f"Device: {device.name()}")
     
-    test_cumsum(device)
-    #test_nws(device)
+    #test_cumsum(device)
+    test_nws(device)
 
 if __name__ == "__main__":
     main()
