@@ -9,6 +9,14 @@ import numpy as np
 import Metal
 import ctypes
 
+import sys
+import os
+# Add the ../py directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'py'))
+
+import pam_converter as pam
+import sequences
+
 # --- Shaders ---
 
 nws_shader_source = """
@@ -165,8 +173,7 @@ def invoke_pass(device, pipeline, buffer_input, buffer_output, buffer_pam, buffe
 
 def display_nws_results(initial_data, final_data, final_max, num_steps):
     print("\nNWS Verification (Placeholder):")
-    print(f"Initial data (top-left):\n{initial_data[:5, :5]}")
-    print(f"Data after {num_steps} steps (top-left):\n{final_data[:5, :5]}")
+    print(f"Data after {num_steps} steps (top-left):\n{final_data[:5, :35]}")
     print(f"Final Max:\n{final_max[:5]}")
     return
 
@@ -177,19 +184,31 @@ def display_nws_results(initial_data, final_data, final_max, num_steps):
         print("\n❌ Mismatch (for placeholder logic).")
 
 
+
+
+
 def test_nws(device):
-    print("\n--- Testing NWS Buffer Alternation ---")
-    # Setup
+
     cols, rows = 5, 300
-    num_steps = 2
+    all_buffers = make_metal_buffers( device, cols, rows )
+    (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
+    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
 
     np.random.seed(42)
-    initial_data = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
-    data_array_0 = initial_data.copy()
+    initial_data[:] = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
+    buffc[0][:] = initial_data
+    print(f"Sample input:\n{initial_data[:5, :5]}\n")
+
+    run_metal_steps( all_buffers, cols, rows)
+
+
+def make_metal_buffers( device, cols, rows):
+    print("\n--- Testing NWS Buffer Alternation ---")
+    initial_data = np.zeros((cols, rows), dtype=np.int16, order='C')
+    data_array_0 = np.zeros((cols, rows), dtype=np.int16, order='C')
     data_array_1 = np.zeros((cols, rows), dtype=np.int16, order='C')
     
-    print(f"Matrix: {cols}x{rows}, Steps: {num_steps}")
-    print(f"Sample input:\n{initial_data[:5, :5]}\n")
+    print(f"Matrix: {cols}x{rows}")
     
     final_max = np.zeros(cols, dtype=np.int16, order='C')
     pam_data = np.zeros((rows *32), dtype=np.int16, order='C')
@@ -209,11 +228,23 @@ def test_nws(device):
     cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
     rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
     
-    print("Buffers created (zero-copy)")
-    
     buffers = [buffer_0, buffer_1]
     buffc = [data_array_0, data_array_1]
+
+    print("Buffers created (zero-copy)")
+    return (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
+    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data)
     
+
+def get_aa( step, cols, aa_data ):
+    seq = "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQ"
+    for i in range(cols):
+        aa_data[i] = ord( seq[step+i] ) %32
+
+def run_metal_steps(all_buffers, cols, rows):
+    num_steps = 1
+    (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
+    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
     print(f"Running {num_steps} steps of buffer alternation...")
     for step in range(num_steps):
         in_idx = step % 2
@@ -221,13 +252,35 @@ def test_nws(device):
         
         print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
 
+        get_aa( step, cols, aa_data )
         nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, final_max, cols, rows)
         #invoke_pass(device, pipeline, buffers[in_idx], buffers[out_idx], buffer_pam, buffer_aa, buffer_max, cols_buffer, rows_buffer, cols)
 
-    final_array_np = [data_array_0, data_array_1][num_steps % 2]
+    final_array_np = buffc[num_steps % 2]
     
     display_nws_results(initial_data, final_array_np, final_max, num_steps)
-        
+
+def search_db( device ):
+    pam_32x32, aa_letters = pam.convert_pam_to_32x32()
+    iter = sequences.read_fasta_sequences()
+    first_record = next( iter )
+    pam_lut, sequence = pam.make_fasta_lut(first_record, pam_32x32)
+
+    cols, rows = 5, len(sequence)
+    all_buffers = make_metal_buffers( device, cols, rows )
+    (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
+    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
+
+    #np.random.seed(42)
+    #initial_data[:] = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
+    #buffc[0][:] = initial_data
+    pam_view = np.array(pam_lut, dtype=np.int16).flatten()
+    pam_data[:]=pam_view # 32 x rows 
+    print(f"Sample input:\n{initial_data[:5, :5]}\n")
+
+    run_metal_steps( all_buffers, cols, rows)
+
+
 
 # --- Main ---
 
@@ -238,7 +291,8 @@ def main():
     print(f"Device: {device.name()}")
     
     #test_cumsum(device)
-    test_nws(device)
+    #test_nws(device)
+    search_db(device)
 
 if __name__ == "__main__":
     main()

@@ -56,7 +56,7 @@ def make_fasta_lut(fasta_rec, pam_32x32):
     Read first sequence from FASTA file and create PamLut array.
     """
     
-    sequence = str(fasta_rec.seq)
+    sequence = "MMMMM"+str(fasta_rec.seq)
     seq_length = len(sequence)
     
     print(f"\nSequence ID: {fasta_rec.id}")
