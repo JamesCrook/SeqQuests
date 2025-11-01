@@ -13,6 +13,7 @@ import ctypes
 
 import sys
 import os
+import time
 # Add the ../py directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'py'))
 
@@ -48,6 +49,10 @@ kernel void nws_step(
     
     uint base_idx = col_id * num_rows;
     uint base_nidx = aa[col_id] * num_rows;
+    short penalty = 10;
+    if( aa[col_id]==0 )
+        penalty = 30000;
+
     short dValue = 0;
     
     for (uint row = 0; row < num_rows; row++) {
@@ -56,7 +61,7 @@ kernel void nws_step(
         
         short hValue = input[idx];
         
-        accumulator = max( accumulator, hValue )-10;
+        accumulator = max( accumulator, hValue )-penalty;
         accumulator = max( accumulator, dValue );
         accumulator = max( accumulator, (short)0 );
         maxv = max( maxv, accumulator );
@@ -64,7 +69,8 @@ kernel void nws_step(
         
         output[idx] = (short)accumulator;
     }
-    final_max[col_id] = maxv;
+    final_max[col_id*2] = maxv;
+    final_max[col_id*2+1] = max( maxv, final_max[col_id*2+1]);
 }
 """
 
@@ -83,6 +89,10 @@ def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
         
         base_idx = col_id * num_rows
         base_nidx = int(aa[col_id]) * num_rows
+        penalty = 10;
+        if aa[col_id]==0 :
+            penalty = 30000;
+
         dValue = np.int16(0)
         
         for row in range(0, num_rows):
@@ -91,7 +101,7 @@ def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
             
             hValue = np.int16(input_flat[idx])
             
-            accumulator = np.int16(max(int(accumulator), int(hValue)) - 10)
+            accumulator = np.int16(max(int(accumulator), int(hValue)) - penalty)
             accumulator = np.int16(max(int(accumulator), int(dValue)))
             accumulator = np.int16(max(int(accumulator), 0))
             maxv = np.int16(max(int(maxv), int(accumulator)))
@@ -99,7 +109,8 @@ def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
 
             output_flat[idx] = accumulator
         
-        final_max[col_id] = maxv
+        final_max[col_id*2] = maxv
+        final_max[col_id*2+1] = np.int16(max(int(maxv), int(final_max[col_id*2+1])))
 
 # --- Buffer Utilities ---
 
@@ -190,7 +201,7 @@ def make_metal_buffers(device, cols, rows):
     data_array_0 = np.zeros((cols, rows), dtype=np.int16, order='C')
     data_array_1 = np.zeros((cols, rows), dtype=np.int16, order='C')
     
-    final_max = np.zeros(cols, dtype=np.int16, order='C')
+    final_max = np.zeros(cols*2, dtype=np.int16, order='C')
     pam_data = np.zeros((rows * 32), dtype=np.int16, order='C')
     aa_data = np.zeros(cols, dtype=np.int16, order='C')
 
@@ -220,7 +231,7 @@ def make_metal_buffers(device, cols, rows):
     return buffers
     
 # Fills aa_data for typically 1024 proteins.
-def yield_aa(cols, aa_data):
+def yield_aa(cols, aa_data, final_max):
     """Generator that yields aa_data for each sequence."""
     # aa_data is memory mapped, so we fill it in place.
     fasta_iter = sequences.read_fasta_sequences()
@@ -228,15 +239,26 @@ def yield_aa(cols, aa_data):
     # Initialize lists with proper length
     seqs = [""] * cols
     pos = [0] * cols
+    seqno = [-1] *cols
+    seq=-1
     
     while True:
         for i in range(cols):
             # Check if we need to load the next sequence
-            if pos[i] >= len(seqs[i]):
+            length = len(seqs[i])
+            if pos[i] >= length:
                 try:
+                    score = final_max[2*i+1]
+                    cscore = final_max[2*i]
+                    if( score > 100 ):
+                        print(f"Slot:{i:>4} Seq:{seqno[i]:>5} Length:{length-1:>4} Score:{score:>5} Cscore:{cscore:>5}")
+                    final_max[2*i+1]=0
                     rec = next(fasta_iter)
-                    seqs[i] = rec.seq
+                    seq += 1
+                    # @ is the stop char, end of sequence.
+                    seqs[i] = "@" + rec.seq
                     pos[i] = 0
+                    seqno[i] = seq
                 except StopIteration:
                     return  # End generator when any position runs out.
             
@@ -249,7 +271,7 @@ def yield_aa(cols, aa_data):
 
 def run_metal_steps(all_buffers, cols, rows):
     """Runs the NWS simulation for a specified number of steps."""
-    num_steps = 1000  # Capped for now
+    num_steps = 10000  # Capped for now
 
     device = all_buffers['device']
     pipeline = all_buffers['pipeline']
@@ -261,26 +283,38 @@ def run_metal_steps(all_buffers, cols, rows):
     rows_buffer = all_buffers['rows_buffer']
     buffc = all_buffers['numpy_buffers']
     aa_data = all_buffers['aa_data']
+    pam_data = all_buffers['pam_data']
     final_max = all_buffers['final_max']
     initial_data = all_buffers['initial_data']
 
     queue = device.newCommandQueue()
-    gen = yield_aa(cols, aa_data)
+    gen = yield_aa(cols, aa_data, final_max)
+    use_metal = True
 
     print(f"Running {num_steps} steps of buffer alternation...")
+    start = time.time()
+
     for step in range(num_steps):
         next(gen)
 
         in_idx, out_idx = step % 2, (step + 1) % 2
-        print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
+        #print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
 
-        invoke_pass(
-            queue, pipeline, buffers[in_idx], buffers[out_idx],
-            pam_buffer, aa_buffer, max_buffer,
-            cols_buffer, rows_buffer, cols
-        )
+        if use_metal:
+            if False:
+                invoke_pass(
+                    queue, pipeline, buffers[in_idx], buffers[out_idx],
+                    pam_buffer, aa_buffer, max_buffer,
+                    cols_buffer, rows_buffer, cols
+                )
+        else :
+            nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, 
+                final_max, cols, rows)
 
     final_array_np = buffc[num_steps % 2]
+    elapsed = time.time() - start
+    print(f"Execution time: {elapsed:.4f} seconds")
+
     display_nws_results(initial_data, final_array_np, final_max, num_steps)
 
 def search_db(device):

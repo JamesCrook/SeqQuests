@@ -47,6 +47,11 @@ def convert_pam_to_32x32():
             rounded_val = int(round(original_val))
             
             pam_32x32[idx1, idx2] = rounded_val
+
+    # For stop char @, huge penalty.
+    for i in range(32):
+        pam_32x32[0, i] = -30000
+        pam_32x32[i, 0] = -30000
     
     return pam_32x32, aa_letters
 
