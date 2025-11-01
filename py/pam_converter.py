@@ -33,7 +33,6 @@ def convert_pam_to_32x32():
     max_val = max(values)
     
     print(f"Original PAM250 range: [{min_val}, {max_val}]")
-    print(f"Amino acids in matrix: {aa_letters}\n")
     
     # Fill the 32x32 array
     for aa1 in aa_letters:
@@ -61,12 +60,13 @@ def make_fasta_lut(fasta_rec, pam_32x32):
     Read first sequence from FASTA file and create PamLut array.
     """
     
-    sequence = "MMMMM"+str(fasta_rec.seq)
+    sequence = str(fasta_rec.seq)
     seq_length = len(sequence)
     
-    print(f"\nSequence ID: {fasta_rec.id}")
+    print(f"\nSearching with: {fasta_rec.id}")
+    print(f"Description: {fasta_rec.description}")
     print(f"Sequence length: {seq_length}")
-    print(f"First 50 characters: {sequence[:50]}...\n")
+    print(f"First 50 characters: {sequence[:50]}...")
     
     # Create array with each entry as amino acid mod 32
     seq_mod32 = np.array([ord(aa) % 32 for aa in sequence], dtype=int)

@@ -171,28 +171,6 @@ def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer
     command_buffer.waitUntilCompleted()
 
 # --- NWS (Needleman-Wunsch-Smith) Functions ---
-
-def display_nws_results(initial_data, final_data, final_max, num_steps):
-    print("\nNWS Verification (Placeholder):")
-    print(f"Data after {num_steps} steps (top-left):\n{final_data[:5, :35]}")
-    print(f"Final Max:\n{final_max[:5]}")
-    return
-    # TODO: compare output of metal and python versions
-
-
-def test_nws(device):
-    """Obsolete test function."""
-    cols, rows = 1024, 300
-    all_buffers = make_metal_buffers(device, cols, rows)
-
-    np.random.seed(42)
-    initial_data = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
-    all_buffers['numpy_buffers'][0][:] = initial_data
-
-    print(f"Sample input:\n{initial_data[:5, :5]}\n")
-    run_metal_steps(all_buffers, cols, rows)
-
-
 def make_metal_buffers(device, cols, rows):
     """Creates and returns a dictionary of Metal buffers and related data."""
     print("\n--- Initializing Metal Buffers ---")
@@ -238,6 +216,7 @@ def yield_aa(cols, aa_data, final_max):
     
     # Initialize lists with proper length
     seqs = [""] * cols
+    names = [""] *cols
     pos = [0] * cols
     seqno = [-1] *cols
     seq=-1
@@ -251,7 +230,7 @@ def yield_aa(cols, aa_data, final_max):
                     score = final_max[2*i+1]
                     cscore = final_max[2*i]
                     if( score > 100 ):
-                        print(f"Slot:{i:>4} Seq:{seqno[i]:>5} Length:{length-1:>4} Score:{score:>5} Cscore:{cscore:>5}")
+                        print(f"Slot:{i:>4} Seq:{seqno[i]:>6} Length:{length-1:>4} Score:{score:>5} Name:{names[i][:100]}")
                     final_max[2*i+1]=0
                     seq += 1
                     rec = next(fasta_iter)
@@ -260,6 +239,7 @@ def yield_aa(cols, aa_data, final_max):
                     #seqs[i] = "@MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQ"
                     pos[i] = 0
                     seqno[i] = seq
+                    names[i] = rec.description
                 except StopIteration:
                     return  # End generator when any position runs out.
             
@@ -271,9 +251,7 @@ def yield_aa(cols, aa_data, final_max):
 
 
 def run_metal_steps(all_buffers, cols, rows):
-    """Runs the NWS simulation for a specified number of steps."""
-    num_steps = 10000  # Capped for now
-
+    """Runs the NWS comparison until we run out of database."""
     device = all_buffers['device']
     pipeline = all_buffers['pipeline']
     buffers = all_buffers['data_buffers']
@@ -291,13 +269,15 @@ def run_metal_steps(all_buffers, cols, rows):
     queue = device.newCommandQueue()
     gen = yield_aa(cols, aa_data, final_max)
     use_metal = True
-    dummy_step = False
+    dummy_step = True
 
-    print(f"Running {num_steps} steps of buffer alternation...")
+    print(f"Running NWS steps...")
     start = time.time()
+    step =-1
+    work = None
 
-    for step in range(num_steps):
-        next(gen)
+    for work in gen:
+        step +=1
 
         in_idx, out_idx = step % 2, (step + 1) % 2
         #print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
@@ -314,11 +294,8 @@ def run_metal_steps(all_buffers, cols, rows):
             nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, 
                 final_max, cols, rows)
 
-    final_array_np = buffc[num_steps % 2]
     elapsed = time.time() - start
     print(f"Execution time: {elapsed:.4f} seconds")
-
-    display_nws_results(initial_data, final_array_np, final_max, num_steps)
 
 def search_db(device):
     """Configures and runs a database search."""
@@ -333,7 +310,6 @@ def search_db(device):
     pam_view = np.array(pam_lut, dtype=np.int16).flatten()
     all_buffers['pam_data'][:] = pam_view
 
-    print(f"Sample input:\n{all_buffers['initial_data'][:5, :5]}\n")
     run_metal_steps(all_buffers, cols, rows)
 
 
@@ -345,8 +321,6 @@ def main():
         raise RuntimeError("Metal not available")
     print(f"Device: {device.name()}")
     
-    #test_cumsum(device)
-    #test_nws(device)
     search_db(device)
 
 if __name__ == "__main__":

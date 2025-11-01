@@ -227,6 +227,10 @@ def read_dat_records():
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
 
+def main():
+    # Just read one sequence form the database and show it.
+    print( get_sequence_by_identifier( 1 ))
 
-print( get_sequence_by_identifier( 1 ))
+if __name__ == "__main__":
+    main()
 
