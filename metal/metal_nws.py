@@ -253,10 +253,11 @@ def yield_aa(cols, aa_data, final_max):
                     if( score > 100 ):
                         print(f"Slot:{i:>4} Seq:{seqno[i]:>5} Length:{length-1:>4} Score:{score:>5} Cscore:{cscore:>5}")
                     final_max[2*i+1]=0
-                    rec = next(fasta_iter)
                     seq += 1
+                    rec = next(fasta_iter)
                     # @ is the stop char, end of sequence.
                     seqs[i] = "@" + rec.seq
+                    #seqs[i] = "@MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQ"
                     pos[i] = 0
                     seqno[i] = seq
                 except StopIteration:
@@ -290,6 +291,7 @@ def run_metal_steps(all_buffers, cols, rows):
     queue = device.newCommandQueue()
     gen = yield_aa(cols, aa_data, final_max)
     use_metal = True
+    dummy_step = False
 
     print(f"Running {num_steps} steps of buffer alternation...")
     start = time.time()
@@ -300,13 +302,14 @@ def run_metal_steps(all_buffers, cols, rows):
         in_idx, out_idx = step % 2, (step + 1) % 2
         #print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
 
-        if use_metal:
-            if False:
-                invoke_pass(
-                    queue, pipeline, buffers[in_idx], buffers[out_idx],
-                    pam_buffer, aa_buffer, max_buffer,
-                    cols_buffer, rows_buffer, cols
-                )
+        if dummy_step :
+            pass
+        elif use_metal:
+            invoke_pass(
+                queue, pipeline, buffers[in_idx], buffers[out_idx],
+                pam_buffer, aa_buffer, max_buffer,
+                cols_buffer, rows_buffer, cols
+            )
         else :
             nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, 
                 final_max, cols, rows)
