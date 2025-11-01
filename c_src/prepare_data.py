@@ -24,11 +24,11 @@ def create_pam_binary():
     # Ensure the data type is int16, as expected by the C code
     pam_array = np.array(pam_32x32, dtype=np.int16)
 
-    with open("c_src/pam250.bin", "wb") as f:
+    with open("pam250.bin", "wb") as f:
         f.write(pam_array.tobytes())
 
     print("pam250.bin created successfully.")
-    print(f"Shape: {pam_array.shape}, Dtype: {pam_array.dtype}, Size: {os.path.getsize('c_src/pam250.bin')} bytes")
+    print(f"Shape: {pam_array.shape}, Dtype: {pam_array.dtype}, Size: {os.path.getsize('pam250.bin')} bytes")
 
 def create_fasta_binary():
     """
@@ -43,7 +43,7 @@ def create_fasta_binary():
     fasta_iter = sequences.read_fasta_sequences()
 
     count = 0
-    with open("c_src/fasta.bin", "wb") as f:
+    with open("fasta.bin", "wb") as f:
         for record in fasta_iter:
             description = record.description.encode('utf-8')
 
@@ -66,11 +66,9 @@ def create_fasta_binary():
                 print(f"  ... processed {count} sequences")
 
     print(f"fasta.bin created successfully with {count} sequences.")
-    print(f"Size: {os.path.getsize('c_src/fasta.bin')} bytes")
+    print(f"Size: {os.path.getsize('fasta.bin')} bytes")
 
 def main():
-    if not os.path.exists('c_src'):
-        os.makedirs('c_src')
 
     create_pam_binary()
     create_fasta_binary()

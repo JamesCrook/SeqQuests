@@ -226,7 +226,7 @@ char* read_shader_source(const char* filename) {
 
     char* source = (char*)malloc(size + 1);
     fread(source, 1, size, file);
-    source[size] = '\\0';
+    source[size] = '\0';
     fclose(file);
 
     return source;
@@ -262,12 +262,12 @@ FastaRecord* load_fasta_data(const char* filename, int* num_records) {
         }
         records[count].description = (char*)malloc(records[count].description_len + 1);
         fread(records[count].description, 1, records[count].description_len, f);
-        records[count].description[records[count].description_len] = '\\0';
+        records[count].description[records[count].description_len] = '\0';
 
         fread(&records[count].sequence_len, sizeof(int32_t), 1, f);
         records[count].sequence = (char*)malloc(records[count].sequence_len + 1);
         fread(records[count].sequence, 1, records[count].sequence_len, f);
-        records[count].sequence[records[count].sequence_len] = '\\0';
+        records[count].sequence[records[count].sequence_len] = '\0';
 
         count++;
     }
