@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Refactored Metal implementation for col-wise operations,
-demonstrating cumulative sum and a framework for buffer alternation (e.g., NWS).
+Local similarity NWS search, using metal
 Uses zero-copy buffers for output.
+
+We prapare a pam look up table pam_lut for one probe sequence,
+Then we search it against 1024 proteins in parallel.
 """
 
 import numpy as np
@@ -18,6 +20,12 @@ import pam_converter as pam
 import sequences
 
 # --- Shaders ---
+
+"""
+The kernel works down the full length of the probe sequence, and there are 1024
+instances running.
+final_max is the per-columen max 
+"""
 
 nws_shader_source = """
 #include <metal_stdlib>
@@ -64,23 +72,6 @@ kernel void nws_step(
 def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
     """
     Python implementation of the nws_step Metal kernel.
-    
-    Parameters:
-    -----------
-    input_arr : np.ndarray
-        Input array of shape that can be indexed by (col_id * num_rows + row)
-    output_arr : np.ndarray
-        Output array with same indexing as input_arr
-    pam : np.ndarray
-        Parameter array
-    aa : np.ndarray
-        Array of indices for each column
-    final_max : np.ndarray
-        Array to store final accumulator values for each column
-    num_cols : int
-        Number of columns to process
-    num_rows : int
-        Number of rows per column
     """
     
     input_flat = input_arr.ravel()
@@ -110,7 +101,7 @@ def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
         
         final_max[col_id] = maxv
 
-# --- Buffer Utilities (Unchanged) ---
+# --- Buffer Utilities ---
 
 def create_zero_copy_buffer(device, np_array):
     np_array = np.ascontiguousarray(np_array)
@@ -176,20 +167,12 @@ def display_nws_results(initial_data, final_data, final_max, num_steps):
     print(f"Data after {num_steps} steps (top-left):\n{final_data[:5, :35]}")
     print(f"Final Max:\n{final_max[:5]}")
     return
-
-    expected_data = initial_data + num_steps
-    if np.allclose(final_data, expected_data):
-        print("\n✅ Perfect match (for placeholder logic).")
-    else:
-        print("\n❌ Mismatch (for placeholder logic).")
+    # TODO: compare output of metal and python versions
 
 
-
-
-
+# Obsolete test function
 def test_nws(device):
-
-    cols, rows = 5, 300
+    cols, rows = 1024, 300
     all_buffers = make_metal_buffers( device, cols, rows )
     (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
     rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
@@ -235,26 +218,53 @@ def make_metal_buffers( device, cols, rows):
     return (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
     rows_buffer, buffc, pam_data, aa_data, final_max, initial_data)
     
+# Fills aa_data for typically 1024 proteins.
+def yield_aa(cols, aa_data):
+    """Generator that yields aa_data for each sequence."""
+    # aa_data is memory mapped, so we fill it in place.
+    fasta_iter = sequences.read_fasta_sequences()
+    
+    # Initialize lists with proper length
+    seqs = [""] * cols
+    pos = [0] * cols
+    
+    while True:
+        for i in range(cols):
+            # Check if we need to load the next sequence
+            if pos[i] >= len(seqs[i]):
+                try:
+                    rec = next(fasta_iter)
+                    seqs[i] = rec.seq
+                    pos[i] = 0
+                except StopIteration:
+                    return  # End generator when any position runs out.
+            
+            # Extract amino acid and encode it
+            aa_data[i] = ord(seqs[i][pos[i]]) % 32
+            pos[i] += 1
+        
+        yield aa_data    
 
-def get_aa( step, cols, aa_data ):
-    seq = "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQ"
-    for i in range(cols):
-        aa_data[i] = ord( seq[step+i] ) %32
 
 def run_metal_steps(all_buffers, cols, rows):
-    num_steps = 1
+    # For now we cap at 1000 steps, but we will run until gen runs out in
+    # future
+    num_steps = 1000
     (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
     rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
+    print(f"making iterator...")
+    gen = yield_aa(cols, aa_data)
     print(f"Running {num_steps} steps of buffer alternation...")
     for step in range(num_steps):
+        next(gen)
+
         in_idx = step % 2
         out_idx = (step + 1) % 2
-        
         print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
-
-        get_aa( step, cols, aa_data )
-        nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, final_max, cols, rows)
-        #invoke_pass(device, pipeline, buffers[in_idx], buffers[out_idx], buffer_pam, buffer_aa, buffer_max, cols_buffer, rows_buffer, cols)
+        #Comment out one of the next two lines to choose python or metal
+        #nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, final_max, cols, rows)
+        invoke_pass(device, pipeline, buffers[in_idx], buffers[out_idx], buffer_pam, buffer_aa, buffer_max, cols_buffer, rows_buffer, cols)
+        # TODO: Do something with the final_max values
 
     final_array_np = buffc[num_steps % 2]
     
@@ -266,20 +276,16 @@ def search_db( device ):
     first_record = next( iter )
     pam_lut, sequence = pam.make_fasta_lut(first_record, pam_32x32)
 
-    cols, rows = 5, len(sequence)
+    cols, rows = 1024, len(sequence)
     all_buffers = make_metal_buffers( device, cols, rows )
     (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
     rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
 
-    #np.random.seed(42)
-    #initial_data[:] = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
-    #buffc[0][:] = initial_data
     pam_view = np.array(pam_lut, dtype=np.int16).flatten()
     pam_data[:]=pam_view # 32 x rows 
     print(f"Sample input:\n{initial_data[:5, :5]}\n")
 
     run_metal_steps( all_buffers, cols, rows)
-
 
 
 # --- Main ---
