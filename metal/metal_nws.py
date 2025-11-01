@@ -209,7 +209,7 @@ def make_metal_buffers(device, cols, rows):
     return buffers
     
 # Fills aa_data for typically 1024 proteins.
-def yield_aa(cols, aa_data, final_max):
+def yield_aa_old(cols, aa_data, final_max):
     """Generator that yields aa_data for each sequence."""
     # aa_data is memory mapped, so we fill it in place.
     fasta_iter = sequences.read_fasta_sequences()
@@ -249,6 +249,48 @@ def yield_aa(cols, aa_data, final_max):
         
         yield aa_data    
 
+def yield_aa(cols, aa_data, final_max):
+    """Generator that yields aa_data for each sequence."""
+    fasta_iter = sequences.read_fasta_sequences()
+    
+    # ONLY CHANGE: seqs stores bytes, not strings
+    seqs = [b''] * cols
+    names = [""] * cols
+    pos = [0] * cols
+    seqno = [-1] * cols
+    seq = -1
+    
+    while True:
+        for i in range(cols):
+            length = len(seqs[i])
+            if pos[i] >= length:
+                try:
+                    score = final_max[2*i+1]
+                    # cscore = final_max[2*i]
+                    if score > 100:
+                        print(f"Slot:{i:>4} Seq:{seqno[i]:>6} Length:{length-1:>4} Score:{score:>5} Name:{names[i][:100]}")
+                    final_max[2*i+1] = 0
+                    seq += 1
+                    rec = next(fasta_iter)
+                    
+                    # If rec.seq is already bytes (from pickle), use directly
+                    # Otherwise convert once:
+                    if isinstance(rec.seq, bytes):
+                        seqs[i] = b'@' + rec.seq
+                    else:
+                        seqs[i] = ('@' + rec.seq).encode('latin-1')
+                    
+                    pos[i] = 0
+                    seqno[i] = seq
+                    names[i] = rec.description
+                except StopIteration:
+                    return
+            
+            aa_data[i] = seqs[i][pos[i]] & 31
+            pos[i] += 1
+        
+        yield True
+
 
 def run_metal_steps(all_buffers, cols, rows):
     """Runs the NWS comparison until we run out of database."""
@@ -269,7 +311,7 @@ def run_metal_steps(all_buffers, cols, rows):
     queue = device.newCommandQueue()
     gen = yield_aa(cols, aa_data, final_max)
     use_metal = True
-    dummy_step = True
+    dummy_step = False
 
     print(f"Running NWS steps...")
     start = time.time()

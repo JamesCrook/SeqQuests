@@ -29,11 +29,11 @@ class FastaCache:
         
         for record in SeqIO.parse(fasta_file, "fasta"):
             seq_id = record.id
-            seq_str = str(record.seq)
+            seq_bytes = bytes(record.seq)
             description = record.description
             
-            self.sequences[seq_id] = (seq_str, description)
-            self.seq_list.append((seq_id, seq_str, description))
+            self.sequences[seq_id] = (seq_bytes, description)
+            self.seq_list.append((seq_id, seq_bytes, description))
         
         self.load_time = time.time() - start
         print(f"Loaded {len(self.sequences)} sequences in {self.load_time:.2f}s")
@@ -227,10 +227,21 @@ def read_dat_records():
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
 
+def benchmark():
+    start = time.time()
+    proteins = read_fasta_sequences()
+    for p in proteins:
+        if p.id == 'foo' :
+            print("found foo")
+    elapsed = time.time() - start
+    print(f"Execution time: {elapsed:.4f} seconds")
+
+
 def main():
     # Just read one sequence form the database and show it.
     print( get_sequence_by_identifier( 1 ))
 
 if __name__ == "__main__":
     main()
+    benchmark();
 
