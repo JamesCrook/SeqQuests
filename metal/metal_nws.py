@@ -133,10 +133,9 @@ def compile_shader(device, source, kernel_name):
     return pipeline
 
 
-def invoke_pass(device, pipeline, buffer_input, buffer_output, buffer_pam, buffer_aa, buffer_sums, cols_buffer, rows_buffer, grid_width):
+def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer_aa, buffer_sums, cols_buffer, rows_buffer, grid_width):
     """Invokes one pass of the cumulative_sum shader."""
     
-    queue = device.newCommandQueue()
     command_buffer = queue.commandBuffer()
     encoder = command_buffer.computeCommandEncoder()
     
@@ -170,53 +169,55 @@ def display_nws_results(initial_data, final_data, final_max, num_steps):
     # TODO: compare output of metal and python versions
 
 
-# Obsolete test function
 def test_nws(device):
+    """Obsolete test function."""
     cols, rows = 1024, 300
-    all_buffers = make_metal_buffers( device, cols, rows )
-    (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
-    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
+    all_buffers = make_metal_buffers(device, cols, rows)
 
     np.random.seed(42)
-    initial_data[:] = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
-    buffc[0][:] = initial_data
+    initial_data = np.random.randint(0, 10, size=(cols, rows), dtype=np.int16)
+    all_buffers['numpy_buffers'][0][:] = initial_data
+
     print(f"Sample input:\n{initial_data[:5, :5]}\n")
+    run_metal_steps(all_buffers, cols, rows)
 
-    run_metal_steps( all_buffers, cols, rows)
 
+def make_metal_buffers(device, cols, rows):
+    """Creates and returns a dictionary of Metal buffers and related data."""
+    print("\n--- Initializing Metal Buffers ---")
 
-def make_metal_buffers( device, cols, rows):
-    print("\n--- Testing NWS Buffer Alternation ---")
     initial_data = np.zeros((cols, rows), dtype=np.int16, order='C')
     data_array_0 = np.zeros((cols, rows), dtype=np.int16, order='C')
     data_array_1 = np.zeros((cols, rows), dtype=np.int16, order='C')
     
-    print(f"Matrix: {cols}x{rows}")
-    
     final_max = np.zeros(cols, dtype=np.int16, order='C')
-    pam_data = np.zeros((rows *32), dtype=np.int16, order='C')
-    aa_data = np.zeros((cols), dtype=np.int16, order='C')
+    pam_data = np.zeros((rows * 32), dtype=np.int16, order='C')
+    aa_data = np.zeros(cols, dtype=np.int16, order='C')
 
-    # Compile
     pipeline = compile_shader(device, nws_shader_source, "nws_step")
     
-    # Create buffers
-    buffer_0 = create_zero_copy_buffer(device, data_array_0)
-    buffer_1 = create_zero_copy_buffer(device, data_array_1)
-    buffer_max = create_zero_copy_buffer(device, final_max) # Uses new `final_sums`
-    buffer_pam = create_zero_copy_buffer(device, pam_data )
-    buffer_aa = create_zero_copy_buffer(device, aa_data )
-
-    # These are two numbers.
-    cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
-    rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
+    buffers = {
+        'device': device,
+        'pipeline': pipeline,
+        'data_buffers': [
+            create_zero_copy_buffer(device, data_array_0),
+            create_zero_copy_buffer(device, data_array_1)
+        ],
+        'pam_buffer': create_zero_copy_buffer(device, pam_data),
+        'aa_buffer': create_zero_copy_buffer(device, aa_data),
+        'max_buffer': create_zero_copy_buffer(device, final_max),
+        'cols_buffer': create_input_buffer(device, np.array([cols], dtype=np.uint32)),
+        'rows_buffer': create_input_buffer(device, np.array([rows], dtype=np.uint32)),
+        'numpy_buffers': [data_array_0, data_array_1],
+        'pam_data': pam_data,
+        'aa_data': aa_data,
+        'final_max': final_max,
+        'initial_data': initial_data
+    }
     
-    buffers = [buffer_0, buffer_1]
-    buffc = [data_array_0, data_array_1]
-
+    print(f"Matrix: {cols}x{rows}")
     print("Buffers created (zero-copy)")
-    return (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
-    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data)
+    return buffers
     
 # Fills aa_data for typically 1024 proteins.
 def yield_aa(cols, aa_data):
@@ -247,45 +248,56 @@ def yield_aa(cols, aa_data):
 
 
 def run_metal_steps(all_buffers, cols, rows):
-    # For now we cap at 1000 steps, but we will run until gen runs out in
-    # future
-    num_steps = 1000
-    (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
-    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
-    print(f"making iterator...")
+    """Runs the NWS simulation for a specified number of steps."""
+    num_steps = 1000  # Capped for now
+
+    device = all_buffers['device']
+    pipeline = all_buffers['pipeline']
+    buffers = all_buffers['data_buffers']
+    pam_buffer = all_buffers['pam_buffer']
+    aa_buffer = all_buffers['aa_buffer']
+    max_buffer = all_buffers['max_buffer']
+    cols_buffer = all_buffers['cols_buffer']
+    rows_buffer = all_buffers['rows_buffer']
+    buffc = all_buffers['numpy_buffers']
+    aa_data = all_buffers['aa_data']
+    final_max = all_buffers['final_max']
+    initial_data = all_buffers['initial_data']
+
+    queue = device.newCommandQueue()
     gen = yield_aa(cols, aa_data)
+
     print(f"Running {num_steps} steps of buffer alternation...")
     for step in range(num_steps):
         next(gen)
 
-        in_idx = step % 2
-        out_idx = (step + 1) % 2
+        in_idx, out_idx = step % 2, (step + 1) % 2
         print(f"  Step {step+1}: Reading from buffer {in_idx}, Writing to buffer {out_idx}")
-        #Comment out one of the next two lines to choose python or metal
-        #nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, final_max, cols, rows)
-        invoke_pass(device, pipeline, buffers[in_idx], buffers[out_idx], buffer_pam, buffer_aa, buffer_max, cols_buffer, rows_buffer, cols)
-        # TODO: Do something with the final_max values
+
+        invoke_pass(
+            queue, pipeline, buffers[in_idx], buffers[out_idx],
+            pam_buffer, aa_buffer, max_buffer,
+            cols_buffer, rows_buffer, cols
+        )
 
     final_array_np = buffc[num_steps % 2]
-    
     display_nws_results(initial_data, final_array_np, final_max, num_steps)
 
-def search_db( device ):
-    pam_32x32, aa_letters = pam.convert_pam_to_32x32()
-    iter = sequences.read_fasta_sequences()
-    first_record = next( iter )
+def search_db(device):
+    """Configures and runs a database search."""
+    pam_32x32, _ = pam.convert_pam_to_32x32()
+    fasta_iter = sequences.read_fasta_sequences()
+    first_record = next(fasta_iter)
     pam_lut, sequence = pam.make_fasta_lut(first_record, pam_32x32)
 
     cols, rows = 1024, len(sequence)
-    all_buffers = make_metal_buffers( device, cols, rows )
-    (device, pipeline, buffers, buffer_pam, buffer_aa, buffer_max, cols_buffer, 
-    rows_buffer, buffc, pam_data, aa_data, final_max, initial_data) = all_buffers
+    all_buffers = make_metal_buffers(device, cols, rows)
 
     pam_view = np.array(pam_lut, dtype=np.int16).flatten()
-    pam_data[:]=pam_view # 32 x rows 
-    print(f"Sample input:\n{initial_data[:5, :5]}\n")
+    all_buffers['pam_data'][:] = pam_view
 
-    run_metal_steps( all_buffers, cols, rows)
+    print(f"Sample input:\n{all_buffers['initial_data'][:5, :5]}\n")
+    run_metal_steps(all_buffers, cols, rows)
 
 
 # --- Main ---
