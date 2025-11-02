@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <chrono>
 
 #define NS_PRIVATE_IMPLEMENTATION
 #define CA_PRIVATE_IMPLEMENTATION
@@ -109,7 +110,7 @@ int main(int argc, char * argv[]) {
 
         // --- Run Metal Steps ---
         printf("\nRunning NWS steps...\n");
-        clock_t start = clock();
+        auto start = std::chrono::high_resolution_clock::now();
 
         int16_t* aa_data = (int16_t*)aa_buffer->contents();
         int16_t* final_max = (int16_t*)max_buffer->contents();
@@ -121,6 +122,7 @@ int main(int argc, char * argv[]) {
         int seq = -1;
 
         bool more_data = true;
+        bool do_search = true;
         int step = -1;
 
         while(more_data) {
@@ -147,8 +149,10 @@ int main(int argc, char * argv[]) {
                 pos[i]++;
                 more_data = true;
             }
+            if( (step % 1000) == 0 )
+                printf( "Step:%7d\n", step);
 
-            if(more_data) {
+            if(more_data && do_search) {
                 int in_idx = step % 2;
                 int out_idx = (step + 1) % 2;
 
@@ -177,9 +181,9 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        clock_t end = clock();
-        double elapsed = (double)(end - start) / CLOCKS_PER_SEC;
-        printf("Execution time: %.4f seconds\n", elapsed);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        printf("Execution time: %.4f seconds\n", elapsed.count());
 
         // --- Cleanup ---
         release_fasta_records(fasta_records, num_fasta_records);
@@ -255,11 +259,13 @@ FastaRecord* load_fasta_data(const char* filename, int* num_records) {
     FastaRecord* records = (FastaRecord*)malloc(sizeof(FastaRecord) * capacity);
     int count = 0;
 
-    while (fread(&records[count].description_len, sizeof(int32_t), 1, f) == 1) {
+    int32_t description_len;
+    while (fread(&description_len, sizeof(int32_t), 1, f) == 1) {
         if (count >= capacity) {
             capacity *= 2;
             records = (FastaRecord*)realloc(records, sizeof(FastaRecord) * capacity);
         }
+        records[count].description_len = description_len;
         records[count].description = (char*)malloc(records[count].description_len + 1);
         fread(records[count].description, 1, records[count].description_len, f);
         records[count].description[records[count].description_len] = '\0';
