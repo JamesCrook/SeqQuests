@@ -15,7 +15,14 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #define MAX_DESCRIPTION_LEN 256
-#define COLS 1024
+#ifndef COLS
+#define COLS (4096)
+#endif
+
+#ifndef UNROLL
+#define UNROLL (1)
+#endif
+
 
 typedef struct {
     int32_t description_len;
@@ -97,7 +104,7 @@ int main(int argc, char * argv[]) {
         memset(data_buffers[1]->contents(), 0, COLS * rows * sizeof(int16_t));
 
         MTL::Buffer* pam_buffer = device->newBuffer(pam_lut, 32 * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-        MTL::Buffer* aa_buffer = device->newBuffer(COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
+        MTL::Buffer* aa_buffer = device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
         MTL::Buffer* max_buffer = device->newBuffer(COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
 
         uint32_t num_cols_val = COLS;

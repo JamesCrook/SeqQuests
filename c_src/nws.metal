@@ -1,6 +1,14 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#ifndef COLS
+#define COLS (4096)
+#endif
+
+#ifndef UNROLL
+#define UNROLL (1)
+#endif
+
 kernel void nws_step(
     device const short* input [[buffer(0)]],
     device short* output [[buffer(1)]],

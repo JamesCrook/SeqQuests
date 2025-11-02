@@ -1,16 +1,23 @@
 #!/bin/bash
-# Compiles the metal_nws project.
-
 # Exit on error
 set -e
 
+COLS=(4096)
+UNROLL=(1)
+
+echo "--- Compiling with COLS=$COLS, UNROLL=$UNROLL ---"
+
 echo "--- Compiling Metal Shader ---"
-xcrun -sdk macosx metal -c c_src/nws.metal -o bin/nws.air
+xcrun -sdk macosx metal -c c_src/nws.metal -o bin/nws.air \
+    -D COLS=$COLS -D UNROLL=$UNROLL
 xcrun -sdk macosx metallib bin/nws.air -o bin/nws.metallib
 
 echo "--- Compiling C Code ---"
-#clang++ -std=c++17 -g -fsanitize=address -o bin/metal_nws c_src/metal_nws.mm -I$HOME/metal-cpp -framework Foundation -framework Metal -framework QuartzCore
-clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm -I$HOME/metal-cpp -framework Foundation -framework Metal -framework QuartzCore
+# -g -fsanitize=address may be useful.
+clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm \
+    -I$HOME/metal-cpp \
+    -D COLS=$COLS -D UNROLL=$UNROLL \
+    -framework Foundation -framework Metal -framework QuartzCore
 
 echo "--- Compilation Successful ---"
-echo "To run: ./c_src/metal_nws"
+echo "To run: ./bin/metal_nws"
