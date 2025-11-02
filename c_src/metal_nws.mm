@@ -107,9 +107,9 @@ int main(int argc, char * argv[]) {
         MTL::Buffer* aa_buffer = device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
         MTL::Buffer* max_buffer = device->newBuffer(COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
 
-        uint32_t num_cols_val = COLS;
+        //uint32_t num_cols_val = COLS;
         uint32_t num_rows_val = rows;
-        MTL::Buffer* cols_buffer = device->newBuffer(&num_cols_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
+        //MTL::Buffer* cols_buffer = device->newBuffer(&num_cols_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
         MTL::Buffer* rows_buffer = device->newBuffer(&num_rows_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
         printf("Matrix: %dx%d\n", COLS, rows);
         printf("Buffers created\n");
@@ -171,8 +171,8 @@ int main(int argc, char * argv[]) {
                 encoder->setBuffer(pam_buffer, 0, 2);
                 encoder->setBuffer(aa_buffer, 0, 3);
                 encoder->setBuffer(max_buffer, 0, 4);
-                encoder->setBuffer(cols_buffer, 0, 5);
-                encoder->setBuffer(rows_buffer, 0, 6);
+                //encoder->setBuffer(cols_buffer, 0, 5);
+                encoder->setBuffer(rows_buffer, 0, 5);
 
                 MTL::Size grid_size = MTL::Size(COLS, 1, 1);
                 NS::UInteger threadgroup_size_val = pipeline->maxTotalThreadsPerThreadgroup();
@@ -201,7 +201,7 @@ int main(int argc, char * argv[]) {
         pam_buffer->release();
         aa_buffer->release();
         max_buffer->release();
-        cols_buffer->release();
+        //cols_buffer->release();
         rows_buffer->release();
 
         queue->release();
