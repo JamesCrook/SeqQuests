@@ -105,7 +105,7 @@ int main(int argc, char * argv[]) {
 
         MTL::Buffer* pam_buffer = device->newBuffer(pam_lut, 32 * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
         MTL::Buffer* aa_buffer = device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-        MTL::Buffer* max_buffer = device->newBuffer(COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
+        MTL::Buffer* max_buffer = device->newBuffer(UNROLL * COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
 
         //uint32_t num_cols_val = COLS;
         uint32_t num_rows_val = rows;
@@ -121,11 +121,15 @@ int main(int argc, char * argv[]) {
 
         int16_t* aa_data = (int16_t*)aa_buffer->contents();
         int16_t* final_max = (int16_t*)max_buffer->contents();
-        memset(final_max, 0, COLS * 2 * sizeof(int16_t));
+        memset(final_max, 0, COLS * 2 * UNROLL * sizeof(int16_t));
 
         int pos[COLS] = {0};
+        // Track sequence we are adding for and sequence we are reporting 
+        // separately.
         int seqno[COLS];
+        int seqno_reported[COLS];
         for(int i=0; i<COLS; ++i) seqno[i] = -1;
+        for(int i=0; i<COLS; ++i) seqno_reported[i] = -1;
         int seq = -1;
 
         bool more_data = true;
@@ -135,31 +139,41 @@ int main(int argc, char * argv[]) {
         while(more_data) {
             step++;
             more_data = false;
+            // Add data
             for (int i = 0; i < COLS; ++i) {
-                if (seqno[i] == -1 || pos[i] >= fasta_records[seqno[i]].sequence_len) {
-                    int16_t score = final_max[2 * i + 1];
-                    if (score > 100) {
-                        printf("Slot:%4d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
-                                i, seqno[i], fasta_records[seqno[i]].sequence_len - 1, score, fasta_records[seqno[i]].description);
-                    }
-                    final_max[2 * i + 1] = 0;
-                    seq++;
-                    if (seq < num_fasta_records) {
-                        pos[i] = 0;
-                        seqno[i] = seq;
-                    } else {
-                        seqno[i] = -1;
+                for (int j = 0; j < UNROLL; j++){
+                    // If run out of sequences (slot empty)
+                    if( seqno[i] == -2 )
                         continue;
+                    bool seqDone = (seqno[i] == -1 );
+
+                    if( !seqDone && pos[i] >= fasta_records[seqno[i]].sequence_len) {
+                        seqDone = true;
                     }
+
+                    if( seqDone ){
+                        seq++;
+                        if (seq < num_fasta_records) {
+                            pos[i] = 0;
+                            seqno[i] = seq;
+                        } else {
+                            seqno[i] = -2;
+                            continue;
+                        }
+                    }
+                    // Add one amno acid.
+                    aa_data[i*UNROLL+j] = fasta_records[seqno[i]].sequence[pos[i]] & 31;
+                    pos[i]++;
+                    more_data = true;
                 }
-                aa_data[i] = fasta_records[seqno[i]].sequence[pos[i]] & 31;
-                pos[i]++;
-                more_data = true;
             }
+            if( !more_data )
+                break;
+
             if( (step % 1000) == 0 )
                 printf( "Step:%7d\n", step);
 
-            if(more_data && do_search) {
+            if( do_search) {
                 int in_idx = step % 2;
                 int out_idx = (step + 1) % 2;
 
@@ -185,6 +199,29 @@ int main(int argc, char * argv[]) {
                 encoder->endEncoding();
                 command_buffer->commit();
                 command_buffer->waitUntilCompleted();
+            }
+            for (int i = 0; i < COLS; ++i) {
+                for (int j = 0; j < UNROLL; j++){
+                    // If run out of sequences (slot empty)
+                    if( seqno_reported[i] == -2 )
+                        continue;
+                    // If
+                    bool seqDone = (seqno_reported[i] == -1 );
+
+                    if( !seqDone && aa_data[i*UNROLL+j] == 0) {
+                        int16_t score = final_max[2 * i * UNROLL + 1 + j];
+                        if (score > 100) {
+                            printf("Slot:%4d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
+                                    i, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
+                        }
+                        final_max[2 * i * UNROLL + 1 + j] = 0;
+                        seqDone = true;
+                    }
+
+                    if( seqDone ){
+                        seqno_reported[i] = seqno[i];
+                    }
+                }
             }
         }
 

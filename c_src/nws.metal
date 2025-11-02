@@ -19,30 +19,45 @@ kernel void nws_step(
     uint col_id [[thread_position_in_grid]])
 {
     if (col_id >= COLS) return;
-
-    short accumulator = 0;
-    short maxv = 0;
-
+    
+    // Arrays for unrolled loop
+    short accumulator[UNROLL];
+    short maxv[UNROLL];
+    short dValue[UNROLL];
+    
+    // Initialize arrays
+    for (uint j = 0; j < UNROLL; j++) {
+        accumulator[j] = 0;
+        maxv[j] = 0;
+        dValue[j] = 0;
+    }
+    
     uint base_idx = col_id * num_rows;
-    uint base_nidx = aa[col_id] * num_rows;
-    short residue = aa[col_id];
-
-    short dValue = 0;
-
+    
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
-        uint nidx = base_nidx + row;
-
         short hValue = input[idx];
-        short penalty = select(10,30000, residue == 0 );
-        accumulator = max( accumulator, hValue )-penalty;
-        accumulator = max( accumulator, dValue );
-        accumulator = max( accumulator, (short)0 );
-        maxv = max( maxv, accumulator );
-        dValue = hValue + pam[nidx];
-
-        output[idx] = (short)accumulator;
+        
+        for (uint j = 0; j < UNROLL; j++) {
+            short residue = aa[col_id*UNROLL + j];
+            uint nidx = residue * num_rows + row;
+            short penalty = select((short)10, (short)30000, residue == 0);
+            
+            accumulator[j] = max(accumulator[j], hValue) - penalty;
+            accumulator[j] = max(accumulator[j], dValue[j]);
+            accumulator[j] = max(accumulator[j], (short)0);
+            maxv[j] = max(maxv[j], accumulator[j]);
+            dValue[j] = hValue + pam[nidx];
+            hValue = accumulator[j];
+        }
+        
+        output[idx] = hValue;
     }
-    final_max[col_id*2] = maxv;
-    final_max[col_id*2+1] = max( maxv, final_max[col_id*2+1]);
+    
+    // Write out final max values
+    for (uint j = 0; j < UNROLL; j++) {
+        uint addr = col_id*2*UNROLL + j;
+        final_max[addr] = maxv[j];
+        final_max[addr + 1] = max(maxv[j], final_max[addr + 1 + ((j+UNROLL-1)%UNROLL)]);
+    }
 }
