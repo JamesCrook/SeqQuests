@@ -54,10 +54,18 @@ kernel void nws_step(
         output[idx] = hValue;
     }
     
-    // Write out final max values
+    // Column maxes at even locations,
+    // Cumulative column max for this sequence at odd locations.
+    // Collect the max left by a previous run of this kernel
+    short prevMax = final_max[(col_id*UNROLL+(UNROLL-1))*2 +1];
     for (uint j = 0; j < UNROLL; j++) {
-        uint addr = col_id*2*UNROLL + j;
-        final_max[addr] = maxv[j];
-        final_max[addr + 1] = max(maxv[j], final_max[addr + 1 + ((j+UNROLL-1)%UNROLL)]);
+        uint addr = col_id*UNROLL + j;
+        // update with this column max
+        prevMax = max(maxv[j], prevMax );
+        final_max[addr*2] = maxv[j];
+        final_max[addr*2 + 1] = prevMax;
+        // Reset max after a sequence boundary
+        short residue = aa[addr];
+        prevMax = select((short)0,prevMax, residue == 0 );
     }
 }

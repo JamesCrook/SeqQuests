@@ -203,22 +203,24 @@ int main(int argc, char * argv[]) {
             for (int i = 0; i < COLS; ++i) {
                 for (int j = 0; j < UNROLL; j++){
                     // If run out of sequences (slot empty)
+                    if( seqno_reported[i] == -1 )
+                        seqno_reported[i] = seqno[i];
+
                     if( seqno_reported[i] == -2 )
                         continue;
-                    // If
-                    bool seqDone = (seqno_reported[i] == -1 );
 
-                    if( !seqDone && aa_data[i*UNROLL+j] == 0) {
-                        int16_t score = final_max[2 * i * UNROLL + 1 + j];
+                    if( step > 0 && aa_data[i*UNROLL+j] == 0) {
+                        int16_t score = final_max[(2 * i +j) * UNROLL + 1];
                         if (score > 100) {
-                            printf("Slot:%4d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
-                                    i, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
+                            printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
+                                    i, step, j, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
+                            usleep(100000); // 0.1 s
                         }
-                        final_max[2 * i * UNROLL + 1 + j] = 0;
-                        seqDone = true;
-                    }
-
-                    if( seqDone ){
+                        // blank out the score so it does not carry to next sequence.
+                        // this only matters for the last max in an unroll
+                        // since the kernel already does the resetting internally.
+                        final_max[(2 * i +j)* UNROLL + 1 ] = 0;
+                        // move on to next sequence (the current sequence)
                         seqno_reported[i] = seqno[i];
                     }
                 }
