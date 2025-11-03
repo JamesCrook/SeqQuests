@@ -21,9 +21,9 @@ kernel void nws_step(
     if (col_id >= COLS) return;
     
     // Arrays for unrolled loop
-    volatile short accumulator[UNROLL];
-    volatile short maxv[UNROLL];
-    volatile short accold[UNROLL];
+    short accumulator[UNROLL];
+    short maxv[UNROLL];
+    short accold[UNROLL];
     
     // Initialize arrays
     for (uint j = 0; j < UNROLL; j++) {
@@ -36,7 +36,7 @@ kernel void nws_step(
     
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
-        volatile short hValue = input[idx];
+        short hValue = input[idx];
         
         for (uint j = 0; j < UNROLL; j++) {
             short residue = aa[col_id*UNROLL + j];

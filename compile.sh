@@ -3,7 +3,7 @@
 set -e
 
 COLS=4096
-UNROLL=8
+UNROLL=32
 
 echo "--- Compiling with COLS=$COLS, UNROLL=$UNROLL ---"
 

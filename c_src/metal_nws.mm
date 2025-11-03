@@ -238,7 +238,7 @@ if (!library) {
 
                     if( step > 0 && aa_data[i*UNROLL+j] == 0) {
                         int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
-                        if (score > 100) {
+                        if (score > 110) {
                             printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
                                     i, step, j, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
                             //usleep(100000); // 0.1 s
