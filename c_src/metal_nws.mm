@@ -184,7 +184,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     int rows = data_manager->fasta_records[probe_seq_idx].sequence_len;
 
     printf("\nSearching with: %s\n", data_manager->fasta_records[probe_seq_idx].description);
-    printf("Sequence length: %d\n", rows);
+    printf("Sequence: %6d Sequence length: %6d\n", probe_seq_idx, rows);
 
     int16_t* pam_lut = (int16_t*)malloc(32 * rows * sizeof(int16_t));
     for (int col = 0; col < 32; ++col) {
@@ -205,8 +205,8 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     uint32_t num_rows_val = rows;
     metal_state->rows_buffer = metal_state->device->newBuffer(&num_rows_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
 
-    printf("Matrix: %dx%d\n", COLS, rows);
-    printf("Buffers created\n");
+    //printf("Matrix: %dx%d\n", COLS, rows);
+    //printf("Buffers created\n");
     return true;
 }
 
@@ -293,8 +293,8 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
                 if(step > 0 && aa_data[i*UNROLL+j] == 0) {
                     int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
                     if (score > settings->reporting_threshold) {
-                        printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
-                                i, step, j, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
+                        printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
+                                step, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
                         if(settings->slow_output) usleep(100000);
                         finds++;
                     }
