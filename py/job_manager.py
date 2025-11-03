@@ -15,9 +15,10 @@ from sequences import read_dat_records
 logger = logging.getLogger(__name__)
 
 class Job:
-    def __init__(self, job_id: str, job_type: str):
+    def __init__(self, job_id: str, job_type: str, manager: 'JobManager'):
         self.job_id = job_id
         self.job_type = job_type
+        self.manager = manager
         self.state = {
             "job_id": job_id,
             "job_type": job_type,
@@ -71,9 +72,10 @@ class Job:
         self.update(status="running")
         logger.info(f"Job {self.job_id} resumed.")
 
-    def cancel(self):
+    def delete(self):
         self.update(status="cancelled")
         logger.info(f"Job {self.job_id} cancelled.")
+        self.manager.delete_job(self.job_id)
 
     def configure(self, config: Dict[str, Any]):
         with self.lock:
@@ -85,8 +87,8 @@ class Job:
 
 
 class ComputationJob(Job):
-    def __init__(self, job_id: str):
-        super().__init__(job_id, "computation")
+    def __init__(self, job_id: str, manager: 'JobManager'):
+        super().__init__(job_id, "computation", manager)
         self.state.update({
             "total_proteins": 0,
             "processed_pairs": 0,
@@ -110,8 +112,8 @@ class ComputationJob(Job):
 
 
 class DataMungingJob(Job):
-    def __init__(self, job_id: str):
-        super().__init__(job_id, "data_munging")
+    def __init__(self, job_id: str, manager: 'JobManager'):
+        super().__init__(job_id, "data_munging", manager)
         self.state.update({
             "sequences_examined": 0,
             "most_recent_item": "",
@@ -141,8 +143,8 @@ class DataMungingJob(Job):
 from nws import FastNwsDummy, FastNWS
 
 class SequenceSearchJob(Job):
-    def __init__(self, job_id: str):
-        super().__init__(job_id, "sequence_search")
+    def __init__(self, job_id: str, manager: 'JobManager'):
+        super().__init__(job_id, "sequence_search", manager)
         self.state.update({
             "accession": "",
             "sequences_examined": 0,
@@ -168,8 +170,8 @@ class SequenceSearchJob(Job):
 
 
 class NwsSearchJob(Job):
-    def __init__(self, job_id: str):
-        super().__init__(job_id, "nws_search")
+    def __init__(self, job_id: str, manager: 'JobManager'):
+        super().__init__(job_id, "nws_search", manager)
         self.state.update({
             "output_log": [],
         })
@@ -217,10 +219,16 @@ class JobManager:
             return None
 
         with self.lock:
-            self.jobs[job_id] = job_class(job_id)
+            self.jobs[job_id] = job_class(job_id, self)
 
         logger.info(f"Created job {job_id} of type {job_type}")
         return job_id
+
+    def delete_job(self, job_id: str):
+        with self.lock:
+            if job_id in self.jobs:
+                del self.jobs[job_id]
+                logger.info(f"Deleted job {job_id}")
 
     def get_job(self, job_id: str) -> Optional[Job]:
         with self.lock:
@@ -228,10 +236,6 @@ class JobManager:
 
     def list_jobs(self) -> Dict[str, Any]:
         with self.lock:
-            # Remove cancelled jobs
-            for job_id in list(self.jobs.keys()):
-                if self.jobs[job_id].state["status"] == "cancelled":
-                    del self.jobs[job_id]            
             return {
                 job_id: {
                     "status": job.state["status"],

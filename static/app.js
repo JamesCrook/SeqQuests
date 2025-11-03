@@ -19,6 +19,7 @@ async function apiCall(url, method = 'GET', body = null) {
         const options = {
             method,
             headers: { 'Content-Type': 'application/json' },
+            cache: 'no-cache', // Add this line to prevent caching
         };
         if (body) {
             options.body = JSON.stringify(body);
@@ -75,11 +76,12 @@ async function resumeJob() {
 
 async function removeJob(jobId) {
     try {
-        await apiCall(`/api/job/${jobId}/delete`, 'POST');
+        await apiCall(`/api/job/${jobId}`, 'DELETE');
         addLog(`Job ${jobId} deleted.`);
         if (jobId === currentJobId) {
             selectJob(null, null);
         }
+        await new Promise(resolve => setTimeout(resolve, 500)); // Add a small delay
         await refreshJobs();
     } catch (e) {
         addLog(`Failed to remove job: ${e}`, 'error');
@@ -144,7 +146,6 @@ function selectJob(jobId, jobType) {
         document.getElementById(id).disabled = !jobId;
     });
 
-    refreshJobs();
     pollJobStatus();
 }
 
