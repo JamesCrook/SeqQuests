@@ -47,11 +47,11 @@ def create_fasta_binary():
         for record in fasta_iter:
             description = record.description.encode('utf-8')
 
-            # Prefix sequence with '@' as in the original script
+            # Postfix sequence with '@' - end of sequence.
             if isinstance(record.seq, bytes):
-                sequence = b'@' + record.seq
+                sequence = record.seq + b'@'
             else:
-                sequence = ('@' + record.seq).encode('latin-1')
+                sequence = (record.seq + '@').encode('latin-1')
 
             # Write description length and data
             f.write(struct.pack('<I', len(description)))
