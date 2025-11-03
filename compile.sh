@@ -2,8 +2,8 @@
 # Exit on error
 set -e
 
-COLS=(4096)
-UNROLL=(1)
+COLS=4096
+UNROLL=8
 
 echo "--- Compiling with COLS=$COLS, UNROLL=$UNROLL ---"
 
@@ -14,6 +14,7 @@ xcrun -sdk macosx metallib bin/nws.air -o bin/nws.metallib
 
 echo "--- Compiling C Code ---"
 # -g -fsanitize=address may be useful.
+# -O2 for speed
 clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm \
     -I$HOME/metal-cpp \
     -D COLS=$COLS -D UNROLL=$UNROLL \

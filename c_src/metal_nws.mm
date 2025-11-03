@@ -73,18 +73,27 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        // --- Metal Setup ---
-        char* shader_source = read_shader_source("c_src/nws.metal");
-        if(!shader_source) return 1;
+// --- Metal Setup ---
+// DELETE THIS: char* shader_source = read_shader_source("c_src/nws.metal");
+// DELETE THIS: if(!shader_source) return 1;
 
-        NS::Error* error = nullptr;
-        MTL::Library* library = device->newLibrary(NS::String::string(shader_source, NS::UTF8StringEncoding), nullptr, &error);
-        if (!library) {
-            fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
-            free(shader_source);
-            return 1;
-        }
-        free(shader_source);
+NS::Error* error = nullptr;
+
+// FIX: Load the pre-compiled .metallib file
+NS::String* library_path = NS::String::string("bin/nws.metallib", NS::UTF8StringEncoding);
+MTL::Library* library = device->newLibrary(library_path, &error);
+
+if (!library) {
+    fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
+    // DELETE THIS: free(shader_source);
+    return 1;
+}
+// DELETE THIS: free(shader_source);
+
+
+
+
+
 
         MTL::Function* kernel_function = library->newFunction(NS::String::string("nws_step", NS::UTF8StringEncoding));
         MTL::ComputePipelineState* pipeline = device->newComputePipelineState(kernel_function, &error);
@@ -152,7 +161,12 @@ int main(int argc, char * argv[]) {
                     }
 
                     if( seqDone ){
+                        // Find next sequence >= 100 aa
                         seq++;
+                        while (seq < num_fasta_records && fasta_records[seq].sequence_len < (UNROLL+4)) {
+                            seq++;
+                        }
+                        
                         if (seq < num_fasta_records) {
                             pos[i] = 0;
                             seqno[i] = seq;
@@ -201,6 +215,19 @@ int main(int argc, char * argv[]) {
                 command_buffer->waitUntilCompleted();
             }
             for (int i = 0; i < COLS; ++i) {
+                if( i==-1 ){
+                    printf( "Step:%6d   aa:", step);
+                    for(int j = 0;j<UNROLL;j++)
+                        printf("%5d",aa_data[i * UNROLL +j] );
+                    printf( "\nStep:%6d CMax:", step);
+                    for(int j = 0;j<UNROLL;j++)
+                        printf("%5d",final_max[(i * UNROLL +j) * 2] );
+                    printf( "\nStep:%6d SMax:", step);
+                    for(int j = 0;j<UNROLL;j++)
+                        printf("%5d",final_max[(i * UNROLL +j) * 2 + 1] );
+                    printf("\n");
+                    usleep(100000); // 0.1 s
+                }
                 for (int j = 0; j < UNROLL; j++){
                     // If run out of sequences (slot empty)
                     if( seqno_reported[i] == -1 )
@@ -210,16 +237,16 @@ int main(int argc, char * argv[]) {
                         continue;
 
                     if( step > 0 && aa_data[i*UNROLL+j] == 0) {
-                        int16_t score = final_max[(2 * i +j) * UNROLL + 1];
+                        int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
                         if (score > 100) {
                             printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
                                     i, step, j, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
-                            usleep(100000); // 0.1 s
+                            //usleep(100000); // 0.1 s
                         }
                         // blank out the score so it does not carry to next sequence.
                         // this only matters for the last max in an unroll
                         // since the kernel already does the resetting internally.
-                        final_max[(2 * i +j)* UNROLL + 1 ] = 0;
+                        final_max[(i * UNROLL +j)* 2 + 1 ] = 0;
                         // move on to next sequence (the current sequence)
                         seqno_reported[i] = seqno[i];
                     }

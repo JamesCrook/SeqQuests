@@ -21,22 +21,22 @@ kernel void nws_step(
     if (col_id >= COLS) return;
     
     // Arrays for unrolled loop
-    short accumulator[UNROLL];
-    short maxv[UNROLL];
-    short dValue[UNROLL];
+    volatile short accumulator[UNROLL];
+    volatile short maxv[UNROLL];
+    volatile short accold[UNROLL];
     
     // Initialize arrays
     for (uint j = 0; j < UNROLL; j++) {
         accumulator[j] = 0;
         maxv[j] = 0;
-        dValue[j] = 0;
+        accold[j] = 0;
     }
     
     uint base_idx = col_id * num_rows;
     
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
-        short hValue = input[idx];
+        volatile short hValue = input[idx];
         
         for (uint j = 0; j < UNROLL; j++) {
             short residue = aa[col_id*UNROLL + j];
@@ -44,10 +44,10 @@ kernel void nws_step(
             short penalty = select((short)10, (short)30000, residue == 0);
             
             accumulator[j] = max(accumulator[j], hValue) - penalty;
-            accumulator[j] = max(accumulator[j], dValue[j]);
+            accumulator[j] = max(accumulator[j], (short)(accold[j]+pam[nidx]));
             accumulator[j] = max(accumulator[j], (short)0);
             maxv[j] = max(maxv[j], accumulator[j]);
-            dValue[j] = hValue + pam[nidx];
+            accold[j] = hValue;
             hValue = accumulator[j];
         }
         
@@ -66,6 +66,6 @@ kernel void nws_step(
         final_max[addr*2 + 1] = prevMax;
         // Reset max after a sequence boundary
         short residue = aa[addr];
-        prevMax = select((short)0,prevMax, residue == 0 );
+        prevMax = select(prevMax, (short)0, residue == 0 );
     }
 }
