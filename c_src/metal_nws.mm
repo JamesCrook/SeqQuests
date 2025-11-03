@@ -20,7 +20,7 @@
 #endif
 
 #ifndef UNROLL
-#define UNROLL (1)
+#define UNROLL (32)
 #endif
 
 
@@ -41,6 +41,16 @@ void release_fasta_records(FastaRecord* records, int num_records);
 
 // --- Main ---
 int main(int argc, char * argv[]) {
+    const int debug_slot = -1; // No slot debugging
+    const int reporting_threshold = 110; // Only report finds stronger than this level
+    const int start_at = 0; // First sequence
+    const int num_seqs = 1; // Or until we run out of database
+    const bool slow_output = false;
+    // Also wanted:
+    // const char * pam_data = "c_src/pam250.bin";
+    // const char * fasta_data = "c_src/fasta.bin";
+
+
     @autoreleasepool {
         // --- Device Setup ---
         MTL::Device* device = MTL::CreateSystemDefaultDevice();
@@ -59,9 +69,12 @@ int main(int argc, char * argv[]) {
         if (!fasta_records) return 1;
 
         // Use the first FASTA record for the search
-        char* search_sequence = fasta_records[0].sequence;
-        int rows = fasta_records[0].sequence_len;
-        printf("\nSearching with: %s\n", fasta_records[0].description);
+        // We really need a loop here that loops up to num_seqs times
+        int probe_seq = start_at;
+        // Should check probe_seq is in range!
+        char* search_sequence = fasta_records[probe_seq].sequence;
+        int rows = fasta_records[probe_seq].sequence_len;
+        printf("\nSearching with: %s\n", fasta_records[probe_seq].description);
         printf("Sequence length: %d\n", rows);
 
         // --- Create PAM LUT for the search sequence ---
@@ -156,7 +169,7 @@ int main(int argc, char * argv[]) {
 
                     if( seqDone ){
                         // Find next sequence that is big enough.
-                        // UNROLL is typically 16, and we do not want sequences smaller than that 
+                        // UNROLL is typically 32, and we do not want sequences smaller than that 
                         // as we can only handle one sequence end, a @, in an UNROLLed block.
                         seq++;
                         while (seq < num_fasta_records && fasta_records[seq].sequence_len < (UNROLL+4)) {
@@ -209,8 +222,11 @@ int main(int argc, char * argv[]) {
                 command_buffer->commit();
                 command_buffer->waitUntilCompleted();
             }
+            // Report on progress
             for (int i = 0; i < COLS; ++i) {
-                if( i==-1 ){
+
+                // Optional debugging reporting...
+                if( i==debug_slot ){
                     printf( "Step:%6d   aa:", step);
                     for(int j = 0;j<UNROLL;j++)
                         printf("%5d",aa_data[i * UNROLL +j] );
@@ -221,22 +237,28 @@ int main(int argc, char * argv[]) {
                     for(int j = 0;j<UNROLL;j++)
                         printf("%5d",final_max[(i * UNROLL +j) * 2 + 1] );
                     printf("\n");
-                    usleep(100000); // 0.1 s
+                    if( slow_output )
+                        usleep(100000); // 0.1 s
                 }
+
+                // At the start we must initialise the sequence number.
+                if( seqno_reported[i] == -1 )
+                    seqno_reported[i] = seqno[i];
+
+                // Report on finds
                 for (int j = 0; j < UNROLL; j++){
                     // If run out of sequences (slot empty)
-                    if( seqno_reported[i] == -1 )
-                        seqno_reported[i] = seqno[i];
-
                     if( seqno_reported[i] == -2 )
                         continue;
 
                     if( step > 0 && aa_data[i*UNROLL+j] == 0) {
                         int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
                         if (score > 110) {
+                            // Human readable 
                             printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
                                     i, step, j, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
-                            //usleep(100000); // 0.1 s
+                            if( slow_output )
+                                usleep(100000); // 0.1 s
                             finds++;
                         }
                         // blank out the score so it does not carry to next sequence.

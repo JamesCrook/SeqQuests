@@ -6,7 +6,7 @@ using namespace metal;
 #endif
 
 #ifndef UNROLL
-#define UNROLL (1)
+#define UNROLL (32)
 #endif
 
 kernel void nws_step(
