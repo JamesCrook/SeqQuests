@@ -73,28 +73,24 @@ int main(int argc, char * argv[]) {
             }
         }
 
-// --- Metal Setup ---
-// DELETE THIS: char* shader_source = read_shader_source("c_src/nws.metal");
-// DELETE THIS: if(!shader_source) return 1;
+        // We could compile dynamically, 
+        //char* shader_source = read_shader_source("c_src/nws.metal");
+        //if(!shader_source) return 1;
+        // free(shader_source);
 
-NS::Error* error = nullptr;
+        // --- Metal Setup ---
+        NS::Error* error = nullptr;
 
-// FIX: Load the pre-compiled .metallib file
-NS::String* library_path = NS::String::string("bin/nws.metallib", NS::UTF8StringEncoding);
-MTL::Library* library = device->newLibrary(library_path, &error);
+        // Load the pre-compiled .metallib file
+        NS::String* library_path = NS::String::string("bin/nws.metallib", NS::UTF8StringEncoding);
+        MTL::Library* library = device->newLibrary(library_path, &error);
 
-if (!library) {
-    fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
-    // DELETE THIS: free(shader_source);
-    return 1;
-}
-// DELETE THIS: free(shader_source);
+        if (!library) {
+            fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
+            return 1;
+        }
 
-
-
-
-
-
+        // Make a pipeline for the nws_step function
         MTL::Function* kernel_function = library->newFunction(NS::String::string("nws_step", NS::UTF8StringEncoding));
         MTL::ComputePipelineState* pipeline = device->newComputePipelineState(kernel_function, &error);
         if (!pipeline) {
@@ -116,13 +112,10 @@ if (!library) {
         MTL::Buffer* aa_buffer = device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
         MTL::Buffer* max_buffer = device->newBuffer(UNROLL * COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
 
-        //uint32_t num_cols_val = COLS;
         uint32_t num_rows_val = rows;
-        //MTL::Buffer* cols_buffer = device->newBuffer(&num_cols_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
         MTL::Buffer* rows_buffer = device->newBuffer(&num_rows_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
         printf("Matrix: %dx%d\n", COLS, rows);
         printf("Buffers created\n");
-
 
         // --- Run Metal Steps ---
         printf("\nRunning NWS steps...\n");
@@ -162,7 +155,9 @@ if (!library) {
                     }
 
                     if( seqDone ){
-                        // Find next sequence >= 100 aa
+                        // Find next sequence that is big enough.
+                        // UNROLL is typically 16, and we do not want sequences smaller than that 
+                        // as we can only handle one sequence end, a @, in an UNROLLed block.
                         seq++;
                         while (seq < num_fasta_records && fasta_records[seq].sequence_len < (UNROLL+4)) {
                             seq++;
@@ -176,7 +171,7 @@ if (!library) {
                             continue;
                         }
                     }
-                    // Add one amno acid.
+                    // Add one amino acid.
                     aa_data[i*UNROLL+j] = fasta_records[seqno[i]].sequence[pos[i]] & 31;
                     pos[i]++;
                     more_data = true;
@@ -200,7 +195,6 @@ if (!library) {
                 encoder->setBuffer(pam_buffer, 0, 2);
                 encoder->setBuffer(aa_buffer, 0, 3);
                 encoder->setBuffer(max_buffer, 0, 4);
-                //encoder->setBuffer(cols_buffer, 0, 5);
                 encoder->setBuffer(rows_buffer, 0, 5);
 
                 MTL::Size grid_size = MTL::Size(COLS, 1, 1);
