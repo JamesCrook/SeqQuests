@@ -26,6 +26,7 @@ class Job:
             "current_step": "Created",
             "start_time": None,
             "elapsed_time": 0,
+            "progress": "No Progress Info",
             "errors": [],
             "last_update": datetime.utcnow().isoformat()
         }
@@ -227,11 +228,16 @@ class JobManager:
 
     def list_jobs(self) -> Dict[str, Any]:
         with self.lock:
+            # Remove cancelled jobs
+            for job_id in list(self.jobs.keys()):
+                if self.jobs[job_id].state["status"] == "cancelled":
+                    del self.jobs[job_id]            
             return {
                 job_id: {
                     "status": job.state["status"],
                     "job_type": job.job_type,
-                    "created_at": job.state["last_update"]
+                    "created_at": job.state["last_update"],
+                    "progress": job.state["progress"]
                 }
                 for job_id, job in self.jobs.items()
             }

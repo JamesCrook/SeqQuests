@@ -98,12 +98,15 @@ def run_data_munging(organisms=None, require_go=False, require_ec=False, require
         if len(last_ten_accepted) > 10:
             last_ten_accepted.pop(0)
 
+
+
         if job:
             job.update(
                 sequences_examined=sequences_examined,
                 proteins_processed=proteins_processed,
                 most_recent_item=most_recent_item,
-                last_ten_accepted=last_ten_accepted
+                last_ten_accepted=last_ten_accepted,
+                progress=f"Done: {proteins_processed}"
             )
         else:
             # Print to console if not a job

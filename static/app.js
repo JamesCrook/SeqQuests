@@ -115,7 +115,7 @@ async function refreshJobs() {
             jobText.innerHTML = `${jobId.substring(0, 8)}... - ${job.job_type} (${job.status})`;
 
             const statusText = document.createElement('span');
-            statusText.innerHTML = "Compared: 0  Found: 0";
+            statusText.innerHTML = job.progress ?? "No Progress Info";
 
             const trashIcon = document.createElement('span');
             trashIcon.innerHTML = "🗑️"
@@ -153,6 +153,7 @@ async function pollJobStatus() {
     if (!currentJobId) return;
 
     try {
+        refreshJobs();
         const data = await apiCall(`/api/job/${currentJobId}/status`);
         updateDisplay(data);
         if (pollInterval > 0 && ['running', 'initializing'].includes(data.status)) {

@@ -6,6 +6,7 @@ import os
 import time
 import pty
 import select
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,8 @@ def run_nws_search(
     output_log = deque(maxlen=30)
     runner = MetalNWSRunner(args)
     runner.start()
+    seq = 0
+    step = 0
 
     for line in runner.read_output():
         if job.get_state()['status'] == 'cancelled':
@@ -175,8 +178,21 @@ def run_nws_search(
 
         #line = line.strip()
         if line:
+            has_progress = False
+            if line.startswith("Sequence:"):
+                match = re.search(r'Sequence:\s+(\d+)', line)
+                if match:
+                    seq = int(match.group(1))
+                    has_progress=True
+            elif line.startswith("Step:"):
+                match = re.search(r'Step:\s+(\d+)', line)
+                if match:
+                    step = int(match.group(1))
+                    has_progress=True
             output_log.append(line)
             job.update(output_log=list(output_log))
+            if has_progress :
+                job.update(progress=f"Seq: {seq} Step: {step}")
 
     print(f"Process finished with return code: {runner.get_return_code()}")
 
