@@ -144,6 +144,7 @@ if (!library) {
         bool more_data = true;
         bool do_search = true;
         int step = -1;
+        int finds = 0;
 
         while(more_data) {
             step++;
@@ -242,6 +243,7 @@ if (!library) {
                             printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
                                     i, step, j, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
                             //usleep(100000); // 0.1 s
+                            finds++;
                         }
                         // blank out the score so it does not carry to next sequence.
                         // this only matters for the last max in an unroll
@@ -256,6 +258,8 @@ if (!library) {
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
+        printf("Step:%7d <-- Finished\n", step);
+        printf("Searched with %4daa protein vs %8daa database; %4d finds\n", rows, step * COLS * UNROLL, finds);
         printf("Execution time: %.4f seconds\n", elapsed.count());
 
         // --- Cleanup ---
