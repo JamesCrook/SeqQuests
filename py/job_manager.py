@@ -9,6 +9,7 @@ import logging
 from computation import run_computation
 from data_munger import run_data_munging
 from seq_search import run_seq_search
+from nws_search import run_nws_search
 from sequences import read_dat_records
 
 logger = logging.getLogger(__name__)
@@ -165,10 +166,40 @@ class SequenceSearchJob(Job):
         logger.info(f"Sequence search job {self.job_id} finished.")
 
 
+class NwsSearchJob(Job):
+    def __init__(self, job_id: str):
+        super().__init__(job_id, "nws_search")
+        self.state.update({
+            "output_log": [],
+        })
+
+    def run(self):
+        logger.info(f"Running NWS search job {self.job_id} with config {self.state['config']}")
+        try:
+            config = self.state['config']
+            run_nws_search(
+                job=self,
+                debug_slot=config.get('debug_slot', -1),
+                reporting_threshold=config.get('reporting_threshold', 110),
+                start_at=config.get('start_at', 0),
+                num_seqs=config.get('num_seqs', 1),
+                slow_output=config.get('slow_output', False),
+                pam_data=config.get('pam_data', "c_src/pam250.bin"),
+                fasta_data=config.get('fasta_data', "c_src/fasta.bin"),
+            )
+            if self.state['status'] != 'cancelled':
+                self.update(status="completed")
+        except Exception as e:
+            logger.error(f"Job {self.job_id} failed: {e}")
+            self.update(status="failed", errors=[str(e)])
+        logger.info(f"NWS search job {self.job_id} finished.")
+
+
 JOB_TYPES = {
     "computation": ComputationJob,
     "data_munging": DataMungingJob,
     "sequence_search": SequenceSearchJob,
+    "nws_search": NwsSearchJob,
 }
 
 class JobManager:

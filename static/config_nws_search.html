@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configure and Monitor NWS Search Job</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+    <h2>Configure NWS Search Job</h2>
+    <form id="config-form">
+        <label for="debug_slot">Debug Slot:</label>
+        <input type="number" id="debug_slot" name="debug_slot" value="-1"><br>
+        <label for="reporting_threshold">Reporting Threshold:</label>
+        <input type="number" id="reporting_threshold" name="reporting_threshold" value="110"><br>
+        <label for="start_at">Start At:</label>
+        <input type="number" id="start_at" name="start_at" value="0"><br>
+        <label for="num_seqs">Number of Sequences:</label>
+        <input type="number" id="num_seqs" name="num_seqs" value="1"><br>
+        <label for="slow_output">Slow Output:</label>
+        <input type="checkbox" id="slow_output" name="slow_output"><br>
+        <label for="pam_data">PAM Data File:</label>
+        <input type="text" id="pam_data" name="pam_data" value="c_src/pam250.bin"><br>
+        <label for="fasta_data">FASTA Data File:</label>
+        <input type="text" id="fasta_data" name="fasta_data" value="c_src/fasta.bin"><br>
+        <br>
+        <button type="button" onclick="saveConfig()">Save Configuration</button>
+    </form>
+
+    <hr>
+
+    <h2>Job Progress</h2>
+    <div id="progress-container">
+        <h3>Output Log (last 10 lines):</h3>
+        <ul id="output-log">
+        </ul>
+    </div>
+
+    <script src="/static/job_monitor.js"></script>
+    <script>
+        async function saveConfig() {
+            const jobId = getJobIdFromUrl();
+            const config = {
+                debug_slot: parseInt(document.getElementById('debug_slot').value),
+                reporting_threshold: parseInt(document.getElementById('reporting_threshold').value),
+                start_at: parseInt(document.getElementById('start_at').value),
+                num_seqs: parseInt(document.getElementById('num_seqs').value),
+                slow_output: document.getElementById('slow_output').checked,
+                pam_data: document.getElementById('pam_data').value,
+                fasta_data: document.getElementById('fasta_data').value,
+            };
+
+            try {
+                await parent.apiCall(`/api/job/${jobId}/configure`, 'POST', { config });
+                parent.addLog(`Configuration for job ${jobId} saved.`, 'success');
+                parent.closeModal();
+            } catch (e) {
+                parent.addLog(`Failed to save configuration: ${e}`, 'error');
+            }
+        }
+
+        function updateProgressDisplay(data) {
+            const outputLog = document.getElementById('output-log');
+            outputLog.innerHTML = '';
+            if (data.output_log && data.output_log.length > 0) {
+                data.output_log.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    outputLog.appendChild(li);
+                });
+            }
+        }
+
+        window.addEventListener('load', () => {
+            loadJobConfig();
+            pollJobStatus(updateProgressDisplay);
+        });
+    </script>
+</body>
+</html>
