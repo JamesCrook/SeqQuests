@@ -23,7 +23,6 @@
 #define UNROLL (32)
 #endif
 
-
 typedef struct {
     int32_t description_len;
     char* description;
@@ -31,272 +30,299 @@ typedef struct {
     char* sequence;
 } FastaRecord;
 
+typedef struct {
+    int debug_slot;
+    int reporting_threshold;
+    int start_at;
+    int num_seqs;
+    bool slow_output;
+    const char* pam_data_file;
+    const char* fasta_data_file;
+} AppSettings;
+
+typedef struct {
+    MTL::Device* device;
+    MTL::Library* library;
+    MTL::ComputePipelineState* pipeline;
+    MTL::CommandQueue* queue;
+    MTL::Buffer* data_buffers[2];
+    MTL::Buffer* pam_buffer;
+    MTL::Buffer* aa_buffer;
+    MTL::Buffer* max_buffer;
+    MTL::Buffer* rows_buffer;
+} MetalState;
+
+typedef struct {
+    int16_t pam_data[32 * 32];
+    FastaRecord* fasta_records;
+    int num_fasta_records;
+} DataManager;
+
 // --- Function Prototypes ---
+void parse_arguments(int argc, char* argv[], AppSettings* settings);
+bool setup_metal(MetalState* metal_state);
+bool load_all_data(const AppSettings* settings, DataManager* data_manager);
+bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manager, int probe_seq_idx);
+void run_search(MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows);
+void report_results(int rows, int steps, int finds, std::chrono::duration<double> elapsed);
+void cleanup(MetalState* metal_state, DataManager* data_manager);
 long file_size(const char* filename);
-char* read_shader_source(const char* filename);
 void load_pam_data(const char* filename, int16_t* pam_data);
 FastaRecord* load_fasta_data(const char* filename, int* num_records);
 void release_fasta_records(FastaRecord* records, int num_records);
 
-
 // --- Main ---
 int main(int argc, char * argv[]) {
-    const int debug_slot = -1; // No slot debugging
-    const int reporting_threshold = 110; // Only report finds stronger than this level
-    const int start_at = 0; // First sequence
-    const int num_seqs = 1; // Or until we run out of database
-    const bool slow_output = false;
-    // Also wanted:
-    // const char * pam_data = "c_src/pam250.bin";
-    // const char * fasta_data = "c_src/fasta.bin";
-
-
     @autoreleasepool {
-        // --- Device Setup ---
-        MTL::Device* device = MTL::CreateSystemDefaultDevice();
-        if (!device) {
-            fprintf(stderr, "Metal is not supported on this device.\n");
-            return 1;
-        }
-        printf("Device: %s\n", device->name()->utf8String());
+        AppSettings settings;
+        parse_arguments(argc, argv, &settings);
 
-        // --- Load Data ---
-        int16_t pam_data[32 * 32];
-        load_pam_data("c_src/pam250.bin", pam_data);
-
-        int num_fasta_records = 0;
-        FastaRecord* fasta_records = load_fasta_data("c_src/fasta.bin", &num_fasta_records);
-        if (!fasta_records) return 1;
-
-        // Use the first FASTA record for the search
-        // We really need a loop here that loops up to num_seqs times
-        int probe_seq = start_at;
-        // Should check probe_seq is in range!
-        char* search_sequence = fasta_records[probe_seq].sequence;
-        int rows = fasta_records[probe_seq].sequence_len;
-        printf("\nSearching with: %s\n", fasta_records[probe_seq].description);
-        printf("Sequence length: %d\n", rows);
-
-        // --- Create PAM LUT for the search sequence ---
-        int16_t* pam_lut = (int16_t*)malloc(32 * rows * sizeof(int16_t));
-        for (int col = 0; col < 32; ++col) {
-            for (int i = 0; i < rows; ++i) {
-                int aa_idx = (int)search_sequence[i] & 31;
-                pam_lut[col * rows + i] = pam_data[col * 32 + aa_idx];
-            }
-        }
-
-        // We could compile dynamically, 
-        //char* shader_source = read_shader_source("c_src/nws.metal");
-        //if(!shader_source) return 1;
-        // free(shader_source);
-
-        // --- Metal Setup ---
-        NS::Error* error = nullptr;
-
-        // Load the pre-compiled .metallib file
-        NS::String* library_path = NS::String::string("bin/nws.metallib", NS::UTF8StringEncoding);
-        MTL::Library* library = device->newLibrary(library_path, &error);
-
-        if (!library) {
-            fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
+        DataManager data_manager;
+        if (!load_all_data(&settings, &data_manager)) {
             return 1;
         }
 
-        // Make a pipeline for the nws_step function
-        MTL::Function* kernel_function = library->newFunction(NS::String::string("nws_step", NS::UTF8StringEncoding));
-        MTL::ComputePipelineState* pipeline = device->newComputePipelineState(kernel_function, &error);
-        if (!pipeline) {
-            fprintf(stderr, "Failed to create pipeline state: %s\n", error->localizedDescription()->utf8String());
+        MetalState metal_state;
+        if (!setup_metal(&metal_state)) {
             return 1;
         }
 
-        MTL::CommandQueue* queue = device->newCommandQueue();
-
-        // --- Buffer Creation ---
-        printf("\n--- Initializing Metal Buffers ---\n");
-        MTL::Buffer* data_buffers[2];
-        data_buffers[0] = device->newBuffer(COLS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-        data_buffers[1] = device->newBuffer(COLS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-        memset(data_buffers[0]->contents(), 0, COLS * rows * sizeof(int16_t));
-        memset(data_buffers[1]->contents(), 0, COLS * rows * sizeof(int16_t));
-
-        MTL::Buffer* pam_buffer = device->newBuffer(pam_lut, 32 * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-        MTL::Buffer* aa_buffer = device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-        MTL::Buffer* max_buffer = device->newBuffer(UNROLL * COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
-
-        uint32_t num_rows_val = rows;
-        MTL::Buffer* rows_buffer = device->newBuffer(&num_rows_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
-        printf("Matrix: %dx%d\n", COLS, rows);
-        printf("Buffers created\n");
-
-        // --- Run Metal Steps ---
-        printf("\nRunning NWS steps...\n");
-        auto start = std::chrono::high_resolution_clock::now();
-
-        int16_t* aa_data = (int16_t*)aa_buffer->contents();
-        int16_t* final_max = (int16_t*)max_buffer->contents();
-        memset(final_max, 0, COLS * 2 * UNROLL * sizeof(int16_t));
-
-        int pos[COLS] = {0};
-        // Track sequence we are adding for and sequence we are reporting 
-        // separately.
-        int seqno[COLS];
-        int seqno_reported[COLS];
-        for(int i=0; i<COLS; ++i) seqno[i] = -1;
-        for(int i=0; i<COLS; ++i) seqno_reported[i] = -1;
-        int seq = -1;
-
-        bool more_data = true;
-        bool do_search = true;
-        int step = -1;
-        int finds = 0;
-
-        while(more_data) {
-            step++;
-            more_data = false;
-            // Add data
-            for (int i = 0; i < COLS; ++i) {
-                for (int j = 0; j < UNROLL; j++){
-                    // If run out of sequences (slot empty)
-                    if( seqno[i] == -2 )
-                        continue;
-                    bool seqDone = (seqno[i] == -1 );
-
-                    if( !seqDone && pos[i] >= fasta_records[seqno[i]].sequence_len) {
-                        seqDone = true;
-                    }
-
-                    if( seqDone ){
-                        // Find next sequence that is big enough.
-                        // UNROLL is typically 32, and we do not want sequences smaller than that 
-                        // as we can only handle one sequence end, a @, in an UNROLLed block.
-                        seq++;
-                        while (seq < num_fasta_records && fasta_records[seq].sequence_len < (UNROLL+4)) {
-                            seq++;
-                        }
-                        
-                        if (seq < num_fasta_records) {
-                            pos[i] = 0;
-                            seqno[i] = seq;
-                        } else {
-                            seqno[i] = -2;
-                            continue;
-                        }
-                    }
-                    // Add one amino acid.
-                    aa_data[i*UNROLL+j] = fasta_records[seqno[i]].sequence[pos[i]] & 31;
-                    pos[i]++;
-                    more_data = true;
-                }
-            }
-            if( !more_data )
+        for (int i = 0; i < settings.num_seqs; ++i) {
+            int probe_seq_idx = settings.start_at + i;
+            if (probe_seq_idx >= data_manager.num_fasta_records) {
+                printf("No more sequences to process.\n");
                 break;
-
-            if( (step % 1000) == 0 )
-                printf( "Step:%7d\n", step);
-
-            if( do_search) {
-                int in_idx = step % 2;
-                int out_idx = (step + 1) % 2;
-
-                MTL::CommandBuffer* command_buffer = queue->commandBuffer();
-                MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
-                encoder->setComputePipelineState(pipeline);
-                encoder->setBuffer(data_buffers[in_idx], 0, 0);
-                encoder->setBuffer(data_buffers[out_idx], 0, 1);
-                encoder->setBuffer(pam_buffer, 0, 2);
-                encoder->setBuffer(aa_buffer, 0, 3);
-                encoder->setBuffer(max_buffer, 0, 4);
-                encoder->setBuffer(rows_buffer, 0, 5);
-
-                MTL::Size grid_size = MTL::Size(COLS, 1, 1);
-                NS::UInteger threadgroup_size_val = pipeline->maxTotalThreadsPerThreadgroup();
-                if (threadgroup_size_val > COLS) {
-                    threadgroup_size_val = COLS;
-                }
-                MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
-
-                encoder->dispatchThreads(grid_size, threadgroup_size);
-                encoder->endEncoding();
-                command_buffer->commit();
-                command_buffer->waitUntilCompleted();
             }
-            // Report on progress
-            for (int i = 0; i < COLS; ++i) {
 
-                // Optional debugging reporting...
-                if( i==debug_slot ){
-                    printf( "Step:%6d   aa:", step);
-                    for(int j = 0;j<UNROLL;j++)
-                        printf("%5d",aa_data[i * UNROLL +j] );
-                    printf( "\nStep:%6d CMax:", step);
-                    for(int j = 0;j<UNROLL;j++)
-                        printf("%5d",final_max[(i * UNROLL +j) * 2] );
-                    printf( "\nStep:%6d SMax:", step);
-                    for(int j = 0;j<UNROLL;j++)
-                        printf("%5d",final_max[(i * UNROLL +j) * 2 + 1] );
-                    printf("\n");
-                    if( slow_output )
-                        usleep(100000); // 0.1 s
-                }
-
-                // At the start we must initialise the sequence number.
-                if( seqno_reported[i] == -1 )
-                    seqno_reported[i] = seqno[i];
-
-                // Report on finds
-                for (int j = 0; j < UNROLL; j++){
-                    // If run out of sequences (slot empty)
-                    if( seqno_reported[i] == -2 )
-                        continue;
-
-                    if( step > 0 && aa_data[i*UNROLL+j] == 0) {
-                        int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
-                        if (score > 110) {
-                            // Human readable 
-                            printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
-                                    i, step, j, seqno_reported[i], fasta_records[seqno_reported[i]].sequence_len - 1, score, fasta_records[seqno_reported[i]].description);
-                            if( slow_output )
-                                usleep(100000); // 0.1 s
-                            finds++;
-                        }
-                        // blank out the score so it does not carry to next sequence.
-                        // this only matters for the last max in an unroll
-                        // since the kernel already does the resetting internally.
-                        final_max[(i * UNROLL +j)* 2 + 1 ] = 0;
-                        // move on to next sequence (the current sequence)
-                        seqno_reported[i] = seqno[i];
-                    }
-                }
+            if (!prepare_for_sequence(&metal_state, &data_manager, probe_seq_idx)) {
+                continue; // Skip to next sequence
             }
+
+            int rows = data_manager.fasta_records[probe_seq_idx].sequence_len;
+            run_search(&metal_state, &data_manager, &settings, rows);
+
+            // Release sequence-specific buffers
+            metal_state.pam_buffer->release();
+            metal_state.rows_buffer->release();
+            metal_state.data_buffers[0]->release();
+            metal_state.data_buffers[1]->release();
         }
 
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = end - start;
-        printf("Step:%7d <-- Finished\n", step);
-        printf("Searched with %4daa protein vs %8daa database; %4d finds\n", rows, step * COLS * UNROLL, finds);
-        printf("Execution time: %.4f seconds\n", elapsed.count());
-
-        // --- Cleanup ---
-        release_fasta_records(fasta_records, num_fasta_records);
-        free(pam_lut);
-
-        data_buffers[0]->release();
-        data_buffers[1]->release();
-        pam_buffer->release();
-        aa_buffer->release();
-        max_buffer->release();
-        //cols_buffer->release();
-        rows_buffer->release();
-
-        queue->release();
-        pipeline->release();
-        kernel_function->release();
-        library->release();
-        device->release();
+        cleanup(&metal_state, &data_manager);
     }
     return 0;
+}
+
+void parse_arguments(int argc, char* argv[], AppSettings* settings) {
+    settings->debug_slot = -1;
+    settings->reporting_threshold = 110;
+    settings->start_at = 0;
+    settings->num_seqs = 1;
+    settings->slow_output = false;
+    settings->pam_data_file = "c_src/pam250.bin";
+    settings->fasta_data_file = "c_src/fasta.bin";
+
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--debug_slot") == 0 && i + 1 < argc) {
+            settings->debug_slot = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--reporting_threshold") == 0 && i + 1 < argc) {
+            settings->reporting_threshold = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--start_at") == 0 && i + 1 < argc) {
+            settings->start_at = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--num_seqs") == 0 && i + 1 < argc) {
+            settings->num_seqs = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--slow_output") == 0) {
+            settings->slow_output = true;
+        } else if (strcmp(argv[i], "--pam_data") == 0 && i + 1 < argc) {
+            settings->pam_data_file = argv[++i];
+        } else if (strcmp(argv[i], "--fasta_data") == 0 && i + 1 < argc) {
+            settings->fasta_data_file = argv[++i];
+        }
+    }
+}
+
+bool setup_metal(MetalState* metal_state) {
+    metal_state->device = MTL::CreateSystemDefaultDevice();
+    if (!metal_state->device) {
+        fprintf(stderr, "Metal is not supported on this device.\n");
+        return false;
+    }
+    printf("Device: %s\n", metal_state->device->name()->utf8String());
+
+    NS::Error* error = nullptr;
+    NS::String* library_path = NS::String::string("bin/nws.metallib", NS::UTF8StringEncoding);
+    metal_state->library = metal_state->device->newLibrary(library_path, &error);
+    if (!metal_state->library) {
+        fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
+        return false;
+    }
+
+    MTL::Function* kernel_function = metal_state->library->newFunction(NS::String::string("nws_step", NS::UTF8StringEncoding));
+    metal_state->pipeline = metal_state->device->newComputePipelineState(kernel_function, &error);
+    if (!metal_state->pipeline) {
+        fprintf(stderr, "Failed to create pipeline state: %s\n", error->localizedDescription()->utf8String());
+        return false;
+    }
+
+    metal_state->queue = metal_state->device->newCommandQueue();
+
+    metal_state->aa_buffer = metal_state->device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->max_buffer = metal_state->device->newBuffer(UNROLL * COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
+
+    kernel_function->release();
+    return true;
+}
+
+bool load_all_data(const AppSettings* settings, DataManager* data_manager) {
+    load_pam_data(settings->pam_data_file, data_manager->pam_data);
+    data_manager->fasta_records = load_fasta_data(settings->fasta_data_file, &data_manager->num_fasta_records);
+    return data_manager->fasta_records != NULL;
+}
+
+bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manager, int probe_seq_idx) {
+    char* search_sequence = data_manager->fasta_records[probe_seq_idx].sequence;
+    int rows = data_manager->fasta_records[probe_seq_idx].sequence_len;
+
+    printf("\nSearching with: %s\n", data_manager->fasta_records[probe_seq_idx].description);
+    printf("Sequence length: %d\n", rows);
+
+    int16_t* pam_lut = (int16_t*)malloc(32 * rows * sizeof(int16_t));
+    for (int col = 0; col < 32; ++col) {
+        for (int i = 0; i < rows; ++i) {
+            int aa_idx = (int)search_sequence[i] & 31;
+            pam_lut[col * rows + i] = data_manager->pam_data[col * 32 + aa_idx];
+        }
+    }
+
+    metal_state->data_buffers[0] = metal_state->device->newBuffer(COLS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->data_buffers[1] = metal_state->device->newBuffer(COLS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    memset(metal_state->data_buffers[0]->contents(), 0, COLS * rows * sizeof(int16_t));
+    memset(metal_state->data_buffers[1]->contents(), 0, COLS * rows * sizeof(int16_t));
+
+    metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    free(pam_lut);
+
+    uint32_t num_rows_val = rows;
+    metal_state->rows_buffer = metal_state->device->newBuffer(&num_rows_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
+
+    printf("Matrix: %dx%d\n", COLS, rows);
+    printf("Buffers created\n");
+    return true;
+}
+
+void run_search(MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows) {
+    printf("\nRunning NWS steps...\n");
+    auto start = std::chrono::high_resolution_clock::now();
+
+    int16_t* aa_data = (int16_t*)metal_state->aa_buffer->contents();
+    int16_t* final_max = (int16_t*)metal_state->max_buffer->contents();
+    memset(final_max, 0, COLS * 2 * UNROLL * sizeof(int16_t));
+
+    int pos[COLS] = {0};
+    int seqno[COLS], seqno_reported[COLS];
+    for(int i=0; i<COLS; ++i) seqno[i] = seqno_reported[i] = -1;
+
+    int seq = -1;
+    bool more_data = true;
+    int step = -1;
+    int finds = 0;
+
+    while(more_data) {
+        step++;
+        more_data = false;
+
+        for (int i = 0; i < COLS; ++i) {
+            for (int j = 0; j < UNROLL; j++){
+                if(seqno[i] == -2) continue;
+
+                bool seqDone = (seqno[i] == -1 || pos[i] >= data_manager->fasta_records[seqno[i]].sequence_len);
+                if(seqDone) {
+                    seq++;
+                    while (seq < data_manager->num_fasta_records && data_manager->fasta_records[seq].sequence_len < (UNROLL+4)) {
+                        seq++;
+                    }
+                    if (seq < data_manager->num_fasta_records) {
+                        pos[i] = 0;
+                        seqno[i] = seq;
+                    } else {
+                        seqno[i] = -2;
+                        continue;
+                    }
+                }
+                aa_data[i*UNROLL+j] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
+                pos[i]++;
+                more_data = true;
+            }
+        }
+
+        if(!more_data) break;
+        if((step % 1000) == 0) printf("Step:%7d\n", step);
+
+        int in_idx = step % 2;
+        int out_idx = (step + 1) % 2;
+
+        MTL::CommandBuffer* command_buffer = metal_state->queue->commandBuffer();
+        MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
+        encoder->setComputePipelineState(metal_state->pipeline);
+        encoder->setBuffer(metal_state->data_buffers[in_idx], 0, 0);
+        encoder->setBuffer(metal_state->data_buffers[out_idx], 0, 1);
+        encoder->setBuffer(metal_state->pam_buffer, 0, 2);
+        encoder->setBuffer(metal_state->aa_buffer, 0, 3);
+        encoder->setBuffer(metal_state->max_buffer, 0, 4);
+        encoder->setBuffer(metal_state->rows_buffer, 0, 5);
+
+        MTL::Size grid_size = MTL::Size(COLS, 1, 1);
+        NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
+        if (threadgroup_size_val > COLS) threadgroup_size_val = COLS;
+        MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
+
+        encoder->dispatchThreads(grid_size, threadgroup_size);
+        encoder->endEncoding();
+        command_buffer->commit();
+        command_buffer->waitUntilCompleted();
+
+        for (int i = 0; i < COLS; ++i) {
+            if(i == settings->debug_slot) {
+                // ... debug output ...
+            }
+
+            if(seqno_reported[i] == -1) seqno_reported[i] = seqno[i];
+
+            for (int j = 0; j < UNROLL; j++){
+                if(seqno_reported[i] == -2) continue;
+                if(step > 0 && aa_data[i*UNROLL+j] == 0) {
+                    int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
+                    if (score > settings->reporting_threshold) {
+                        printf("Slot:%4d step:%6d j:%2d Seq:%6d Length:%4d Score:%5d Name:%.100s\n",
+                                i, step, j, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
+                        if(settings->slow_output) usleep(100000);
+                        finds++;
+                    }
+                    final_max[(i * UNROLL +j)* 2 + 1] = 0;
+                    seqno_reported[i] = seqno[i];
+                }
+            }
+        }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    report_results(rows, step, finds, end - start);
+}
+
+void report_results(int rows, int steps, int finds, std::chrono::duration<double> elapsed) {
+    printf("Step:%7d <-- Finished\n", steps);
+    printf("Searched with %4daa protein vs %8daa database; %4d finds\n", rows, steps * COLS * UNROLL, finds);
+    printf("Execution time: %.4f seconds\n", elapsed.count());
+}
+
+void cleanup(MetalState* metal_state, DataManager* data_manager) {
+    release_fasta_records(data_manager->fasta_records, data_manager->num_fasta_records);
+    metal_state->aa_buffer->release();
+    metal_state->max_buffer->release();
+    metal_state->queue->release();
+    metal_state->pipeline->release();
+    metal_state->library->release();
+    metal_state->device->release();
 }
 
 // --- Helper Functions ---
@@ -306,27 +332,6 @@ long file_size(const char* filename) {
     if (stat(filename, &st) == 0)
         return st.st_size;
     return -1;
-}
-
-char* read_shader_source(const char* filename) {
-    long size = file_size(filename);
-    if (size == -1) {
-        fprintf(stderr, "Could not stat file %s\n", filename);
-        return NULL;
-    }
-
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        fprintf(stderr, "Could not open file %s\n", filename);
-        return NULL;
-    }
-
-    char* source = (char*)malloc(size + 1);
-    fread(source, 1, size, file);
-    source[size] = '\0';
-    fclose(file);
-
-    return source;
 }
 
 void load_pam_data(const char* filename, int16_t* pam_data) {
@@ -347,7 +352,6 @@ FastaRecord* load_fasta_data(const char* filename, int* num_records) {
         return NULL;
     }
 
-    // Dynamically allocate records array
     int capacity = 1000;
     FastaRecord* records = (FastaRecord*)malloc(sizeof(FastaRecord) * capacity);
     int count = 0;
