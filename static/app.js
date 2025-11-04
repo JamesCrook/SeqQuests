@@ -88,11 +88,11 @@ async function removeJob(jobId) {
     }
 }
 
-function configureJob() {
+function configureJob( show = true) {
     if (!currentJobId || !currentJobType) return;
     const iframe = document.getElementById('config-iframe');
     iframe.src = `/config/${currentJobType}?job_id=${currentJobId}`;
-    document.getElementById('config-modal').style.display = 'block';
+    document.getElementById('config-modal').style.display = show ? 'block': 'none';
 }
 
 function closeModal() {
@@ -148,7 +148,7 @@ function selectJob(jobId, jobType) {
     });
 
     if (jobId) {
-        configureJob();
+        configureJob(false);
     } else {
         closeModal();
     }
@@ -220,6 +220,7 @@ window.addEventListener('load', async () => {
         try {
             const data = await apiCall(`/api/job/${jobIdFromUrl}/status`);
             selectJob(jobIdFromUrl, data.job_type);
+            configureJob();
         } catch (e) {
             addLog(`Failed to select job from URL: ${e}`, 'error');
             selectJob(null, null);
