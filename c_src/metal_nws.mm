@@ -15,8 +15,8 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #define MAX_DESCRIPTION_LEN 256
-#ifndef COLS
-#define COLS (4096)
+#ifndef THREADS
+#define THREADS (4096)
 #endif
 
 #ifndef UNROLL
@@ -166,8 +166,8 @@ bool setup_metal(MetalState* metal_state) {
 
     metal_state->queue = metal_state->device->newCommandQueue();
 
-    metal_state->aa_buffer = metal_state->device->newBuffer(UNROLL * COLS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->max_buffer = metal_state->device->newBuffer(UNROLL * COLS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->aa_buffer = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->max_buffer = metal_state->device->newBuffer(UNROLL * THREADS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
 
     kernel_function->release();
     return true;
@@ -194,10 +194,10 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
         }
     }
 
-    metal_state->data_buffers[0] = metal_state->device->newBuffer(COLS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->data_buffers[1] = metal_state->device->newBuffer(COLS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    memset(metal_state->data_buffers[0]->contents(), 0, COLS * rows * sizeof(int16_t));
-    memset(metal_state->data_buffers[1]->contents(), 0, COLS * rows * sizeof(int16_t));
+    metal_state->data_buffers[0] = metal_state->device->newBuffer(THREADS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->data_buffers[1] = metal_state->device->newBuffer(THREADS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    memset(metal_state->data_buffers[0]->contents(), 0, THREADS * rows * sizeof(int16_t));
+    memset(metal_state->data_buffers[1]->contents(), 0, THREADS * rows * sizeof(int16_t));
 
     metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
     free(pam_lut);
@@ -205,7 +205,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     uint32_t num_rows_val = rows;
     metal_state->rows_buffer = metal_state->device->newBuffer(&num_rows_val, sizeof(uint32_t), MTL::ResourceStorageModeShared);
 
-    //printf("Matrix: %dx%d\n", COLS, rows);
+    //printf("Matrix: %dx%d\n", THREADS, rows);
     //printf("Buffers created\n");
     return true;
 }
@@ -216,11 +216,11 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
 
     int16_t* aa_data = (int16_t*)metal_state->aa_buffer->contents();
     int16_t* final_max = (int16_t*)metal_state->max_buffer->contents();
-    memset(final_max, 0, COLS * 2 * UNROLL * sizeof(int16_t));
+    memset(final_max, 0, THREADS * 2 * UNROLL * sizeof(int16_t));
 
-    int pos[COLS] = {0};
-    int seqno[COLS], seqno_reported[COLS];
-    for(int i=0; i<COLS; ++i) seqno[i] = seqno_reported[i] = -1;
+    int pos[THREADS] = {0};
+    int seqno[THREADS], seqno_reported[THREADS];
+    for(int i=0; i<THREADS; ++i) seqno[i] = seqno_reported[i] = -1;
 
     int seq = -1;
     bool more_data = true;
@@ -231,7 +231,7 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
         step++;
         more_data = false;
 
-        for (int i = 0; i < COLS; ++i) {
+        for (int i = 0; i < THREADS; ++i) {
             for (int j = 0; j < UNROLL; j++){
                 if(seqno[i] == -2) continue;
 
@@ -271,9 +271,9 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
         encoder->setBuffer(metal_state->max_buffer, 0, 4);
         encoder->setBuffer(metal_state->rows_buffer, 0, 5);
 
-        MTL::Size grid_size = MTL::Size(COLS, 1, 1);
+        MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
         NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
-        if (threadgroup_size_val > COLS) threadgroup_size_val = COLS;
+        if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
         MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
 
         encoder->dispatchThreads(grid_size, threadgroup_size);
@@ -281,7 +281,7 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
         command_buffer->commit();
         command_buffer->waitUntilCompleted();
 
-        for (int i = 0; i < COLS; ++i) {
+        for (int i = 0; i < THREADS; ++i) {
             if(i == settings->debug_slot) {
                 // ... debug output ...
             }
@@ -311,7 +311,7 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
 
 void report_results(int rows, int steps, int finds, std::chrono::duration<double> elapsed) {
     printf("Step:%7d <-- Finished\n", steps);
-    printf("Searched with %4daa protein vs %8daa database; %4d finds\n", rows, steps * COLS * UNROLL, finds);
+    printf("Searched with %4daa protein vs %8daa database; %4d finds\n", rows, steps * THREADS * UNROLL, finds);
     printf("Execution time: %.4f seconds\n", elapsed.count());
 }
 

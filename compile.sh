@@ -3,14 +3,14 @@
 # Exit on error
 set -e
 
-COLS=4096
+THREADS=4096
 UNROLL=32
 
-echo "--- Compiling with COLS=$COLS, UNROLL=$UNROLL ---"
+echo "--- Compiling with THREADS=$THREADS, UNROLL=$UNROLL ---"
 
 echo "--- Compiling Metal Shader ---"
 xcrun -sdk macosx metal -c c_src/nws.metal -o bin/nws.air \
-    -D COLS=$COLS -D UNROLL=$UNROLL
+    -D THREADS=$THREADS -D UNROLL=$UNROLL
 xcrun -sdk macosx metallib bin/nws.air -o bin/nws.metallib
 
 echo "--- Compiling C Code ---"
@@ -18,7 +18,7 @@ echo "--- Compiling C Code ---"
 # -O2 for speed
 clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm \
     -I$HOME/metal-cpp \
-    -D COLS=$COLS -D UNROLL=$UNROLL \
+    -D THREADS=$THREADS -D UNROLL=$UNROLL \
     -framework Foundation -framework Metal -framework QuartzCore
 
 echo "--- Compilation Successful ---"

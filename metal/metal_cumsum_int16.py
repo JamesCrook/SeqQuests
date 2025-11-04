@@ -20,22 +20,22 @@ kernel void cumulative_sum_columns(
     device short* output [[buffer(1)]],
     device int* final_sums [[buffer(2)]],
     constant uint& num_rows [[buffer(3)]],
-    constant uint& num_cols [[buffer(4)]],
-    uint col_id [[thread_position_in_grid]])
+    constant uint& num_threads [[buffer(4)]],
+    uint thread_id [[thread_position_in_grid]])
 {
-    if (col_id >= num_cols) return;
+    if (thread_id >= num_threads) return;
     
     int accumulator = 0;
     
     // Ripple-carry down the column
     for (uint row = 0; row < num_rows; row++) {
-        uint idx = row * num_cols + col_id;
+        uint idx = row * num_threads + thread_id;
         short value = input[idx];
         accumulator += value;
         output[idx] = (short)accumulator;
     }
     
-    final_sums[col_id] = accumulator;
+    final_sums[thread_id] = accumulator;
 }
 """
 
@@ -73,18 +73,18 @@ def create_input_buffer(device, np_array):
 def main():
     # Setup
     # rows is the length of the vector we are cumulative summing
-    # cols is the number of simultaneous jobs we are running.
-    rows, cols = 300, 32
+    # threads is the number of simultaneous jobs we are running.
+    rows, threads = 300, 32
     np.random.seed(42)
-    input_data = np.random.randint(0, 6, size=(rows, cols), dtype=np.int16)
+    input_data = np.random.randint(0, 6, size=(rows, threads), dtype=np.int16)
     
     print(f"Metal int16 Zero-Copy Implementation")
-    print(f"Matrix: {rows}x{cols}")
+    print(f"Matrix: {rows}x{threads}")
     print(f"Sample input:\n{input_data[:5, :5]}\n")
     
     # Pre-allocate output arrays - IMPORTANT: these must stay in scope!
-    output_data = np.zeros((rows, cols), dtype=np.int16, order='C')
-    final_sums = np.zeros(cols, dtype=np.int32, order='C')
+    output_data = np.zeros((rows, threads), dtype=np.int16, order='C')
+    final_sums = np.zeros(threads, dtype=np.int32, order='C')
     
     # Metal setup
     device = Metal.MTLCreateSystemDefaultDevice()
@@ -110,7 +110,7 @@ def main():
 
     # Constants - regular copy (small and read-only)
     rows_buffer = create_input_buffer(device, np.array([rows], dtype=np.uint32))
-    cols_buffer = create_input_buffer(device, np.array([cols], dtype=np.uint32))
+    threads_buffer = create_input_buffer(device, np.array([threads], dtype=np.uint32))
     
     print("Buffers created (zero-copy for outputs)")
     
@@ -124,12 +124,12 @@ def main():
     encoder.setBuffer_offset_atIndex_(buffer_B, 0, 1)
     encoder.setBuffer_offset_atIndex_(sums_buffer, 0, 2)
     encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 3)
-    encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 4)
+    encoder.setBuffer_offset_atIndex_(threads_buffer, 0, 4)
     
     # Dispatch
     encoder.dispatchThreads_threadsPerThreadgroup_(
-        Metal.MTLSizeMake(cols, 1, 1),
-        Metal.MTLSizeMake(min(cols, pipeline.maxTotalThreadsPerThreadgroup()), 1, 1)
+        Metal.MTLSizeMake(threads, 1, 1),
+        Metal.MTLSizeMake(min(threads, pipeline.maxTotalThreadsPerThreadgroup()), 1, 1)
     )
     
     encoder.endEncoding()

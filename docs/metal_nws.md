@@ -16,8 +16,8 @@ The actual amino acid alphabet in the PAM substitution matrix is 26. 32 is the n
 
 The search of one query sequence is against a database of sequences. The workload is divided as follows:
 
--   **COLS:** This compile-time constant, usually 4096, defines how many database sequences are processed in parallel by the GPU. Each sequence is assigned to a separate thread.
--   **UNROLL:** This constant, usually 32, determines how many elements of a database sequence are processed by a single GPU thread in one go. Each of the COLS threads is working on a grid of size query sequence size x UNROLL. All threads work on the same sized blocks of data.
+-   **THREADS:** This compile-time constant, usually 4096, defines how many database sequences are processed in parallel by the GPU. Each sequence is assigned to a separate thread.
+-   **UNROLL:** This constant, usually 32, determines how many elements of a database sequence are processed by a single GPU thread in one go. Each of the THREADS threads is working on a grid of size query sequence size x UNROLL. All threads work on the same sized blocks of data.
 
 ## Kernel Output
 

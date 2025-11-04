@@ -39,19 +39,19 @@ kernel void nws_step(
     device short* pam [[buffer(2)]],
     device short* aa [[buffer(3)]],
     device short* final_max [[buffer(4)]],
-    constant uint& num_cols [[buffer(5)]],
+    constant uint& num_threads [[buffer(5)]],
     constant uint& num_rows [[buffer(6)]],
-    uint col_id [[thread_position_in_grid]])
+    uint thread_id [[thread_position_in_grid]])
 {
-    if (col_id >= num_cols) return;
+    if (thread_id >= num_threads) return;
     
     short accumulator = 0;
     short maxv = 0;
     
-    uint base_idx = col_id * num_rows;
-    uint base_nidx = aa[col_id] * num_rows;
+    uint base_idx = thread_id * num_rows;
+    uint base_nidx = aa[thread_id] * num_rows;
     short penalty = 10;
-    if( aa[col_id]==0 )
+    if( aa[thread_id]==0 )
         penalty = 30000;
 
     short dValue = 0;
@@ -70,13 +70,13 @@ kernel void nws_step(
         
         output[idx] = (short)accumulator;
     }
-    final_max[col_id*2] = maxv;
-    final_max[col_id*2+1] = max( maxv, final_max[col_id*2+1]);
+    final_max[thread_id*2] = maxv;
+    final_max[thread_id*2+1] = max( maxv, final_max[thread_id*2+1]);
 }
 """
 
 
-def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
+def nws_step(input_arr, output_arr, pam, aa, final_max, num_threads, num_rows):
     """
     Python implementation of the nws_step Metal kernel.
     """
@@ -84,14 +84,14 @@ def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
     input_flat = input_arr.ravel()
     output_flat = output_arr.ravel()
     
-    for col_id in range(num_cols):
+    for thread_id in range(num_threads):
         accumulator = np.int16(0)
         maxv = np.int16(0)
         
-        base_idx = col_id * num_rows
-        base_nidx = int(aa[col_id]) * num_rows
+        base_idx = thread_id * num_rows
+        base_nidx = int(aa[thread_id]) * num_rows
         penalty = 10;
-        if aa[col_id]==0 :
+        if aa[thread_id]==0 :
             penalty = 30000;
 
         dValue = np.int16(0)
@@ -110,8 +110,8 @@ def nws_step(input_arr, output_arr, pam, aa, final_max, num_cols, num_rows):
 
             output_flat[idx] = accumulator
         
-        final_max[col_id*2] = maxv
-        final_max[col_id*2+1] = np.int16(max(int(maxv), int(final_max[col_id*2+1])))
+        final_max[thread_id*2] = maxv
+        final_max[thread_id*2+1] = np.int16(max(int(maxv), int(final_max[thread_id*2+1])))
 
 # --- Buffer Utilities ---
 
@@ -145,7 +145,7 @@ def compile_shader(device, source, kernel_name):
     return pipeline
 
 
-def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer_aa, buffer_sums, cols_buffer, rows_buffer, grid_width):
+def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer_aa, buffer_sums, threads_buffer, rows_buffer, grid_width):
     """Invokes one pass of the cumulative_sum shader."""
     
     command_buffer = queue.commandBuffer()
@@ -157,7 +157,7 @@ def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer
     encoder.setBuffer_offset_atIndex_(buffer_pam, 0, 2)
     encoder.setBuffer_offset_atIndex_(buffer_aa, 0, 3)
     encoder.setBuffer_offset_atIndex_(buffer_sums, 0, 4)
-    encoder.setBuffer_offset_atIndex_(cols_buffer, 0, 5)
+    encoder.setBuffer_offset_atIndex_(threads_buffer, 0, 5)
     encoder.setBuffer_offset_atIndex_(rows_buffer, 0, 6)
     
     # CHANGED: Dispatch 1D grid, one thread per col
@@ -172,17 +172,17 @@ def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer
     command_buffer.waitUntilCompleted()
 
 # --- NWS (Needleman-Wunsch-Smith) Functions ---
-def make_metal_buffers(device, cols, rows):
+def make_metal_buffers(device, threads, rows):
     """Creates and returns a dictionary of Metal buffers and related data."""
     print("\n--- Initializing Metal Buffers ---")
 
-    initial_data = np.zeros((cols, rows), dtype=np.int16, order='C')
-    data_array_0 = np.zeros((cols, rows), dtype=np.int16, order='C')
-    data_array_1 = np.zeros((cols, rows), dtype=np.int16, order='C')
+    initial_data = np.zeros((threads, rows), dtype=np.int16, order='C')
+    data_array_0 = np.zeros((threads, rows), dtype=np.int16, order='C')
+    data_array_1 = np.zeros((threads, rows), dtype=np.int16, order='C')
     
-    final_max = np.zeros(cols*2, dtype=np.int16, order='C')
+    final_max = np.zeros(threads*2, dtype=np.int16, order='C')
     pam_data = np.zeros((rows * 32), dtype=np.int16, order='C')
-    aa_data = np.zeros(cols, dtype=np.int16, order='C')
+    aa_data = np.zeros(threads, dtype=np.int16, order='C')
 
     pipeline = compile_shader(device, nws_shader_source, "nws_step")
     
@@ -196,7 +196,7 @@ def make_metal_buffers(device, cols, rows):
         'pam_buffer': create_zero_copy_buffer(device, pam_data),
         'aa_buffer': create_zero_copy_buffer(device, aa_data),
         'max_buffer': create_zero_copy_buffer(device, final_max),
-        'cols_buffer': create_input_buffer(device, np.array([cols], dtype=np.uint32)),
+        'threads_buffer': create_input_buffer(device, np.array([threads], dtype=np.uint32)),
         'rows_buffer': create_input_buffer(device, np.array([rows], dtype=np.uint32)),
         'numpy_buffers': [data_array_0, data_array_1],
         'pam_data': pam_data,
@@ -205,25 +205,25 @@ def make_metal_buffers(device, cols, rows):
         'initial_data': initial_data
     }
     
-    print(f"Matrix: {cols}x{rows}")
+    print(f"Matrix: {threads}x{rows}")
     print("Buffers created (zero-copy)")
     return buffers
     
 # Fills aa_data for typically 1024 proteins.
-def yield_aa_old(cols, aa_data, final_max):
+def yield_aa_old(threads, aa_data, final_max):
     """Generator that yields aa_data for each sequence."""
     # aa_data is memory mapped, so we fill it in place.
     fasta_iter = sequences.read_fasta_sequences()
     
     # Initialize lists with proper length
-    seqs = [""] * cols
-    names = [""] *cols
-    pos = [0] * cols
-    seqno = [-1] *cols
+    seqs = [""] * threads
+    names = [""] *threads
+    pos = [0] * threads
+    seqno = [-1] *threads
     seq=-1
     
     while True:
-        for i in range(cols):
+        for i in range(threads):
             # Check if we need to load the next sequence
             length = len(seqs[i])
             if pos[i] >= length:
@@ -250,19 +250,19 @@ def yield_aa_old(cols, aa_data, final_max):
         
         yield aa_data    
 
-def yield_aa(cols, aa_data, final_max):
+def yield_aa(threads, aa_data, final_max):
     """Generator that yields aa_data for each sequence."""
     fasta_iter = sequences.read_fasta_sequences()
     
     # ONLY CHANGE: seqs stores bytes, not strings
-    seqs = [b''] * cols
-    names = [""] * cols
-    pos = [0] * cols
-    seqno = [-1] * cols
+    seqs = [b''] * threads
+    names = [""] * threads
+    pos = [0] * threads
+    seqno = [-1] * threads
     seq = -1
     
     while True:
-        for i in range(cols):
+        for i in range(threads):
             length = len(seqs[i])
             if pos[i] >= length:
                 try:
@@ -293,7 +293,7 @@ def yield_aa(cols, aa_data, final_max):
         yield True
 
 
-def run_metal_steps(all_buffers, cols, rows):
+def run_metal_steps(all_buffers, threads, rows):
     """Runs the NWS comparison until we run out of database."""
     device = all_buffers['device']
     pipeline = all_buffers['pipeline']
@@ -301,7 +301,7 @@ def run_metal_steps(all_buffers, cols, rows):
     pam_buffer = all_buffers['pam_buffer']
     aa_buffer = all_buffers['aa_buffer']
     max_buffer = all_buffers['max_buffer']
-    cols_buffer = all_buffers['cols_buffer']
+    threads_buffer = all_buffers['threads_buffer']
     rows_buffer = all_buffers['rows_buffer']
     buffc = all_buffers['numpy_buffers']
     aa_data = all_buffers['aa_data']
@@ -310,7 +310,7 @@ def run_metal_steps(all_buffers, cols, rows):
     initial_data = all_buffers['initial_data']
 
     queue = device.newCommandQueue()
-    gen = yield_aa(cols, aa_data, final_max)
+    gen = yield_aa(threads, aa_data, final_max)
     use_metal = True
     dummy_step = False
 
@@ -331,11 +331,11 @@ def run_metal_steps(all_buffers, cols, rows):
             invoke_pass(
                 queue, pipeline, buffers[in_idx], buffers[out_idx],
                 pam_buffer, aa_buffer, max_buffer,
-                cols_buffer, rows_buffer, cols
+                threads_buffer, rows_buffer, threads
             )
         else :
             nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, 
-                final_max, cols, rows)
+                final_max, threads, rows)
 
     elapsed = time.time() - start
     print(f"Execution time: {elapsed:.4f} seconds")
@@ -347,13 +347,13 @@ def search_db(device):
     first_record = next(fasta_iter)
     pam_lut, sequence = pam.make_fasta_lut(first_record, pam_32x32)
 
-    cols, rows = 1024, len(sequence)
-    all_buffers = make_metal_buffers(device, cols, rows)
+    threads, rows = 1024, len(sequence)
+    all_buffers = make_metal_buffers(device, threads, rows)
 
     pam_view = np.array(pam_lut, dtype=np.int16).flatten()
     all_buffers['pam_data'][:] = pam_view
 
-    run_metal_steps(all_buffers, cols, rows)
+    run_metal_steps(all_buffers, threads, rows)
 
 
 # --- Main ---

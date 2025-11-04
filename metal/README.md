@@ -12,7 +12,7 @@ Both demonstrate using Metal compute shaders from Python on int16 data with expl
 - Shows explicit carry propagation that can be modified for other algorithms
 - Compares results with NumPy for verification
 
-Note: 4096 cols and more are possible.
+Note: 4096 threads and more are possible.
 
 ## Installation
 
