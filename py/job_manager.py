@@ -174,11 +174,23 @@ class NwsSearchJob(Job):
         logger.info(f"NWS search job {self.job_id} finished.")
 
 
-JOB_TYPES = {
-    "computation": ComputationJob,
-    "data_munging": DataMungingJob,
-    "nws_search": NwsSearchJob,
-}
+JOB_TYPES = [
+    {
+        "id": "computation",
+        "display_name": "Computation",
+        "class": ComputationJob,
+    },
+    {
+        "id": "data_munging",
+        "display_name": "Data Munging",
+        "class": DataMungingJob,
+    },
+    {
+        "id": "nws_search",
+        "display_name": "NWS Search",
+        "class": NwsSearchJob,
+    },
+]
 
 class JobManager:
     def __init__(self):
@@ -187,11 +199,14 @@ class JobManager:
 
     def create_job(self, job_type: str) -> Optional[str]:
         job_id = str(uuid.uuid4())
-        job_class = JOB_TYPES.get(job_type)
 
-        if not job_class:
+        job_info = next((item for item in JOB_TYPES if item["id"] == job_type), None)
+
+        if not job_info:
             logger.error(f"Unknown job type: {job_type}")
             return None
+
+        job_class = job_info["class"]
 
         with self.lock:
             self.jobs[job_id] = job_class(job_id, self)

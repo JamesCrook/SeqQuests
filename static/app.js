@@ -97,6 +97,7 @@ function configureJob() {
 
 function closeModal() {
     document.getElementById('config-modal').style.display = 'none';
+    pollJobStatus();
 }
 
 // --- UI Updates ---
@@ -146,6 +147,12 @@ function selectJob(jobId, jobType) {
         document.getElementById(id).disabled = !jobId;
     });
 
+    if (jobId) {
+        configureJob();
+    } else {
+        closeModal();
+    }
+
     pollJobStatus();
 }
 
@@ -171,10 +178,6 @@ async function pollJobStatus() {
 }
 
 function updateDisplay(data) {
-    //document.getElementById('statusText').textContent = data.status;
-    //document.getElementById('jobTypeText').textContent = data.job_type;
-    //document.getElementById('currentStep').textContent = data.current_step || '-';
-
     const configureButton = document.getElementById('configureButton');
     if (['running', 'completed', 'failed', 'cancelled'].includes(data.status)) {
         configureButton.textContent = 'View';
@@ -182,29 +185,16 @@ function updateDisplay(data) {
         configureButton.textContent = 'Configure';
     }
 
-    const detailsDiv = document.getElementById('job-details');
-    if( !detailsDiv )
-        return;
-    detailsDiv.innerHTML = ''; // Clear previous details
+    const iframe = document.getElementById('config-iframe');
+    if (iframe && iframe.contentWindow && typeof iframe.contentWindow.setStatus === 'function') {
+        iframe.contentWindow.setStatus(data);
+    }
 
-    if (data.job_type === 'computation') {
-        detailsDiv.innerHTML = `
-            <div class="stat">Proteins: <span id="proteins">${data.total_proteins || 0}</span></div>
-            <div class="stat">Progress: <span id="pairs">${data.processed_pairs || 0}</span> / <span id="totalPairs">${data.total_pairs || 0}</span> pairs</div>
-            <div class="stat">Time: <span id="elapsed">${Math.round(data.elapsed_time || 0)}</span>s</div>
-            <div class="stat">Memory: CPU <span id="cpuMem">${Math.round(data.memory_usage_mb || 0)}</span>MB</div>
-            <div class="stat">Bridges found: <span id="bridges">${data.bridges_found || 0}</span></div>
-        `;
-    } else if (data.job_type === 'data_munging') {
-        detailsDiv.innerHTML = `
-             <div class="stat">Filtered Organisms: <span id="filtered_organisms">${data.filtered_organisms || 0}</span></div>
-             <div class="stat">Proteins Processed: <span id="proteins_processed">${data.proteins_processed || 0}</span></div>
-        `;
-    } else if (data.job_type === 'sequence_search') {
-         detailsDiv.innerHTML = `
-             <div class="stat">Query Sequence: <span id="query_sequence">${data.query_sequence || ''}</span></div>
-             <div class="stat">Matches Found: <span id="matches_found">${data.matches_found || 0}</span></div>
-         `;
+    const detailsDiv = document.getElementById('job-details');
+    if (iframe && iframe.contentWindow && iframe.contentWindow.document.getElementById('detailDiv')) {
+        detailsDiv.innerHTML = iframe.contentWindow.document.getElementById('detailDiv').innerHTML;
+    } else {
+        detailsDiv.innerHTML = '';
     }
 }
 

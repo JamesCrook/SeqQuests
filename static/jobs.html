@@ -28,13 +28,32 @@
 </head>
 <body>
     <h1>Select Job Type</h1>
-    <div>
-        <button class="job-button" onclick="createJob('data_munging')">Data Munging</button>
-        <button class="job-button" onclick="createJob('computation')">Computation</button>
-        <button class="job-button" onclick="createJob('nws_search')">NWS Search</button>
+    <div id="job-buttons">
+        <!-- Buttons will be generated here -->
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/api/job_types');
+                if (response.ok) {
+                    const jobTypes = await response.json();
+                    const container = document.getElementById('job-buttons');
+                    jobTypes.forEach(jobType => {
+                        const button = document.createElement('button');
+                        button.className = 'job-button';
+                        button.textContent = jobType.display_name;
+                        button.onclick = () => createJob(jobType.id);
+                        container.appendChild(button);
+                    });
+                } else {
+                    console.error('Failed to fetch job types:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error fetching job types:', error);
+            }
+        });
+
         async function createJob(jobType) {
             try {
                 const response = await fetch('/api/job', {

@@ -14,8 +14,21 @@
         <button type="button" onclick="saveConfig()">Save Configuration</button>
     </form>
 
+    <div id="detailDiv"></div>
+
     <script src="/static/job_monitor.js"></script>
     <script>
+        function setStatus(data) {
+            const detailDiv = document.getElementById('detailDiv');
+            detailDiv.innerHTML = `
+                <div class="stat">Proteins: <span id="proteins">${data.total_proteins || 0}</span></div>
+                <div class="stat">Progress: <span id="pairs">${data.processed_pairs || 0}</span> / <span id="totalPairs">${data.total_pairs || 0}</span> pairs</div>
+                <div class="stat">Time: <span id="elapsed">${Math.round(data.elapsed_time || 0)}</span>s</div>
+                <div class="stat">Memory: CPU <span id="cpuMem">${Math.round(data.memory_usage_mb || 0)}</span>MB</div>
+                <div class="stat">Bridges found: <span id="bridges">${data.bridges_found || 0}</span></div>
+            `;
+        }
+
         function saveConfig() {
             const jobId = getJobIdFromUrl();
             if (!jobId) return;

@@ -6,7 +6,7 @@ from typing import Dict, Any
 import logging
 from pydantic import BaseModel
 
-from job_manager import JobManager
+from job_manager import JobManager, JOB_TYPES
 import sequences
 
 """
@@ -43,6 +43,12 @@ class JobConfigRequest(BaseModel):
     config: Dict[str, Any]
 
 # --- REST Endpoints ---
+
+@app.get("/api/job_types")
+async def get_job_types():
+    """Return a list of available job types."""
+
+    return [{"id": job["id"], "display_name": job["display_name"]} for job in JOB_TYPES]
 
 @app.get("/api/jobs")
 async def list_jobs():

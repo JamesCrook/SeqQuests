@@ -28,11 +28,7 @@
     <hr>
 
     <h2>Job Progress</h2>
-    <div id="progress-container">
-        <h3>Output Log (last 30 lines):</h3>
-        <ul id="output-log" style="font-family:'Courier New',Courier,monospace;font-size:12px; white-space:pre;">
-        </ul>
-    </div>
+    <div id="detailDiv"></div>
 
     <script src="/static/job_monitor.js"></script>
     <script>
@@ -57,21 +53,23 @@
             }
         }
 
-        function updateProgressDisplay(data) {
-            const outputLog = document.getElementById('output-log');
-            outputLog.innerHTML = '';
+        function setStatus(data) {
+            const detailDiv = document.getElementById('detailDiv');
+            let outputLogHtml = '';
             if (data.output_log && data.output_log.length > 0) {
-                data.output_log.forEach(item => {
-                    const li = document.createElement('li');
-                    li.textContent = item;
-                    outputLog.appendChild(li);
-                });
+                outputLogHtml = data.output_log.map(item => `<li>${item}</li>`).join('');
             }
+
+            detailDiv.innerHTML = `
+                <h3>Output Log (last 30 lines):</h3>
+                <ul id="output-log" style="font-family:'Courier New',Courier,monospace;font-size:12px; white-space:pre;">
+                    ${outputLogHtml}
+                </ul>
+            `;
         }
 
         window.addEventListener('load', () => {
             loadJobConfig();
-            pollJobStatus(updateProgressDisplay);
         });
     </script>
 </body>
