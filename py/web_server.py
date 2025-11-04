@@ -9,6 +9,11 @@ from pydantic import BaseModel
 from job_manager import JobManager
 import sequences
 
+"""
+FastAPI web server acting as a thin wrapper over the raw job functions and static html.
+Through the website so exposed we can start, configure, stop and monitor jobs.
+"""
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

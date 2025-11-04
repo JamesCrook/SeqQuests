@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Metal int16 implementation using zero-copy buffers.
-This is the most efficient approach - Metal writes directly to numpy memory.
+Metal writes directly to numpy memory.
+This code was written for developing and testing some simple kernel.
+It isn't intended as a useful kernel, since efficient cumsum is built in.
 """
 
 import numpy as np
@@ -70,7 +72,7 @@ def create_input_buffer(device, np_array):
 
 def main():
     # Setup
-    # rows is the number of amino acids in the probe sequence
+    # rows is the length of the vector we are cumulative summing
     # cols is the number of simultaneous jobs we are running.
     rows, cols = 300, 32
     np.random.seed(42)

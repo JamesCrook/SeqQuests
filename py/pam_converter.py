@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to process Dayhoff 250 PAM table and create a PAM lookup table for a sequence.
+If the aa sequence has 200 amino acids, this creates a 200x32 lut table.
 """
 
 import numpy as np

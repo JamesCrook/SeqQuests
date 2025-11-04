@@ -8,9 +8,14 @@ import logging
 # Import job functions
 from computation import run_computation
 from data_munger import run_data_munging
-from seq_search import run_seq_search
 from nws_search import run_nws_search
-from sequences import read_dat_records
+from sequences import read_swissprot_records
+
+"""
+Classes for job management.
+The JobManager can create list and delete jobs by id
+Each job can start, pause, resume and provide status information
+"""
 
 logger = logging.getLogger(__name__)
 
@@ -140,35 +145,6 @@ class DataMungingJob(Job):
         logger.info(f"Data munging job {self.job_id} finished.")
 
 
-from nws import FastNwsDummy, FastNWS
-
-class SequenceSearchJob(Job):
-    def __init__(self, job_id: str, manager: 'JobManager'):
-        super().__init__(job_id, "sequence_search", manager)
-        self.state.update({
-            "accession": "",
-            "sequences_examined": 0,
-            "most_recent_item": "",
-            "last_ten_accepted": [],
-        })
-
-    def run(self):
-        logger.info(f"Running sequence search job {self.job_id} with config {self.state['config']}")
-        try:
-            config = self.state['config']
-            run_seq_search(
-                identifier=config.get('accession'),
-                use_fastnws=config.get('use_fastnws', False),
-                job=self
-            )
-            if self.state['status'] != 'cancelled':
-                self.update(status="completed")
-        except Exception as e:
-            logger.error(f"Job {self.job_id} failed: {e}")
-            self.update(status="failed", errors=[str(e)])
-        logger.info(f"Sequence search job {self.job_id} finished.")
-
-
 class NwsSearchJob(Job):
     def __init__(self, job_id: str, manager: 'JobManager'):
         super().__init__(job_id, "nws_search", manager)
@@ -201,7 +177,6 @@ class NwsSearchJob(Job):
 JOB_TYPES = {
     "computation": ComputationJob,
     "data_munging": DataMungingJob,
-    "sequence_search": SequenceSearchJob,
     "nws_search": NwsSearchJob,
 }
 

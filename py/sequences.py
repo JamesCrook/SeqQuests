@@ -1,19 +1,25 @@
+import os
+from Bio import SwissProt, SeqIO
+
+import pickle
+from pathlib import Path
+import time
+from collections import OrderedDict
+from types import SimpleNamespace
+
+"""
+Utilities for efficient access to sequence data.
+It's main role is for fasta data, where it can make and use a pickle cache (much faster than 
+normal access via SeqIO).
+It provides iterators for fasta and full swissprot data
+"""
+
 # sequences.py should insulate other modules from knowing what file the sequences come from and their underlying format. When initialised, it should check availability of the data files at its configured path and if not fall back to using the data in /data
 
 # it should read from /data/swissprot.dat.txt, if needing full annotated data.
 # it should read from /data/swissprot.fasta.txt, if needing just sequence and identification
 
-import os
-from Bio import SwissProt, SeqIO
 
-
-import pickle
-from pathlib import Path
-
-import time
-from collections import OrderedDict
-
-from types import SimpleNamespace
 
 class FastaCache:
     def __init__(self):
@@ -197,11 +203,10 @@ def read_fasta_sequences():
     
     return _fasta_cache.iter_records()
 
-
-
 def get_sequence_by_identifier(identifier, sequence_iterator=None):
     """
     Retrieves a single sequence from the FASTA file by its accession number or index.
+    This does a sequential search.
     """
     if sequence_iterator is None:
         sequence_iterator = read_fasta_sequences()
@@ -215,7 +220,7 @@ def get_sequence_by_identifier(identifier, sequence_iterator=None):
                 return record
     return None
 
-def read_dat_records():
+def read_swissprot_records():
     """
     Reads and parses records from the swissprot.dat.txt file, yielding them one by one.
     """
@@ -236,12 +241,10 @@ def benchmark():
     elapsed = time.time() - start
     print(f"Execution time: {elapsed:.4f} seconds")
 
-
 def main():
-    # Just read one sequence form the database and show it.
+    # Just read one sequence from the database and show it.
     print( get_sequence_by_identifier( 1 ))
 
 if __name__ == "__main__":
     main()
-    benchmark();
-
+    benchmark()

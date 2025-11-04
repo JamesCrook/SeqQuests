@@ -3,8 +3,9 @@
 Local similarity NWS search, using metal
 Uses zero-copy buffers for output.
 
-We prapare a pam look up table pam_lut for one probe sequence,
+We prapare a pam look up table, pam_lut for one probe sequence,
 Then we search it against 1024 proteins in parallel.
+This version is now obsolete as we have a fully C++/Metal version
 """
 
 import numpy as np

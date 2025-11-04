@@ -1,7 +1,18 @@
-# data_munger.py should use sequences.py to read sequences and filter.
-
 import argparse
-from sequences import read_dat_records
+from sequences import read_swissprot_records
+
+"""
+Data munging:
+> Read Swissprot records, and filter, outputting a fasta format file.
+Filters available include:
+* Organism, such as human, mouse.
+* GO
+* EC number
+* Pfam (protein family)
+* Does not contain the word 'fragment'
+
+Data munger is a job for the task runner framework
+"""
 
 # Mapping of common names to scientific names for filtering
 ORGANISM_MAP = {
@@ -69,7 +80,7 @@ def run_data_munging(organisms=None, require_go=False, require_ec=False, require
     This function can be called from other modules.
     The 'job' parameter is optional and is used for progress tracking.
     """
-    all_records = read_dat_records()
+    all_records = read_swissprot_records()
 
     # Correctly call the generator and convert to a list for processing
     filtered_iterator = filter_proteins(

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Build script for metal_nws, including its kernel
 # Exit on error
 set -e
 

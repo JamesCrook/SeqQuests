@@ -8,10 +8,20 @@ import pty
 import select
 import re
 
+
+"""
+This is a wrapper for a command. It invokes the command capturing the output via a pty
+and it reads that output to maintain a status.
+
+
+nws_search is a job for the task runner framework
+
+"""
+
 logger = logging.getLogger(__name__)
 
-
-class MetalNWSRunner:
+# This class runs any binary and 
+class CommandRunner:
     def __init__(self, command):
         """
         Initialize the runner with the command to execute.
@@ -166,7 +176,7 @@ def run_nws_search(
         args.append("--slow_output")
 
     output_log = deque(maxlen=30)
-    runner = MetalNWSRunner(args)
+    runner = CommandRunner(args)
     runner.start()
     seq = 0
     step = 0

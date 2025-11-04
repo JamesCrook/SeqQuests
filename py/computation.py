@@ -5,6 +5,11 @@ from typing import Dict, Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from job_manager import Job
 
+"""
+This is a dummy job for the task runner framework.
+It makes up fake statistic scores to report.
+"""    
+
 logger = logging.getLogger(__name__)
 
 def run_computation(job: "Job", config: Dict[str, Any] = None):
