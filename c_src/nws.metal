@@ -23,13 +23,14 @@ kernel void nws_step(
     // Arrays for unrolled loop
     short accumulator[UNROLL];
     short maxv[UNROLL];
-    short accold[UNROLL];
+    short dValue = 0;
+    short next_dValue = 0;
+    short result;
     
     // Initialize arrays
     for (uint j = 0; j < UNROLL; j++) {
         accumulator[j] = 0;
         maxv[j] = 0;
-        accold[j] = 0;
     }
     
     uint base_idx = thread_id * num_rows;
@@ -37,18 +38,21 @@ kernel void nws_step(
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
         short hValue = input[idx];
-        
+        dValue = next_dValue;
+        next_dValue = hValue;
+
         for (uint j = 0; j < UNROLL; j++) {
             short residue = aa[thread_id*UNROLL + j];
             uint nidx = residue * num_rows + row;
             short penalty = select((short)10, (short)30000, residue == 0);
             
-            accumulator[j] = max(accumulator[j], hValue) - penalty;
-            accumulator[j] = max(accumulator[j], (short)(accold[j]+pam[nidx]));
-            accumulator[j] = max(accumulator[j], (short)0);
-            maxv[j] = max(maxv[j], accumulator[j]);
-            accold[j] = hValue;
-            hValue = accumulator[j];
+            result = max(accumulator[j], hValue) - penalty;
+            result = max(result, (short)(dValue+pam[nidx]));
+            result = max(result, (short)0);
+            maxv[j] = max(result, maxv[j]);
+            dValue = accumulator[j];
+            hValue = result; // free, just a renaming...
+            accumulator[j] = result;
         }
         
         output[idx] = hValue;
