@@ -35,6 +35,7 @@ typedef struct {
     int reporting_threshold;
     int start_at;
     int num_seqs;
+    bool machine_output;
     bool slow_output;
     const char* pam_data_file;
     const char* fasta_data_file;
@@ -63,7 +64,7 @@ void parse_arguments(int argc, char* argv[], AppSettings* settings);
 bool setup_metal(MetalState* metal_state);
 bool load_all_data(const AppSettings* settings, DataManager* data_manager);
 bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manager, int probe_seq_idx);
-void run_search(MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows);
+void run_search(int query, MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows);
 void report_results(int rows, int steps, int finds, std::chrono::duration<double> elapsed);
 void cleanup(MetalState* metal_state, DataManager* data_manager);
 long file_size(const char* filename);
@@ -99,7 +100,7 @@ int main(int argc, char * argv[]) {
             }
 
             int rows = data_manager.fasta_records[probe_seq_idx].sequence_len;
-            run_search(&metal_state, &data_manager, &settings, rows);
+            run_search(probe_seq_idx, &metal_state, &data_manager, &settings, rows);
 
             // Release sequence-specific buffers
             metal_state.pam_buffer->release();
@@ -118,6 +119,7 @@ void parse_arguments(int argc, char* argv[], AppSettings* settings) {
     settings->reporting_threshold = 110;
     settings->start_at = 0;
     settings->num_seqs = 1;
+    settings->machine_output = true;
     settings->slow_output = false;
     settings->pam_data_file = "c_src/pam250.bin";
     settings->fasta_data_file = "c_src/fasta.bin";
@@ -133,6 +135,8 @@ void parse_arguments(int argc, char* argv[], AppSettings* settings) {
             settings->num_seqs = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--slow_output") == 0) {
             settings->slow_output = true;
+        } else if (strcmp(argv[i], "--machine_output") == 0) {
+            settings->machine_output = true;
         } else if (strcmp(argv[i], "--pam_data") == 0 && i + 1 < argc) {
             settings->pam_data_file = argv[++i];
         } else if (strcmp(argv[i], "--fasta_data") == 0 && i + 1 < argc) {
@@ -210,7 +214,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     return true;
 }
 
-void run_search(MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows) {
+void run_search(int query, MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows) {
     printf("\nRunning NWS steps...\n");
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -293,8 +297,13 @@ void run_search(MetalState* metal_state, const DataManager* data_manager, const 
                 if(step > 0 && aa_data[i*UNROLL+j] == 0) {
                     int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
                     if (score > settings->reporting_threshold) {
-                        printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
+                        if( settings->machine_output ){
+                            printf("HIT:%d,%d,%d\n", query, seqno_reported[i], score );
+                        }
+                        else {
+                            printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
                                 step, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
+                        }
                         if(settings->slow_output) usleep(100000);
                         finds++;
                     }

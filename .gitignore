@@ -9,6 +9,9 @@ __pycache__/
 bin/
 NWS_Metal/
 
+# Project specific data 
+nws_results/
+
 # C extensions
 *.so
 
