@@ -118,18 +118,13 @@ class NWSRunner:
             return None
         
         try:
-            data = line[4:]  # Remove "HIT:" prefix
-            parts = data.split(',')
+            parts = line.split(':')
             
-            if len(parts) != 3:
+            if len(parts) != 2:
                 return None
             
-            query_seq = int(parts[0])
-            target_seq = int(parts[1])
-            score = int(parts[2])
-            
-            # CSV format: query_seq,target_seq,score
-            csv_line = f"{query_seq},{target_seq},{score}\n"
+            # CSV format: query_seq,target_seq,score,first,len
+            csv_line = f"{parts[1]}\n"
             return csv_line
             
         except (ValueError, IndexError) as e:

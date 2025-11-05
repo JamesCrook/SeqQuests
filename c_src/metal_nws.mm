@@ -185,7 +185,8 @@ bool load_all_data(const AppSettings* settings, DataManager* data_manager) {
 
 bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manager, int probe_seq_idx) {
     char* search_sequence = data_manager->fasta_records[probe_seq_idx].sequence;
-    int rows = data_manager->fasta_records[probe_seq_idx].sequence_len;
+    // -1 because of the terminating @
+    int rows = data_manager->fasta_records[probe_seq_idx].sequence_len-1;
 
     printf("\nSearching with: %s\n", data_manager->fasta_records[probe_seq_idx].description);
     printf("Sequence: %6d Sequence length: %6d\n", probe_seq_idx, rows);
@@ -223,8 +224,9 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     memset(final_max, 0, THREADS * 2 * UNROLL * sizeof(int16_t));
 
     int pos[THREADS] = {0};
-    int seqno[THREADS], seqno_reported[THREADS];
-    for(int i=0; i<THREADS; ++i) seqno[i] = seqno_reported[i] = -1;
+    int pos_reported[THREADS] = {0};
+    int seqno[THREADS], seqno_reported[THREADS], first_hit[THREADS], last_hit[THREADS];
+    for(int i=0; i<THREADS; ++i) seqno[i] = seqno_reported[i] = first_hit[i] = last_hit[i] = -1;
 
     int seq = -1;
     bool more_data = true;
@@ -294,11 +296,21 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
             for (int j = 0; j < UNROLL; j++){
                 if(seqno_reported[i] == -2) continue;
-                if(step > 0 && aa_data[i*UNROLL+j] == 0) {
-                    int16_t score = final_max[(i * UNROLL +j) * 2 + 1];
-                    if (score > settings->reporting_threshold) {
+
+                // score here is max for this column...
+                int16_t score = final_max[(i * UNROLL +j) * 2];
+                if( score >= settings->reporting_threshold ){
+                    if( first_hit[i] < 0)
+                        first_hit[i] = pos_reported[i];
+                    last_hit[i] = pos_reported[i];
+                }
+                pos_reported[i] += 1;
+                if( aa_data[i*UNROLL+j] == 0 ){
+                    // score here is the max for the protein...
+                    score = final_max[(i * UNROLL +j) * 2 + 1];
+                    if (score >= settings->reporting_threshold) {
                         if( settings->machine_output ){
-                            printf("HIT:%d,%d,%d\n", query, seqno_reported[i], score );
+                            printf("HIT:%d,%d,%d,%d,%d\n", query, seqno_reported[i], score, first_hit[i],last_hit[i]-first_hit[i] );
                         }
                         else {
                             printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
@@ -309,6 +321,9 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                     }
                     final_max[(i * UNROLL +j)* 2 + 1] = 0;
                     seqno_reported[i] = seqno[i];
+                    pos_reported[i] = 0;
+                    first_hit[i] = -1;
+                    last_hit[i] = -1;// not actually required.
                 }
             }
         }
