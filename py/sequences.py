@@ -158,7 +158,7 @@ def get_data_path(original_filename):
     Checks for data files in a user-specified path first, falling back
     to the default './data' directory if not found.
     """
-    user_path = '/Users/jamescrook/BigData/bio_sequence_data'
+    user_path = os.path.expanduser( '~/BigData/bio_sequence_data' )
     filename_map = {
         'swissprot.fasta.txt': 'uniprot_sprot.fasta',
         'swissprot.dat.txt': 'uniprot_sprot.dat',
