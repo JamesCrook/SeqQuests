@@ -230,6 +230,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
     int seq = -1;
     bool more_data = true;
+    bool do_search = true;
     int step = -1;
     int finds = 0;
 
@@ -267,25 +268,27 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         int in_idx = step % 2;
         int out_idx = (step + 1) % 2;
 
-        MTL::CommandBuffer* command_buffer = metal_state->queue->commandBuffer();
-        MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
-        encoder->setComputePipelineState(metal_state->pipeline);
-        encoder->setBuffer(metal_state->data_buffers[in_idx], 0, 0);
-        encoder->setBuffer(metal_state->data_buffers[out_idx], 0, 1);
-        encoder->setBuffer(metal_state->pam_buffer, 0, 2);
-        encoder->setBuffer(metal_state->aa_buffer, 0, 3);
-        encoder->setBuffer(metal_state->max_buffer, 0, 4);
-        encoder->setBuffer(metal_state->rows_buffer, 0, 5);
+        if( do_search ){
+            MTL::CommandBuffer* command_buffer = metal_state->queue->commandBuffer();
+            MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
+            encoder->setComputePipelineState(metal_state->pipeline);
+            encoder->setBuffer(metal_state->data_buffers[in_idx], 0, 0);
+            encoder->setBuffer(metal_state->data_buffers[out_idx], 0, 1);
+            encoder->setBuffer(metal_state->pam_buffer, 0, 2);
+            encoder->setBuffer(metal_state->aa_buffer, 0, 3);
+            encoder->setBuffer(metal_state->max_buffer, 0, 4);
+            encoder->setBuffer(metal_state->rows_buffer, 0, 5);
 
-        MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
-        NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
-        if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
-        MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
+            MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
+            NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
+            if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
+            MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
 
-        encoder->dispatchThreads(grid_size, threadgroup_size);
-        encoder->endEncoding();
-        command_buffer->commit();
-        command_buffer->waitUntilCompleted();
+            encoder->dispatchThreads(grid_size, threadgroup_size);
+            encoder->endEncoding();
+            command_buffer->commit();
+            command_buffer->waitUntilCompleted();
+        }
 
         for (int i = 0; i < THREADS; ++i) {
             if(i == settings->debug_slot) {
