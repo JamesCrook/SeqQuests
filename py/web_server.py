@@ -2,12 +2,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+import asyncio
 from typing import Dict, Any
 import logging
 from pydantic import BaseModel
 
 from job_manager import JobManager, JOB_TYPES
 import sequences
+import os
+
 
 """
 FastAPI web server acting as a thin wrapper over the raw job functions and static html.
@@ -24,7 +28,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -163,6 +167,27 @@ async def get_config_page(job_type: str):
     except RuntimeError:
         # This will happen if the file does not exist.
         raise HTTPException(status_code=404, detail="Configuration page not found")
+
+async def stream_file(filepath: str, chunk_size: int = 8192):
+    """Stream file in chunks"""
+    with open(filepath, 'r') as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+            # Optional: allow other tasks to run
+            await asyncio.sleep(0)
+
+@app.get("/stream-data")
+async def stream_data():
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(project_root, 'nws_results', 'results.csv')
+    return StreamingResponse(
+        stream_file(filepath),
+        media_type="text/plain"
+    )
+
 
 if __name__ == "__main__":
     import uvicorn
