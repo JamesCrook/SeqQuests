@@ -133,6 +133,50 @@ class SwissProtTree {
     }
   }
 
+  ascend(cursor, level) {
+    if(level === 1) {
+      // From ID to range
+      const rangeStart = cursor.rangeStart;
+      const rangeCursor = (rangeStart - 10000) / 100;
+      return {
+        cursor: rangeCursor,
+        data: {
+          rangeStart: rangeStart
+        }
+      };
+    } else if(level === 2) {
+      // From full record to ID
+      return {
+        cursor: cursor,
+        data: {
+          id: cursor.rangeStart + cursor.offset
+        }
+      };
+    } else {
+      return null;
+    }
+  }
+
+  isChildOf(childCursor, childLevel, parentCursor, parentLevel) {
+    // Check if childCursor at childLevel is a descendant of parentCursor at parentLevel
+    if (childLevel !== parentLevel + 1) return false;
+    
+    if (parentLevel === 0) {
+      // Parent is a range, child is an ID
+      const rangeStart = parentCursor * 100 + 10000;
+      const rangeEnd = rangeStart + 99;
+      const childId = childCursor.rangeStart + childCursor.offset;
+      return childId >= rangeStart && childId <= rangeEnd;
+    } else if (parentLevel === 1) {
+      // Parent is an ID cursor, child is a full record cursor
+      const parentId = parentCursor.rangeStart + parentCursor.offset;
+      const childId = childCursor.rangeStart + childCursor.offset;
+      return childId === parentId;
+    }
+    
+    return false;
+  }
+
   renderIdRange(data) {
     const start = data.rangeStart;
     const end = start + 99;
@@ -358,34 +402,6 @@ class Column {
     this.render();
   }
 
-  selectChildrenOf(parentCursor, parentLevel) {
-    // Find all items that are children of the parent cursor
-    let selectedIndices = [];
-
-    if(parentLevel === 0) {
-      // Parent is a range, children are IDs in that range
-      const rangeStart = parentCursor * 100 + 10000;
-      const rangeEnd = rangeStart + 99;
-
-      this.items.forEach((item, idx) => {
-        if(item.data.id >= rangeStart && item.data.id <= rangeEnd) {
-          selectedIndices.push(idx);
-        }
-      });
-    } else if(parentLevel === 1) {
-      // Parent is an ID, child is the full record for that ID
-      const parentId = parentCursor.rangeStart + parentCursor.offset;
-
-      this.items.forEach((item, idx) => {
-        if(item.data.id === parentId) {
-          selectedIndices.push(idx);
-        }
-      });
-    }
-
-    this.setSelectedIndices(selectedIndices);
-  }
-
   populate(startCursor, direction = 'both') {
     this.items = [];
 
@@ -596,73 +612,109 @@ class Multiscroller {
   onColumnSelect(columnIndex, itemIndex) {
     const column = this.columns[columnIndex];
     const selectedItem = column.items[itemIndex];
+    const selectedCursor = selectedItem.cursor;
 
-    // Cascade through all subsequent columns
-    for(let nextLevel = columnIndex + 1; nextLevel < this.columns
-      .length; nextLevel++) {
-      const prevColumn = this.columns[nextLevel - 1];
-      const nextColumn = this.columns[nextLevel];
-
-      // Collect all cursors from selected items in previous column
-      let firstChildCursor = null;
-      let parentCursorsToSelect = [];
-
-      prevColumn.selectedIndices.forEach(idx => {
-        const prevItem = prevColumn.items[idx];
-        if(prevItem) {
-          parentCursorsToSelect.push(prevItem.cursor);
-          if(!firstChildCursor) {
-            const descended = this.tree.descend(prevItem.cursor,
-              nextLevel - 1);
-            if(descended) {
-              firstChildCursor = descended.cursor;
-            }
-          }
+    // Handle ancestor columns (to the left)
+    for (let ancestorLevel = columnIndex - 1; ancestorLevel >= 0; ancestorLevel--) {
+      const ancestorColumn = this.columns[ancestorLevel];
+      
+      // Ascend from the current selection to get the ancestor
+      let currentCursor = selectedCursor;
+      let currentLevel = columnIndex;
+      
+      // Ascend to the target level
+      while (currentLevel > ancestorLevel) {
+        const ascendResult = this.tree.ascend(currentCursor, currentLevel);
+        if (!ascendResult) break;
+        currentCursor = ascendResult.cursor;
+        currentLevel--;
+      }
+      
+      if (currentLevel === ancestorLevel) {
+        // Clear and repopulate the ancestor column around this cursor
+        ancestorColumn.populate(currentCursor);
+        
+        // Find and select the item with this cursor
+        const ancestorIndex = ancestorColumn.items.findIndex(item => 
+          JSON.stringify(item.cursor) === JSON.stringify(currentCursor)
+        );
+        if (ancestorIndex >= 0) {
+          ancestorColumn.setSelectedIndices([ancestorIndex]);
         }
-      });
+      }
+    }
 
-      if(firstChildCursor) {
-        // Populate the next column
-        nextColumn.populate(firstChildCursor);
-
-        // Now select all children of all parent cursors
-        let allSelectedIndices = [];
-        parentCursorsToSelect.forEach(parentCursor => {
-          if(nextLevel - 1 === 0) {
-            // Parent is a range
-            const rangeStart = parentCursor * 100 + 10000;
-            const rangeEnd = rangeStart + 99;
-
-            nextColumn.items.forEach((item, idx) => {
-              if(item.data.id >= rangeStart && item.data.id <=
-                rangeEnd) {
-                if(!allSelectedIndices.includes(idx)) {
-                  allSelectedIndices.push(idx);
-                }
-              }
-            });
-          } else if(nextLevel - 1 === 1) {
-            // Parent is an ID
-            const parentId = parentCursor.rangeStart + parentCursor
-            .offset;
-
-            nextColumn.items.forEach((item, idx) => {
-              if(item.data.id === parentId) {
-                if(!allSelectedIndices.includes(idx)) {
-                  allSelectedIndices.push(idx);
-                }
-              }
-            });
-          }
+    // Handle descendant columns (to the right)
+    for (let descendantLevel = columnIndex + 1; descendantLevel < this.columns.length; descendantLevel++) {
+      const descendantColumn = this.columns[descendantLevel];
+      
+      // Get all selected cursors from the previous level
+      const prevColumn = this.columns[descendantLevel - 1];
+      const parentCursors = prevColumn.selectedIndices.map(idx => prevColumn.items[idx].cursor);
+      
+      if (parentCursors.length === 0) {
+        // No parents selected, clear this column
+        descendantColumn.items = [];
+        descendantColumn.selectedIndices = [];
+        descendantColumn.rebuildDOM();
+        continue;
+      }
+      
+      // Collect all children by iterating through all parent cursors
+      let childItems = [];
+      let allSelectedIndices = [];
+      
+      for (let parentCursor of parentCursors) {
+        // Get the first child of this parent
+        const firstDescendResult = this.tree.descend(parentCursor, descendantLevel - 1);
+        if (!firstDescendResult) continue;
+        
+        // Add first child
+        let startIndex = childItems.length;
+        childItems.push({
+          cursor: firstDescendResult.cursor,
+          data: firstDescendResult.data
         });
-
-        allSelectedIndices.sort((a, b) => a - b);
-        nextColumn.setSelectedIndices(allSelectedIndices);
+        
+        // Iterate forward with next(), checking if each item is still a child of this parent
+        let currentCursor = firstDescendResult.cursor;
+        while (true) {
+          const nextResult = this.tree.next(currentCursor, descendantLevel);
+          if (!nextResult) break;
+          
+          // Check if this item is a child of the current parent
+          if (!this.tree.isChildOf(nextResult.cursor, descendantLevel, parentCursor, descendantLevel - 1)) {
+            break; // We've passed this parent's children
+          }
+          
+          childItems.push({
+            cursor: nextResult.cursor,
+            data: nextResult.data
+          });
+          currentCursor = nextResult.cursor;
+        }
+        
+        // Mark all children of this parent as selected
+        for (let i = startIndex; i < childItems.length; i++) {
+          allSelectedIndices.push(i);
+        }
+      }
+      
+      if (childItems.length > 0) {
+        // Clear and set the new items
+        descendantColumn.items = childItems;
+        descendantColumn.scrollOffset = 0;
+        descendantColumn.measureItems();
+        descendantColumn.rebuildDOM();
+        
+        // Select all items (they're all children)
+        descendantColumn.setSelectedIndices(allSelectedIndices);
       } else {
-        // No children, clear this column
-        nextColumn.items = [];
-        nextColumn.selectedIndices = [];
-        nextColumn.rebuildDOM();
+        // No children found
+        descendantColumn.items = [];
+        descendantColumn.selectedIndices = [];
+        descendantColumn.scrollOffset = 0;
+        descendantColumn.rebuildDOM();
       }
     }
   }
