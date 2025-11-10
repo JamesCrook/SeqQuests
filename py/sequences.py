@@ -1,5 +1,6 @@
 import os
 from Bio import SwissProt, SeqIO
+from io import StringIO
 
 import pickle
 from pathlib import Path
@@ -171,6 +172,90 @@ class PickledSequenceCache(SequenceCache):
         return self
 
 
+class SwissIndexCache(PickledSequenceCache):
+    def __init__(self, data_file, cache_dir=".cache"):
+        super().__init__(data_file, cache_dir)
+        self.handle = None  # File handle for the data file
+
+    def load_sequences(self, data_file, file_format):
+        start_time = time.time()
+        self.sequences = OrderedDict()
+        self.seq_list = []
+
+        with open(data_file, 'r', encoding='latin-1') as f:
+            # Pass 1: Find the start of every record
+            record_starts = []
+            f.seek(0)
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                if line.startswith('ID'):
+                    record_starts.append(f.tell() - len(line))
+
+            # Pass 2: Create the index from the discovered record starts
+            for i in range(len(record_starts)):
+                f.seek(record_starts[i])
+                id_line = f.readline()
+                # The id is the second word on the ID line, and might have a trailing ';'
+                seq_id = id_line.split()[1].strip(';')
+
+                start_pos = record_starts[i]
+
+                if i + 1 < len(record_starts):
+                    end_pos = record_starts[i+1]
+                else:
+                    # For the last record, the end is the end of the file
+                    f.seek(0, 2)
+                    end_pos = f.tell()
+
+                record_info = (seq_id, start_pos, end_pos)
+                self.sequences[seq_id] = record_info
+                self.seq_list.append(record_info)
+
+        self.load_time = time.time() - start_time
+        print(f"Indexed {len(self.seq_list)} sequences in {self.load_time:.2f}s")
+        return self
+
+    def get_record(self, seq_id):
+        """Get record object by ID using the index"""
+        if self.handle is None:
+            self.handle = open(self.data_file, 'r')
+
+        record_info = self.sequences.get(seq_id)
+        if not record_info:
+            return None
+
+        _, start_pos, end_pos = record_info
+        self.handle.seek(start_pos)
+        raw_record = self.handle.read(end_pos - start_pos)
+
+        # Use StringIO to parse the raw string data
+        record = SwissProt.read(StringIO(raw_record))
+        record.raw = raw_record
+        return record
+
+    def get_record_by_index(self, index):
+        """Get record object by index using the index"""
+        if self.handle is None:
+            self.handle = open(self.data_file, 'r')
+
+        if 0 <= index < len(self.seq_list):
+            _, start_pos, end_pos = self.seq_list[index]
+            self.handle.seek(start_pos)
+            raw_record = self.handle.read(end_pos - start_pos)
+
+            # Use StringIO to parse the raw string data
+            record = SwissProt.read(StringIO(raw_record))
+            record.raw = raw_record
+            return record
+        return None
+
+    def __del__(self):
+        if self.handle:
+            self.handle.close()
+
+
 def get_data_path(original_filename):
     """
     Checks for data files in a user-specified path first, falling back
@@ -221,7 +306,7 @@ def read_fasta_sequences():
     
     return _fasta_cache.iter_records()
 
-def read_swissprot_sequences():
+def read_swissprot_sequences(file_format='swiss'):
     """
     Cached version - loads once, then yields from cache.
     Returns tuples of (seq_id, sequence_string) instead of SeqIO.Record objects.
@@ -230,9 +315,12 @@ def read_swissprot_sequences():
 
     if _swissprot_cache is None:
         filepath = get_data_path('swissprot.dat.txt')
-        _swissprot_cache = PickledSequenceCache(filepath).load_with_cache('swiss')
+        if file_format == 'swiss_index':
+            _swissprot_cache = SwissIndexCache(filepath).load_with_cache(file_format)
+        else:
+            _swissprot_cache = PickledSequenceCache(filepath).load_with_cache(file_format)
 
-    return _swissprot_cache.iter_records()
+    return _swissprot_cache
 
 def get_sequence_by_identifier(identifier, db_name='swissprot'):
     """
@@ -267,6 +355,30 @@ def main():
     # Just read one sequence from the database and show it.
     print( get_sequence_by_identifier( 1 ))
 
+def test_swiss_index_access():
+    """
+    Tests the SwissIndexCache by accessing records by index and ID.
+    """
+    global _swissprot_cache
+    _swissprot_cache = None
+    print("Testing SwissIndexCache access...")
+    cache = read_swissprot_sequences(file_format='swiss_index')
+
+    # Test access by index
+    record_by_index = cache.get_record_by_index(2)
+    print(f"Record at index 2: {record_by_index.entry_name}")
+
+    # Test access by ID
+    record_by_id = cache.get_record('11011_ASFWA')
+    if record_by_id:
+        print(f"Record with ID 11011_ASFWA: {record_by_id.entry_name}")
+        print(f"Organism of record by ID: {record_by_id.organism}")
+    else:
+        print("Record with ID 11011_ASFWA not found.")
+
+    # Verify some data
+    print(f"Sequence length of record by index: {len(record_by_index.sequence)}")
+
 def verify_sequences():
     """
     Compares sequences from FASTA and Swiss-Prot caches to find mismatches.
@@ -298,3 +410,4 @@ if __name__ == "__main__":
     main()
     benchmark()
     verify_sequences()
+    test_swiss_index_access()
