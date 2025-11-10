@@ -367,17 +367,18 @@ def test_swiss_index_access():
     # Test access by index
     record_by_index = cache.get_record_by_index(2)
     print(f"Record at index 2: {record_by_index.entry_name}")
+    print(f"Sequence length of record by index: {len(record_by_index.sequence)}")
 
     # Test access by ID
     record_by_id = cache.get_record('11011_ASFWA')
     if record_by_id:
         print(f"Record with ID 11011_ASFWA: {record_by_id.entry_name}")
         print(f"Organism of record by ID: {record_by_id.organism}")
+        print(f"Sequence length of record by ID: {len(record_by_id.sequence)}")
     else:
         print("Record with ID 11011_ASFWA not found.")
 
     # Verify some data
-    print(f"Sequence length of record by index: {len(record_by_index.sequence)}")
 
 def verify_sequences():
     """
@@ -407,7 +408,7 @@ def verify_sequences():
     print(f"Execution time: {elapsed:.4f} seconds")
 
 if __name__ == "__main__":
-    main()
-    benchmark()
-    verify_sequences()
+    #main()
+    #benchmark()
+    #verify_sequences()
     test_swiss_index_access()
