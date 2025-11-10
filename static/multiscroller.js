@@ -719,27 +719,22 @@ class Multiscroller {
         const offsetAdjustment = beforeItems.length;
         const adjustedSelectedIndices = allSelectedIndices.map(idx => idx + offsetAdjustment);
         
-        // Set the items
+        // Set the items synchronously
         descendantColumn.items = allItems;
         descendantColumn.scrollOffset = 0;
         descendantColumn.rebuildDOM();
+        descendantColumn.measureItems();
         
-        // Wait for DOM to settle before measuring and positioning
-        requestAnimationFrame(() => {
-          descendantColumn.measureItems();
-          
-          // Calculate scroll offset to position selected items at top
-          let selectedTop = 0;
-          for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
-            selectedTop += descendantColumn.items[i].height;
-          }
-          
-          descendantColumn.scrollOffset = -selectedTop;
-          descendantColumn.render();
-          
-          // Select the children (now at adjusted indices)
-          descendantColumn.setSelectedIndices(adjustedSelectedIndices);
-        });
+        // Calculate scroll offset to position selected items at top
+        let selectedTop = 0;
+        for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
+          selectedTop += descendantColumn.items[i].height;
+        }
+        
+        descendantColumn.scrollOffset = -selectedTop;
+        
+        // Select the children (now at adjusted indices)
+        descendantColumn.setSelectedIndices(adjustedSelectedIndices);
       } else {
         // No children found
         descendantColumn.items = [];
