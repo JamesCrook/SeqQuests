@@ -21,119 +21,133 @@ It provides iterators for fasta and full swissprot data
 
 
 
-class FastaCache:
+class SequenceCache:
     def __init__(self):
-        self.sequences = OrderedDict()  # Maps seq_id -> (sequence, description)
-        self.seq_list = []  # For fast index-based access: [(seq_id, sequence, description), ...]
+        self.sequences = OrderedDict()  # Maps seq_id -> record object
+        self.seq_list = []  # For fast index-based access: [record, record, ...]
         self.load_time = 0
-    
-    def load_fasta(self, fasta_file):
-        """Load entire FASTA file into memory"""
+
+    def load_sequences(self, data_file, file_format):
+        """Load entire sequence file into memory"""
         start = time.time()
         self.sequences = OrderedDict()
         self.seq_list = []
-        
-        for record in SeqIO.parse(fasta_file, "fasta"):
-            seq_id = record.id
-            seq_bytes = bytes(record.seq)
-            description = record.description
-            
-            self.sequences[seq_id] = (seq_bytes, description)
-            self.seq_list.append((seq_id, seq_bytes, description))
+
+        # Use the correct parser based on file format
+        with open(data_file, 'r') as handle:
+            if file_format == 'fasta':
+                parser = SeqIO.parse(handle, "fasta")
+            elif file_format == 'swiss':
+                parser = SwissProt.parse(handle)
+            else:
+                raise ValueError(f"Unsupported file format: {file_format}")
+
+            for record in parser:
+                # For FASTA, record.id is fine. For SwissProt, the primary accession is better.
+                seq_id = record.accessions[0] if hasattr(record, 'accessions') and record.accessions else record.id
+                self.sequences[seq_id] = record
+                self.seq_list.append(record)
         
         self.load_time = time.time() - start
         print(f"Loaded {len(self.sequences)} sequences in {self.load_time:.2f}s")
         return self
-    
+
     def get_sequence(self, seq_id):
-        """Get sequence by ID (returns just the sequence string)"""
-        data = self.sequences.get(seq_id)
-        return data[0] if data else None
-    
+        """Get sequence by ID (returns bytes)"""
+        record = self.sequences.get(seq_id)
+        if not record:
+            return None
+        # Handle both SeqRecord (from FASTA) and SwissProt Record
+        seq_data = record.sequence if hasattr(record, 'sequence') else record.seq
+        return bytes(seq_data)
+
     def get_description(self, seq_id):
         """Get description by ID"""
-        data = self.sequences.get(seq_id)
-        return data[1] if data else None
-    
+        record = self.sequences.get(seq_id)
+        return record.description if record else None
+
     def get_record(self, seq_id):
         """Get record object by ID"""
-        data = self.sequences.get(seq_id)
-        if data:
-            return SimpleNamespace(id=seq_id, seq=data[0], description=data[1])
-        return None
-    
+        return self.sequences.get(seq_id)
+
     def get_sequence_by_index(self, index):
-        """Get sequence by index (0-based)"""
+        """Get sequence by index (0-based, returns bytes)"""
         if 0 <= index < len(self.seq_list):
-            return self.seq_list[index][1]
+            record = self.seq_list[index]
+            seq_data = record.sequence if hasattr(record, 'sequence') else record.seq
+            return bytes(seq_data)
         return None
-    
+
     def get_id_by_index(self, index):
         """Get sequence ID by index"""
         if 0 <= index < len(self.seq_list):
-            return self.seq_list[index][0]
+            record = self.seq_list[index]
+            return record.accessions[0] if hasattr(record, 'accessions') and record.accessions else record.id
         return None
-    
+
     def get_record_by_index(self, index):
         """Get record object by index"""
         if 0 <= index < len(self.seq_list):
-            seq_id, seq_str, description = self.seq_list[index]
-            return SimpleNamespace(id=seq_id, seq=seq_str, description=description)
+            return self.seq_list[index]
         return None
-    
+
     def get_subsequence(self, seq_id, start, end):
         """Get slice of sequence by ID"""
-        data = self.sequences.get(seq_id)
-        return data[0][start:end] if data else None
-    
+        seq = self.get_sequence(seq_id)
+        return seq[start:end] if seq else None
+
     def get_subsequence_by_index(self, index, start, end):
         """Get slice of sequence by index"""
         seq = self.get_sequence_by_index(index)
         return seq[start:end] if seq else None
-    
+
     def __len__(self):
         """Return number of sequences"""
         return len(self.seq_list)
-    
+
     def __getitem__(self, key):
         """Support both cache[index] and cache[seq_id]"""
         if isinstance(key, int):
             return self.get_record_by_index(key)
         else:
             return self.get_record(key)
-    
+
     def get_all_ids(self):
         """Return list of all sequence IDs in order"""
-        return [seq_id for seq_id, _, _ in self.seq_list]
-    
+        return [
+            rec.accessions[0] if hasattr(rec, 'accessions') and rec.accessions else rec.id
+            for rec in self.seq_list
+        ]
+
     def iter_sequences(self):
         """Iterate over (seq_id, sequence) tuples - DEPRECATED, use iter_records()"""
-        for seq_id, sequence, _ in self.seq_list:
-            yield (seq_id, sequence)
-    
+        for record in self.seq_list:
+            seq_id = record.accessions[0] if hasattr(record, 'accessions') and record.accessions else record.id
+            seq_data = record.sequence if hasattr(record, 'sequence') else record.seq
+            yield (seq_id, bytes(seq_data))
+
     def iter_records(self):
-        """Iterate over record objects with .id, .seq, and .description attributes"""
-        for seq_id, seq_str, description in self.seq_list:
-            yield SimpleNamespace(id=seq_id, seq=seq_str, description=description)
-    
+        """Iterate over record objects"""
+        yield from self.seq_list
+
     def __iter__(self):
         """Make the cache itself iterable, yielding records"""
         return self.iter_records()
 
 
-class PickledFastaCache(FastaCache):
-    def __init__(self, fasta_file, cache_dir=".cache"):
+class PickledSequenceCache(SequenceCache):
+    def __init__(self, data_file, cache_dir=".cache"):
         super().__init__()  # Call parent __init__
-        self.fasta_file = Path(fasta_file)
+        self.data_file = Path(data_file)
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
-        self.cache_file = self.cache_dir / f"{self.fasta_file.stem}.pkl"
+        self.cache_file = self.cache_dir / f"{self.data_file.stem}.pkl"
     
-    def load_with_cache(self):
-        """Load from pickle if available, otherwise parse FASTA"""
-        # Check if cache exists and is newer than FASTA
+    def load_with_cache(self, file_format):
+        """Load from pickle if available, otherwise parse the data file"""
+        # Check if cache exists and is newer than the data file
         if (self.cache_file.exists() and 
-            self.cache_file.stat().st_mtime > self.fasta_file.stat().st_mtime):
+            self.cache_file.stat().st_mtime > self.data_file.stat().st_mtime):
             start = time.time()
             with open(self.cache_file, 'rb') as f:
                 data = pickle.load(f)
@@ -142,7 +156,7 @@ class PickledFastaCache(FastaCache):
             self.load_time = time.time() - start
             print(f"Loaded {len(self.sequences)} sequences from cache in {self.load_time:.2f}s")
         else:
-            self.load_fasta(self.fasta_file)
+            self.load_sequences(self.data_file, file_format)
             # Save cache
             with open(self.cache_file, 'wb') as f:
                 pickle.dump({
@@ -150,6 +164,7 @@ class PickledFastaCache(FastaCache):
                     'seq_list': self.seq_list
                 }, f, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"Cache saved to {self.cache_file}")
+        return self
         return self
 
 
@@ -187,8 +202,8 @@ def read_fasta_sequences_direct():
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
 
-# Global cache variable
-_fasta_cache = None 
+_fasta_cache = None
+_swissprot_cache = None
 
 def read_fasta_sequences():
     """
@@ -199,16 +214,31 @@ def read_fasta_sequences():
     
     if _fasta_cache is None:
         filepath = get_data_path('swissprot.fasta.txt')
-        _fasta_cache = PickledFastaCache(filepath).load_with_cache()
+        _fasta_cache = PickledSequenceCache(filepath).load_with_cache('fasta')
     
     return _fasta_cache.iter_records()
 
-def get_sequence_by_identifier(identifier, sequence_iterator=None):
+def read_swissprot_sequences():
     """
-    Retrieves a single sequence from the FASTA file by its accession number or index.
+    Cached version - loads once, then yields from cache.
+    Returns tuples of (seq_id, sequence_string) instead of SeqIO.Record objects.
+    """
+    global _swissprot_cache
+
+    if _swissprot_cache is None:
+        filepath = get_data_path('swissprot.dat.txt')
+        _swissprot_cache = PickledSequenceCache(filepath).load_with_cache('swiss')
+
+    return _swissprot_cache.iter_records()
+
+def get_sequence_by_identifier(identifier, db_name='swissprot'):
+    """
+    Retrieves a single sequence from the specified database by its accession number or index.
     This does a sequential search.
     """
-    if sequence_iterator is None:
+    if db_name == 'swissprot':
+        sequence_iterator = read_swissprot_sequences()
+    else:
         sequence_iterator = read_fasta_sequences()
     if isinstance(identifier, str):
         for record in sequence_iterator:
@@ -219,18 +249,6 @@ def get_sequence_by_identifier(identifier, sequence_iterator=None):
             if i == identifier:
                 return record
     return None
-
-def read_swissprot_records():
-    """
-    Reads and parses records from the swissprot.dat.txt file, yielding them one by one.
-    """
-    filepath = get_data_path('swissprot.dat.txt')
-    try:
-        with open(filepath, 'r') as f:
-            for record in SwissProt.parse(f):
-                yield record
-    except FileNotFoundError:
-        print(f"Error: {filepath} not found.")
 
 def benchmark():
     start = time.time()
@@ -245,6 +263,29 @@ def main():
     # Just read one sequence from the database and show it.
     print( get_sequence_by_identifier( 1 ))
 
+def verify_sequences():
+    """
+    Compares sequences from FASTA and Swiss-Prot caches to find mismatches.
+    """
+    fasta_sequences = list(read_fasta_sequences())
+    swissprot_sequences = list(read_swissprot_sequences())
+
+    mismatches = 0
+    missing_in_swissprot = 0
+
+    for i, fasta_record in enumerate(fasta_sequences):
+        if i < len(swissprot_sequences):
+            swissprot_record = swissprot_sequences[i]
+            if fasta_record.seq != swissprot_record.sequence:
+                mismatches += 1
+        else:
+            missing_in_swissprot += 1
+
+    print(f"Sequence Verification Report:")
+    print(f"Mismatches: {mismatches}")
+    print(f"Missing in Swiss-Prot: {missing_in_swissprot}")
+
 if __name__ == "__main__":
     main()
     benchmark()
+    verify_sequences()

@@ -1,8 +1,8 @@
-from py.data_munger import filter_proteins
-from py.sequences import read_swissprot_records
+from data_munger import filter_proteins
+from sequences import read_swissprot_sequences
 
 def test_filter_for_mouse_proteins():
-    all_records = read_swissprot_records()
+    all_records = read_swissprot_sequences()
 
     # Correctly call the generator and convert to a list
     mouse_proteins = list(filter_proteins(all_records, organisms=['mouse']))

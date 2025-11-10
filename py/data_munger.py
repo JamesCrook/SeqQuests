@@ -1,5 +1,5 @@
 import argparse
-from sequences import read_swissprot_records
+from sequences import read_swissprot_sequences
 
 """
 Data munging:
