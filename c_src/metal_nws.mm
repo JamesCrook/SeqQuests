@@ -235,103 +235,105 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     int finds = 0;
 
     while(more_data) {
-        step++;
-        more_data = false;
+        @autoreleasepool {        
+            step++;
+            more_data = false;
 
-        for (int i = 0; i < THREADS; ++i) {
-            for (int j = 0; j < UNROLL; j++){
-                if(seqno[i] == -2) continue;
+            for (int i = 0; i < THREADS; ++i) {
+                for (int j = 0; j < UNROLL; j++){
+                    if(seqno[i] == -2) continue;
 
-                bool seqDone = (seqno[i] == -1 || pos[i] >= data_manager->fasta_records[seqno[i]].sequence_len);
-                if(seqDone) {
-                    seq++;
-                    while (seq < data_manager->num_fasta_records && data_manager->fasta_records[seq].sequence_len < (UNROLL+4)) {
+                    bool seqDone = (seqno[i] == -1 || pos[i] >= data_manager->fasta_records[seqno[i]].sequence_len);
+                    if(seqDone) {
                         seq++;
+                        while (seq < data_manager->num_fasta_records && data_manager->fasta_records[seq].sequence_len < (UNROLL+4)) {
+                            seq++;
+                        }
+                        if (seq < data_manager->num_fasta_records) {
+                            pos[i] = 0;
+                            seqno[i] = seq;
+                        } else {
+                            seqno[i] = -2;
+                            continue;
+                        }
                     }
-                    if (seq < data_manager->num_fasta_records) {
-                        pos[i] = 0;
-                        seqno[i] = seq;
-                    } else {
-                        seqno[i] = -2;
-                        continue;
-                    }
+                    aa_data[i*UNROLL+j] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
+                    pos[i]++;
+                    more_data = true;
                 }
-                aa_data[i*UNROLL+j] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
-                pos[i]++;
-                more_data = true;
-            }
-        }
-
-        if(!more_data) break;
-        if((step % 1000) == 0) printf("Step:%7d\n", step);
-
-        int in_idx = step % 2;
-        int out_idx = (step + 1) % 2;
-
-        if( do_search ){
-            MTL::CommandBuffer* command_buffer = metal_state->queue->commandBuffer();
-            MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
-            encoder->setComputePipelineState(metal_state->pipeline);
-            encoder->setBuffer(metal_state->data_buffers[in_idx], 0, 0);
-            encoder->setBuffer(metal_state->data_buffers[out_idx], 0, 1);
-            encoder->setBuffer(metal_state->pam_buffer, 0, 2);
-            encoder->setBuffer(metal_state->aa_buffer, 0, 3);
-            encoder->setBuffer(metal_state->max_buffer, 0, 4);
-            encoder->setBuffer(metal_state->rows_buffer, 0, 5);
-
-            MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
-            NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
-            if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
-            MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
-
-            encoder->dispatchThreads(grid_size, threadgroup_size);
-            encoder->endEncoding();
-            command_buffer->commit();
-            command_buffer->waitUntilCompleted();
-        }
-
-        for (int i = 0; i < THREADS; ++i) {
-            if(i == settings->debug_slot) {
-                // ... debug output ...
             }
 
-            if(seqno_reported[i] == -1) seqno_reported[i] = seqno[i];
+            if(!more_data) break;
+            if((step % 1000) == 0) printf("Step:%7d\n", step);
 
-            for (int j = 0; j < UNROLL; j++){
-                if(seqno_reported[i] == -2) continue;
+            int in_idx = step % 2;
+            int out_idx = (step + 1) % 2;
 
-                // score here is max for this column...
-                int16_t score = final_max[(i * UNROLL +j) * 2];
-                if( score >= settings->reporting_threshold ){
-                    if( first_hit[i] < 0)
-                        first_hit[i] = pos_reported[i];
-                    last_hit[i] = pos_reported[i];
+            if( do_search ){
+                MTL::CommandBuffer* command_buffer = metal_state->queue->commandBuffer();
+                MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
+                encoder->setComputePipelineState(metal_state->pipeline);
+                encoder->setBuffer(metal_state->data_buffers[in_idx], 0, 0);
+                encoder->setBuffer(metal_state->data_buffers[out_idx], 0, 1);
+                encoder->setBuffer(metal_state->pam_buffer, 0, 2);
+                encoder->setBuffer(metal_state->aa_buffer, 0, 3);
+                encoder->setBuffer(metal_state->max_buffer, 0, 4);
+                encoder->setBuffer(metal_state->rows_buffer, 0, 5);
+
+                MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
+                NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
+                if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
+                MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
+
+                encoder->dispatchThreads(grid_size, threadgroup_size);
+                encoder->endEncoding();
+                command_buffer->commit();
+                command_buffer->waitUntilCompleted();
+            }
+
+            for (int i = 0; i < THREADS; ++i) {
+                if(i == settings->debug_slot) {
+                    // ... debug output ...
                 }
-                pos_reported[i] += 1;
-                if( aa_data[i*UNROLL+j] == 0 ){
-                    // score here is the max for the protein...
-                    score = final_max[(i * UNROLL +j) * 2 + 1];
-                    if (score >= settings->reporting_threshold) {
-                        if( settings->machine_output ){
-                            printf("HIT:%d,%d,%d,%d,%d\n", query, seqno_reported[i], score, first_hit[i],last_hit[i]-first_hit[i] );
-                        }
-                        else {
-                            printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
-                                step, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
-                        }
-                        if(settings->slow_output) usleep(100000);
-                        finds++;
+
+                if(seqno_reported[i] == -1) seqno_reported[i] = seqno[i];
+
+                for (int j = 0; j < UNROLL; j++){
+                    if(seqno_reported[i] == -2) continue;
+
+                    // score here is max for this column...
+                    int16_t score = final_max[(i * UNROLL +j) * 2];
+                    if( score >= settings->reporting_threshold ){
+                        if( first_hit[i] < 0)
+                            first_hit[i] = pos_reported[i];
+                        last_hit[i] = pos_reported[i];
                     }
-                    final_max[(i * UNROLL +j)* 2 + 1] = 0;
-                    seqno_reported[i] = seqno[i];
-                    pos_reported[i] = 0;
-                    first_hit[i] = -1;
-                    last_hit[i] = -1;// not actually required.
+                    pos_reported[i] += 1;
+                    if( aa_data[i*UNROLL+j] == 0 ){
+                        // score here is the max for the protein...
+                        score = final_max[(i * UNROLL +j) * 2 + 1];
+                        if (score >= settings->reporting_threshold) {
+                            if( settings->machine_output ){
+                                printf("HIT:%d,%d,%d,%d,%d\n", query, seqno_reported[i], score, first_hit[i],last_hit[i]-first_hit[i] );
+                            }
+                            else {
+                                printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
+                                    step, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
+                            }
+                            if(settings->slow_output) usleep(100000);
+                            finds++;
+                        }
+                        final_max[(i * UNROLL +j)* 2 + 1] = 0;
+                        seqno_reported[i] = seqno[i];
+                        pos_reported[i] = 0;
+                        first_hit[i] = -1;
+                        last_hit[i] = -1;// not actually required.
+                    }
                 }
             }
         }
     }
-
+    
     auto end = std::chrono::high_resolution_clock::now();
     report_results(rows, step, finds, end - start);
 }
