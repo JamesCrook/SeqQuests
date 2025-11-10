@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protein Sequence Stats</title>
     <style>
-        body {
+    body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
             margin: 50px auto;
@@ -117,48 +117,47 @@
             color: #721c24;
         }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Protein Sequence Statistics</h1>
-        
-        <button id="startBtn" onclick="startProcessing()">Start Processing</button>
-        
-        <div id="status"></div>
-        
-        <div class="progress">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
+      <h1>Protein Sequence Statistics</h1>
+      <button id="startBtn" onclick="startProcessing()">
+        Start Processing
+      </button>
+      <div id="status">
+      </div>
+      <div class="progress">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill">
+          </div>
         </div>
-        
-        <div class="stats">
-            <div class="stat-item">
-                <span class="stat-label">Total Records:</span>
-                <span class="stat-value" id="totalRecords">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Avg Column 1:</span>
-                <span class="stat-value" id="sumCol1">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Avg Column 2:</span>
-                <span class="stat-value" id="sumCol2">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Avg Column 3:</span>
-                <span class="stat-value" id="sumCol3">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Processing Rate:</span>
-                <span class="stat-value" id="rate">0 records/sec</span>
-            </div>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-label">Total Records:</span>
+          <span class="stat-value" id="totalRecords">0</span>
         </div>
+        <div class="stat-item">
+          <span class="stat-label">Avg Column 1:</span>
+          <span class="stat-value" id="sumCol1">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Avg Column 2:</span>
+          <span class="stat-value" id="sumCol2">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Avg Column 3:</span>
+          <span class="stat-value" id="sumCol3">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Processing Rate:</span>
+          <span class="stat-value" id="rate">0 records/sec</span>
+        </div>
+      </div>
     </div>
-    
     <script src="./stream.js"></script>
     <script>
-        let startTime;
+    let startTime;
         
         function updateUI(stats) {
             document.getElementById('totalRecords').textContent = stats.totalRecords.toLocaleString();
@@ -206,5 +205,5 @@
             }
         }
     </script>
-</body>
+  </body>
 </html>

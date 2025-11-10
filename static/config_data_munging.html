@@ -1,33 +1,55 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Configure and Monitor Data Munging Job</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css">
-</head>
-<body>
+  </head>
+  <body>
     <h2>Configure Data Munging Job</h2>
     <form id="config-form">
-        <label>Select Organisms:</label>
-        <div id="organisms-checkboxes">
-            <label><input type="checkbox" id="human" name="organisms" value="human"> Human</label><br>
-            <label><input type="checkbox" id="rat" name="organisms" value="rat"> Rat</label><br>
-            <label><input type="checkbox" id="ecoli" name="organisms" value="ecoli"> E. coli</label><br>
-            <label><input type="checkbox" id="yeast" name="organisms" value="yeast"> Yeast</label><br>
-            <label><input type="checkbox" id="chicken" name="organisms" value="chicken"> Chicken</label><br>
-            <label><input type="checkbox" id="mouse" name="organisms" value="mouse"> Mouse</label><br>
-        </div>
+      <label>Select Organisms:</label>
+      <div id="organisms-checkboxes">
+        <label>
+          <input type="checkbox" id="human" name="organisms" value="human">
+          Human
+        </label>
         <br>
-        <button type="button" onclick="saveConfig()">Save Configuration</button>
+        <label>
+          <input type="checkbox" id="rat" name="organisms" value="rat">
+          Rat
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="ecoli" name="organisms" value="ecoli">
+          E. coli
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="yeast" name="organisms" value="yeast">
+          Yeast
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="chicken" name="organisms" value="chicken">
+          Chicken
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="mouse" name="organisms" value="mouse">
+          Mouse
+        </label>
+        <br>
+      </div>
+      <br>
+      <button type="button" onclick="saveConfig()">Save Configuration</button>
     </form>
-
     <hr>
-
     <h2>Job Progress</h2>
-    <div id="detailDiv"></div>
-
+    <div id="detailDiv">
+    </div>
     <script src="/static/job_monitor.js"></script>
     <script>
-        async function saveConfig() {
+    async function saveConfig() {
             const jobId = getJobIdFromUrl();
             const organisms = ['human', 'rat', 'ecoli', 'yeast', 'chicken', 'mouse'];
             const selectedOrganisms = organisms.filter(org => document.getElementById(org).checked);
@@ -67,5 +89,5 @@
             loadJobConfig();
         });
     </script>
-</body>
+  </body>
 </html>

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwissProt Multiscroller</title>
     <style>
-        * {
+    * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -100,14 +100,14 @@
         }
     </style>
     <script src="./multiscroller.js"></script>
-</head>
-<body>
-    <div id="container"></div>
-    
+  </head>
+  <body>
+    <div id="container">
+    </div>
     <script>
-        // Initialize
+    // Initialize
         const tree = new SwissProtTree();
         const multiscroller = new Multiscroller(document.getElementById('container'), tree);
     </script>
-</body>
+  </body>
 </html>
