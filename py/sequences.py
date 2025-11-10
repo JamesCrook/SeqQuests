@@ -141,13 +141,17 @@ class PickledSequenceCache(SequenceCache):
         self.data_file = Path(data_file)
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
-        self.cache_file = self.cache_dir / f"{self.data_file.stem}.pkl"
-    
+
     def load_with_cache(self, file_format):
+        format_suffix = f"_{file_format}" if file_format else ""
+        self.cache_file = self.cache_dir / f"{self.data_file.stem}{format_suffix}.pkl"
         """Load from pickle if available, otherwise parse the data file"""
         # Check if cache exists and is newer than the data file
         if (self.cache_file.exists() and 
             self.cache_file.stat().st_mtime > self.data_file.stat().st_mtime):
+            # quick return, if already has the sequences.
+            if hasattr( self, 'sequences' ) and self.sequences:
+                return self
             start = time.time()
             with open(self.cache_file, 'rb') as f:
                 data = pickle.load(f)
@@ -164,7 +168,6 @@ class PickledSequenceCache(SequenceCache):
                     'seq_list': self.seq_list
                 }, f, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"Cache saved to {self.cache_file}")
-        return self
         return self
 
 
@@ -254,7 +257,8 @@ def benchmark():
     start = time.time()
     proteins = read_fasta_sequences()
     for p in proteins:
-        if p.id == 'foo' :
+        protein_id = p.id if hasattr(p, 'id') else p.accessions[0]
+        if protein_id == 'foo' :
             print("found foo")
     elapsed = time.time() - start
     print(f"Execution time: {elapsed:.4f} seconds")
@@ -273,6 +277,7 @@ def verify_sequences():
     mismatches = 0
     missing_in_swissprot = 0
 
+    start = time.time()
     for i, fasta_record in enumerate(fasta_sequences):
         if i < len(swissprot_sequences):
             swissprot_record = swissprot_sequences[i]
@@ -280,10 +285,14 @@ def verify_sequences():
                 mismatches += 1
         else:
             missing_in_swissprot += 1
+        if i%1000 == 0:
+            print( f"Sequence:{i}")
 
     print(f"Sequence Verification Report:")
     print(f"Mismatches: {mismatches}")
     print(f"Missing in Swiss-Prot: {missing_in_swissprot}")
+    elapsed = time.time() - start
+    print(f"Execution time: {elapsed:.4f} seconds")
 
 if __name__ == "__main__":
     main()
