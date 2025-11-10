@@ -42,7 +42,7 @@ class SwissProtTree {
   }
 
   // Level 0: ID Range (P10000-P10099, P10100-P10199, etc.)
-  next(cursor, level) {
+  next(cursor, level, sameParentOnly = true) {
     if(level === 0) {
       if(cursor === null) return {
         cursor: 0,
@@ -62,7 +62,22 @@ class SwissProtTree {
         rangeStart,
         offset
       } = cursor;
-      if(offset >= 99) return null;
+      if(offset >= 99) {
+        if (sameParentOnly) return null;
+        // Go to next range
+        const parentCursor = (rangeStart - 10000) / 100;
+        if (parentCursor >= 999) return null;
+        const nextRangeStart = rangeStart + 100;
+        return {
+          cursor: {
+            rangeStart: nextRangeStart,
+            offset: 0
+          },
+          data: {
+            id: nextRangeStart
+          }
+        };
+      }
       const newOffset = offset + 1;
       return {
         cursor: {
@@ -74,11 +89,37 @@ class SwissProtTree {
         }
       };
     } else if(level === 2) {
-      return null; // Full records don't have next
+      if (sameParentOnly) return null;
+      // Go to next ID's record
+      const currentId = cursor.rangeStart + cursor.offset;
+      const nextOffset = cursor.offset + 1;
+      if (nextOffset >= 100) {
+        // Go to next range
+        const nextRangeStart = cursor.rangeStart + 100;
+        if ((nextRangeStart - 10000) / 100 >= 1000) return null;
+        return {
+          cursor: {
+            rangeStart: nextRangeStart,
+            offset: 0
+          },
+          data: {
+            id: nextRangeStart
+          }
+        };
+      }
+      return {
+        cursor: {
+          rangeStart: cursor.rangeStart,
+          offset: nextOffset
+        },
+        data: {
+          id: cursor.rangeStart + nextOffset
+        }
+      };
     }
   }
 
-  prev(cursor, level) {
+  prev(cursor, level, sameParentOnly = true) {
     if(level === 0) {
       if(cursor === null || cursor === 0) return null;
       return {
@@ -92,7 +133,22 @@ class SwissProtTree {
         rangeStart,
         offset
       } = cursor;
-      if(offset <= 0) return null;
+      if(offset <= 0) {
+        if (sameParentOnly) return null;
+        // Go to previous range's last ID
+        const parentCursor = (rangeStart - 10000) / 100;
+        if (parentCursor <= 0) return null;
+        const prevRangeStart = rangeStart - 100;
+        return {
+          cursor: {
+            rangeStart: prevRangeStart,
+            offset: 99
+          },
+          data: {
+            id: prevRangeStart + 99
+          }
+        };
+      }
       const newOffset = offset - 1;
       return {
         cursor: {
@@ -104,7 +160,32 @@ class SwissProtTree {
         }
       };
     } else if(level === 2) {
-      return null;
+      if (sameParentOnly) return null;
+      // Go to previous ID's record
+      const prevOffset = cursor.offset - 1;
+      if (prevOffset < 0) {
+        // Go to previous range's last ID
+        const prevRangeStart = cursor.rangeStart - 100;
+        if ((prevRangeStart - 10000) / 100 < 0) return null;
+        return {
+          cursor: {
+            rangeStart: prevRangeStart,
+            offset: 99
+          },
+          data: {
+            id: prevRangeStart + 99
+          }
+        };
+      }
+      return {
+        cursor: {
+          rangeStart: cursor.rangeStart,
+          offset: prevOffset
+        },
+        data: {
+          id: cursor.rangeStart + prevOffset
+        }
+      };
     }
   }
 
@@ -263,123 +344,11 @@ class Column {
     const delta = e.clientY - this.dragStartY;
     this.scrollOffset = this.dragStartOffset + delta;
 
-    // Check if we need to load more items
-    //this.ensureItemsCoverViewport();
-
     this.render();
 
     // Notify multiscroller of drag
     if(this.onDrag) {
       this.onDrag(this.selectedIndices, delta);
-    }
-  }
-
-  ensureItemsCoverViewport() {
-    if(this.items.length === 0) return;
-
-    const viewportHeight = this.element.offsetHeight;
-    const BUFFER = 100; // Pixels of buffer
-    const MAX_ITEMS_TO_ADD = 50; // Don't add too many at once
-
-    // Calculate total height of all items
-    let totalHeight = 0;
-    this.items.forEach(item => totalHeight += item.height);
-
-    // Check if we need items at the top (scrolled down, positive offset means content moved down)
-    if(this.scrollOffset > BUFFER) {
-      // Need more items at the beginning
-      let firstCursor = this.items[0].cursor;
-      let newItems = [];
-      let addedHeight = 0;
-
-      // Keep adding items until we have enough buffer
-      for(let count = 0; count < MAX_ITEMS_TO_ADD; count++) {
-        const result = this.tree.prev(firstCursor, this.level);
-        if(!result) break;
-
-        // Measure this item
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute';
-        tempDiv.style.visibility = 'hidden';
-        tempDiv.style.width = this.element.offsetWidth + 'px';
-        this.element.appendChild(tempDiv);
-        tempDiv.innerHTML = '<div class="item">' + this.tree.levels[this
-          .level].render(result.data) + '</div>';
-        const height = tempDiv.firstChild.offsetHeight;
-        this.element.removeChild(tempDiv);
-
-        newItems.unshift({
-          cursor: result.cursor,
-          data: result.data,
-          height: height
-        });
-        addedHeight += height;
-        firstCursor = result.cursor;
-
-        // Stop if we've added enough buffer
-        if(addedHeight > this.scrollOffset + viewportHeight) break;
-      }
-
-      if(newItems.length > 0) {
-        // Adjust scroll offset to account for new items
-        this.scrollOffset -= addedHeight;
-
-        // Adjust selected indices and dragged index
-        this.selectedIndices = this.selectedIndices.map(idx => idx + newItems
-          .length);
-        if(this.draggedIndex >= 0) {
-          this.draggedIndex += newItems.length;
-        }
-
-        this.items = [...newItems, ...this.items];
-        this.rebuildDOM(); // Rebuild since we added items
-      }
-    }
-
-    // Recalculate total height after potentially adding items at top
-    totalHeight = 0;
-    this.items.forEach(item => totalHeight += item.height);
-
-    // Check if we need items at the bottom
-    const bottomOfContent = this.scrollOffset + totalHeight;
-    if(bottomOfContent < viewportHeight - BUFFER) {
-      // Need more items at the end
-      let lastCursor = this.items[this.items.length - 1].cursor;
-      let itemsAdded = 0;
-
-      // Keep adding until we fill the viewport with buffer
-      for(let count = 0; count < MAX_ITEMS_TO_ADD; count++) {
-        const result = this.tree.next(lastCursor, this.level);
-        if(!result) break;
-
-        // Measure this item
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute';
-        tempDiv.style.visibility = 'hidden';
-        tempDiv.style.width = this.element.offsetWidth + 'px';
-        this.element.appendChild(tempDiv);
-        tempDiv.innerHTML = '<div class="item">' + this.tree.levels[this
-          .level].render(result.data) + '</div>';
-        const height = tempDiv.firstChild.offsetHeight;
-        this.element.removeChild(tempDiv);
-
-        this.items.push({
-          cursor: result.cursor,
-          data: result.data,
-          height: height
-        });
-        totalHeight += height;
-        lastCursor = result.cursor;
-        itemsAdded++;
-
-        // Stop if we've filled enough
-        const newBottom = this.scrollOffset + totalHeight;
-        if(newBottom > viewportHeight + viewportHeight) break; // Extra buffer
-      }
-
-      if(itemsAdded > 0) {
-        this.rebuildDOM(); // Rebuild since we added items
-      }
     }
   }
 
@@ -711,51 +680,14 @@ class Multiscroller {
         let beforeHeight = 0;
         
         for (let i = 0; i < fillBatchSize && beforeHeight < viewportHeight; i++) {
-          const prevResult = this.tree.prev(beforeCursor, descendantLevel);
-          if (!prevResult) {
-            // Hit a boundary - need to go to previous parent
-            if (descendantLevel === 2) {
-              // Can't go further back at level 2, we're at a record boundary
-              // Need to go back to previous ID and get its record
-              const parentResult = this.tree.ascend(beforeCursor, descendantLevel);
-              if (!parentResult) break;
-              const prevParentResult = this.tree.prev(parentResult.cursor, descendantLevel - 1);
-              if (!prevParentResult) break;
-              const prevChildResult = this.tree.descend(prevParentResult.cursor, descendantLevel - 1);
-              if (!prevChildResult) break;
-              beforeItems.unshift({
-                cursor: prevChildResult.cursor,
-                data: prevChildResult.data
-              });
-              beforeCursor = prevChildResult.cursor;
-            } else {
-              // At level 1, need to go to previous range
-              const parentResult = this.tree.ascend(beforeCursor, descendantLevel);
-              if (!parentResult) break;
-              const prevParentResult = this.tree.prev(parentResult.cursor, descendantLevel - 1);
-              if (!prevParentResult) break;
-              const prevChildResult = this.tree.descend(prevParentResult.cursor, descendantLevel - 1);
-              if (!prevChildResult) break;
-              // Now get the last child of this previous parent
-              let lastChild = prevChildResult;
-              while (true) {
-                const nextInParent = this.tree.next(lastChild.cursor, descendantLevel);
-                if (!nextInParent) break;
-                lastChild = nextInParent;
-              }
-              beforeItems.unshift({
-                cursor: lastChild.cursor,
-                data: lastChild.data
-              });
-              beforeCursor = lastChild.cursor;
-            }
-          } else {
-            beforeItems.unshift({
-              cursor: prevResult.cursor,
-              data: prevResult.data
-            });
-            beforeCursor = prevResult.cursor;
-          }
+          const prevResult = this.tree.prev(beforeCursor, descendantLevel, false);
+          if (!prevResult) break;
+          
+          beforeItems.unshift({
+            cursor: prevResult.cursor,
+            data: prevResult.data
+          });
+          beforeCursor = prevResult.cursor;
           
           // Rough height estimate (will measure properly later)
           beforeHeight += 50;
@@ -767,44 +699,14 @@ class Multiscroller {
         let afterHeight = 0;
         
         for (let i = 0; i < fillBatchSize && afterHeight < viewportHeight; i++) {
-          const nextResult = this.tree.next(afterCursor, descendantLevel);
-          if (!nextResult) {
-            // Hit a boundary - need to go to next parent
-            if (descendantLevel === 2) {
-              // Can't go further at level 2, we're at a record boundary
-              // Need to go to next ID and get its record
-              const parentResult = this.tree.ascend(afterCursor, descendantLevel);
-              if (!parentResult) break;
-              const nextParentResult = this.tree.next(parentResult.cursor, descendantLevel - 1);
-              if (!nextParentResult) break;
-              const nextChildResult = this.tree.descend(nextParentResult.cursor, descendantLevel - 1);
-              if (!nextChildResult) break;
-              afterItems.push({
-                cursor: nextChildResult.cursor,
-                data: nextChildResult.data
-              });
-              afterCursor = nextChildResult.cursor;
-            } else {
-              // At level 1, need to go to next range
-              const parentResult = this.tree.ascend(afterCursor, descendantLevel);
-              if (!parentResult) break;
-              const nextParentResult = this.tree.next(parentResult.cursor, descendantLevel - 1);
-              if (!nextParentResult) break;
-              const nextChildResult = this.tree.descend(nextParentResult.cursor, descendantLevel - 1);
-              if (!nextChildResult) break;
-              afterItems.push({
-                cursor: nextChildResult.cursor,
-                data: nextChildResult.data
-              });
-              afterCursor = nextChildResult.cursor;
-            }
-          } else {
-            afterItems.push({
-              cursor: nextResult.cursor,
-              data: nextResult.data
-            });
-            afterCursor = nextResult.cursor;
-          }
+          const nextResult = this.tree.next(afterCursor, descendantLevel, false);
+          if (!nextResult) break;
+          
+          afterItems.push({
+            cursor: nextResult.cursor,
+            data: nextResult.data
+          });
+          afterCursor = nextResult.cursor;
           
           // Rough height estimate
           afterHeight += 50;
@@ -819,19 +721,25 @@ class Multiscroller {
         
         // Set the items
         descendantColumn.items = allItems;
-        descendantColumn.measureItems();
-        
-        // Calculate scroll offset to center the selected items
-        let selectedTop = 0;
-        for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
-          selectedTop += descendantColumn.items[i].height;
-        }
-        
-        descendantColumn.scrollOffset = -selectedTop;
+        descendantColumn.scrollOffset = 0;
         descendantColumn.rebuildDOM();
         
-        // Select the children (now at adjusted indices)
-        descendantColumn.setSelectedIndices(adjustedSelectedIndices);
+        // Wait for DOM to settle before measuring and positioning
+        requestAnimationFrame(() => {
+          descendantColumn.measureItems();
+          
+          // Calculate scroll offset to position selected items at top
+          let selectedTop = 0;
+          for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
+            selectedTop += descendantColumn.items[i].height;
+          }
+          
+          descendantColumn.scrollOffset = -selectedTop;
+          descendantColumn.render();
+          
+          // Select the children (now at adjusted indices)
+          descendantColumn.setSelectedIndices(adjustedSelectedIndices);
+        });
       } else {
         // No children found
         descendantColumn.items = [];
@@ -846,13 +754,6 @@ class Multiscroller {
     const draggedColumn = this.columns[draggedColumnIndex];
     const bounds = draggedColumn.getDraggedItemBounds();
     const viewportHeight = draggedColumn.element.offsetHeight;
-
-    // Ensure all columns have enough items to cover their viewports
-    this.columns.forEach((column) => {
-      if(column.items.length > 0) {
-        column.ensureItemsCoverViewport();
-      }
-    });
 
     // Sync all other columns with selections
     this.columns.forEach((column, index) => {
