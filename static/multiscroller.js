@@ -578,6 +578,158 @@ class Multiscroller {
     this.columns[0].populate(null);
   }
 
+  populateAncestorColumn(ancestorLevel, selectedCursor, selectedLevel) {
+    const ancestorColumn = this.columns[ancestorLevel];
+    
+    // Ascend from the current selection to get the ancestor
+    let currentCursor = selectedCursor;
+    let currentLevel = selectedLevel;
+    
+    // Ascend to the target level
+    while (currentLevel > ancestorLevel) {
+      const ascendResult = this.tree.ascend(currentCursor, currentLevel);
+      if (!ascendResult) return;
+      currentCursor = ascendResult.cursor;
+      currentLevel--;
+    }
+    
+    if (currentLevel === ancestorLevel) {
+      // Clear and repopulate the ancestor column around this cursor
+      ancestorColumn.populate(currentCursor);
+      
+      // Find and select the item with this cursor
+      const ancestorIndex = ancestorColumn.items.findIndex(item => 
+        JSON.stringify(item.cursor) === JSON.stringify(currentCursor)
+      );
+      if (ancestorIndex >= 0) {
+        ancestorColumn.setSelectedIndices([ancestorIndex]);
+      }
+    }
+  }
+
+  collectChildrenOfParents(parentCursors, parentLevel, childLevel) {
+    let childItems = [];
+    let allSelectedIndices = [];
+    
+    for (let parentCursor of parentCursors) {
+      // Get the first child of this parent
+      const firstDescendResult = this.tree.descend(parentCursor, parentLevel);
+      if (!firstDescendResult) continue;
+      
+      // Add first child
+      let startIndex = childItems.length;
+      childItems.push({
+        cursor: firstDescendResult.cursor,
+        data: firstDescendResult.data
+      });
+      
+      // Iterate forward with next(), checking if each item is still a child of this parent
+      let currentCursor = firstDescendResult.cursor;
+      while (true) {
+        const nextResult = this.tree.next(currentCursor, childLevel);
+        if (!nextResult) break;
+        
+        // Check if this item is a child of the current parent
+        if (!this.tree.isChildOf(nextResult.cursor, childLevel, parentCursor, parentLevel)) {
+          break; // We've passed this parent's children
+        }
+        
+        childItems.push({
+          cursor: nextResult.cursor,
+          data: nextResult.data
+        });
+        currentCursor = nextResult.cursor;
+      }
+      
+      // Mark all children of this parent as selected
+      for (let i = startIndex; i < childItems.length; i++) {
+        allSelectedIndices.push(i);
+      }
+    }
+    
+    return { childItems, allSelectedIndices };
+  }
+
+  fillViewportWithNeighbors(childItems, descendantLevel, descendantColumn) {
+    const viewportHeight = descendantColumn.element.offsetHeight;
+    let fillBatchSize = 50;
+    
+    // Add items before
+    let beforeCursor = childItems[0].cursor;
+    let beforeItems = [];
+    let beforeHeight = 0;
+    
+    for (let i = 0; i < fillBatchSize && beforeHeight < viewportHeight; i++) {
+      const prevResult = this.tree.prev(beforeCursor, descendantLevel, false);
+      if (!prevResult) break;
+      
+      beforeItems.unshift({
+        cursor: prevResult.cursor,
+        data: prevResult.data
+      });
+      beforeCursor = prevResult.cursor;
+      beforeHeight += 50; // Rough estimate
+    }
+    
+    // Add items after
+    let afterCursor = childItems[childItems.length - 1].cursor;
+    let afterItems = [];
+    let afterHeight = 0;
+    
+    for (let i = 0; i < fillBatchSize && afterHeight < viewportHeight; i++) {
+      const nextResult = this.tree.next(afterCursor, descendantLevel, false);
+      if (!nextResult) break;
+      
+      afterItems.push({
+        cursor: nextResult.cursor,
+        data: nextResult.data
+      });
+      afterCursor = nextResult.cursor;
+      afterHeight += 50; // Rough estimate
+    }
+    
+    return { beforeItems, afterItems };
+  }
+
+  populateAndPositionDescendantColumn(descendantColumn, childItems, allSelectedIndices, descendantLevel) {
+    if (childItems.length === 0) {
+      descendantColumn.items = [];
+      descendantColumn.selectedIndices = [];
+      descendantColumn.scrollOffset = 0;
+      descendantColumn.rebuildDOM();
+      return;
+    }
+    
+    // Fill viewport with neighbors
+    const { beforeItems, afterItems } = this.fillViewportWithNeighbors(
+      childItems, descendantLevel, descendantColumn
+    );
+    
+    // Combine: before + children + after
+    const allItems = [...beforeItems, ...childItems, ...afterItems];
+    
+    // Adjust selected indices to account for items added before
+    const offsetAdjustment = beforeItems.length;
+    const adjustedSelectedIndices = allSelectedIndices.map(idx => idx + offsetAdjustment);
+    
+    // Set the items synchronously
+    descendantColumn.items = allItems;
+    descendantColumn.scrollOffset = 0;
+    descendantColumn.rebuildDOM();
+    descendantColumn.measureItems();
+    
+    // Calculate scroll offset to position selected items at top
+    let selectedTop = 0;
+    for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
+      selectedTop += descendantColumn.items[i].height;
+    }
+    
+    descendantColumn.scrollOffset = -selectedTop;
+    
+    // Select the children (now at adjusted indices)
+    descendantColumn.setSelectedIndices(adjustedSelectedIndices);
+  }
+
   onColumnSelect(columnIndex, itemIndex) {
     const column = this.columns[columnIndex];
     const selectedItem = column.items[itemIndex];
@@ -585,32 +737,7 @@ class Multiscroller {
 
     // Handle ancestor columns (to the left)
     for (let ancestorLevel = columnIndex - 1; ancestorLevel >= 0; ancestorLevel--) {
-      const ancestorColumn = this.columns[ancestorLevel];
-      
-      // Ascend from the current selection to get the ancestor
-      let currentCursor = selectedCursor;
-      let currentLevel = columnIndex;
-      
-      // Ascend to the target level
-      while (currentLevel > ancestorLevel) {
-        const ascendResult = this.tree.ascend(currentCursor, currentLevel);
-        if (!ascendResult) break;
-        currentCursor = ascendResult.cursor;
-        currentLevel--;
-      }
-      
-      if (currentLevel === ancestorLevel) {
-        // Clear and repopulate the ancestor column around this cursor
-        ancestorColumn.populate(currentCursor);
-        
-        // Find and select the item with this cursor
-        const ancestorIndex = ancestorColumn.items.findIndex(item => 
-          JSON.stringify(item.cursor) === JSON.stringify(currentCursor)
-        );
-        if (ancestorIndex >= 0) {
-          ancestorColumn.setSelectedIndices([ancestorIndex]);
-        }
-      }
+      this.populateAncestorColumn(ancestorLevel, selectedCursor, columnIndex);
     }
 
     // Handle descendant columns (to the right)
@@ -629,119 +756,15 @@ class Multiscroller {
         continue;
       }
       
-      // Collect all children by iterating through all parent cursors
-      let childItems = [];
-      let allSelectedIndices = [];
+      // Collect all children of all parents
+      const { childItems, allSelectedIndices } = this.collectChildrenOfParents(
+        parentCursors, descendantLevel - 1, descendantLevel
+      );
       
-      for (let parentCursor of parentCursors) {
-        // Get the first child of this parent
-        const firstDescendResult = this.tree.descend(parentCursor, descendantLevel - 1);
-        if (!firstDescendResult) continue;
-        
-        // Add first child
-        let startIndex = childItems.length;
-        childItems.push({
-          cursor: firstDescendResult.cursor,
-          data: firstDescendResult.data
-        });
-        
-        // Iterate forward with next(), checking if each item is still a child of this parent
-        let currentCursor = firstDescendResult.cursor;
-        while (true) {
-          const nextResult = this.tree.next(currentCursor, descendantLevel);
-          if (!nextResult) break;
-          
-          // Check if this item is a child of the current parent
-          if (!this.tree.isChildOf(nextResult.cursor, descendantLevel, parentCursor, descendantLevel - 1)) {
-            break; // We've passed this parent's children
-          }
-          
-          childItems.push({
-            cursor: nextResult.cursor,
-            data: nextResult.data
-          });
-          currentCursor = nextResult.cursor;
-        }
-        
-        // Mark all children of this parent as selected
-        for (let i = startIndex; i < childItems.length; i++) {
-          allSelectedIndices.push(i);
-        }
-      }
-      
-      if (childItems.length > 0) {
-        // Now fill viewport with items before and after the children
-        const viewportHeight = descendantColumn.element.offsetHeight;
-        let fillBatchSize = 50; // Items to add at a time
-        
-        // Add items before
-        let beforeCursor = childItems[0].cursor;
-        let beforeItems = [];
-        let beforeHeight = 0;
-        
-        for (let i = 0; i < fillBatchSize && beforeHeight < viewportHeight; i++) {
-          const prevResult = this.tree.prev(beforeCursor, descendantLevel, false);
-          if (!prevResult) break;
-          
-          beforeItems.unshift({
-            cursor: prevResult.cursor,
-            data: prevResult.data
-          });
-          beforeCursor = prevResult.cursor;
-          
-          // Rough height estimate (will measure properly later)
-          beforeHeight += 50;
-        }
-        
-        // Add items after
-        let afterCursor = childItems[childItems.length - 1].cursor;
-        let afterItems = [];
-        let afterHeight = 0;
-        
-        for (let i = 0; i < fillBatchSize && afterHeight < viewportHeight; i++) {
-          const nextResult = this.tree.next(afterCursor, descendantLevel, false);
-          if (!nextResult) break;
-          
-          afterItems.push({
-            cursor: nextResult.cursor,
-            data: nextResult.data
-          });
-          afterCursor = nextResult.cursor;
-          
-          // Rough height estimate
-          afterHeight += 50;
-        }
-        
-        // Combine: before + children + after
-        const allItems = [...beforeItems, ...childItems, ...afterItems];
-        
-        // Adjust selected indices to account for items added before
-        const offsetAdjustment = beforeItems.length;
-        const adjustedSelectedIndices = allSelectedIndices.map(idx => idx + offsetAdjustment);
-        
-        // Set the items synchronously
-        descendantColumn.items = allItems;
-        descendantColumn.scrollOffset = 0;
-        descendantColumn.rebuildDOM();
-        descendantColumn.measureItems();
-        
-        // Calculate scroll offset to position selected items at top
-        let selectedTop = 0;
-        for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
-          selectedTop += descendantColumn.items[i].height;
-        }
-        
-        descendantColumn.scrollOffset = -selectedTop;
-        
-        // Select the children (now at adjusted indices)
-        descendantColumn.setSelectedIndices(adjustedSelectedIndices);
-      } else {
-        // No children found
-        descendantColumn.items = [];
-        descendantColumn.selectedIndices = [];
-        descendantColumn.scrollOffset = 0;
-        descendantColumn.rebuildDOM();
-      }
+      // Populate column with children and viewport fill
+      this.populateAndPositionDescendantColumn(
+        descendantColumn, childItems, allSelectedIndices, descendantLevel
+      );
     }
   }
 
