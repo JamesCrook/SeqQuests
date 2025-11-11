@@ -97,7 +97,7 @@ def run_data_munging(organisms=None, require_go=False, require_ec=False, require
 
     # Iterate through the filtered results
     for record in filtered_iterator:
-        sequences_examined += 1
+        sequences_examined = record.item_no
         protein_id = record.accessions[0]
         entry_name = record.entry_name
         name = record.description.split(';')[0]
@@ -117,7 +117,7 @@ def run_data_munging(organisms=None, require_go=False, require_ec=False, require
                 proteins_processed=proteins_processed,
                 most_recent_item=most_recent_item,
                 last_ten_accepted=last_ten_accepted,
-                progress=f"Done: {proteins_processed}"
+                progress=f"Found: {proteins_processed} in: {sequences_examined}"
             )
         else:
             # Print to console if not a job
@@ -156,5 +156,5 @@ def test_munger_filtering_mouse():
     run_data_munging(organisms=['mouse'])
 
 if __name__ == '__main__':
-    main()
-    #test_munger_filtering_mouse()
+    #main()
+    test_munger_filtering_mouse()
