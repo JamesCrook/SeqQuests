@@ -371,7 +371,7 @@ class Column {
     this.render();
   }
 
-  populate(startCursor, direction = 'both') {
+  async populate(startCursor, direction = 'both') {
     this.items = [];
 
     // Determine batch size based on level
@@ -419,8 +419,14 @@ class Column {
       }
     }
 
+    // 1. Render the DOM
+    this.render(); // This will call rebuildDOM()
+
+    // 2. Wait for the browser to finish layout
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    
+    // 3. NOW measure the items that are actually on screen
     this.measureItems();
-    this.render();
   }
 
   getCursorData(cursor) {
@@ -440,19 +446,23 @@ class Column {
   }
 
   measureItems() {
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.visibility = 'hidden';
-    tempDiv.style.width = this.element.offsetWidth + 'px';
-    this.element.appendChild(tempDiv);
+    console.log(`[measureItems] Measuring ${this.items.length} items for column ${this.level}`);
+    const itemElements = this.content.children;
+    const heights = [];
 
     this.items.forEach((item, index) => {
-      tempDiv.innerHTML = '<div class="item">' + this.tree.levels[this
-        .level].render(item.data) + '</div>';
-      item.height = tempDiv.firstChild.offsetHeight;
+      const element = itemElements[index];
+      if (element) {
+        const height = element.offsetHeight;
+        item.height = height;
+        heights.push(height); // Store for logging
+      } else {
+        console.warn(`measureItems: Mismatch at index ${index}`);
+      }
     });
-
-    this.element.removeChild(tempDiv);
+    
+    // Log all heights at once
+    console.log(`[measureItems] Column ${this.level} heights:`, heights);
   }
 
   render() {
@@ -573,12 +583,13 @@ class Multiscroller {
       column.onDrag = (itemIndex, delta) => this.onColumnDrag(index);
       this.columns.push(column);
     });
-
-    // Initialize first column
-    this.columns[0].populate(null);
   }
 
-  populateAncestorColumn(ancestorLevel, selectedCursor, selectedLevel) {
+  async init() {
+    await this.columns[0].populate(null);
+  }
+
+  async populateAncestorColumn(ancestorLevel, selectedCursor, selectedLevel) {
     const ancestorColumn = this.columns[ancestorLevel];
     
     // Ascend from the current selection to get the ancestor
@@ -595,7 +606,7 @@ class Multiscroller {
     
     if (currentLevel === ancestorLevel) {
       // Clear and repopulate the ancestor column around this cursor
-      ancestorColumn.populate(currentCursor);
+      await ancestorColumn.populate(currentCursor);
       
       // Find and select the item with this cursor
       const ancestorIndex = ancestorColumn.items.findIndex(item => 
@@ -690,8 +701,9 @@ class Multiscroller {
     
     return { beforeItems, afterItems };
   }
+  
+  async populateAndPositionDescendantColumn(descendantColumn, childItems, allSelectedIndices, descendantLevel) { // <-- Make async
 
-  populateAndPositionDescendantColumn(descendantColumn, childItems, allSelectedIndices, descendantLevel) {
     if (childItems.length === 0) {
       descendantColumn.items = [];
       descendantColumn.selectedIndices = [];
@@ -715,29 +727,39 @@ class Multiscroller {
     // Set the items synchronously
     descendantColumn.items = allItems;
     descendantColumn.scrollOffset = 0;
+    
+    // 1. Rebuild the DOM
     descendantColumn.rebuildDOM();
+    
+    // 2. Wait for the browser to finish layout
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    // 3. NOW measure the items
     descendantColumn.measureItems();
     
-    // Calculate scroll offset to position selected items at top
+    // 4. Calculate scroll offset with correct heights
     let selectedTop = 0;
     for (let i = 0; i < adjustedSelectedIndices[0]; i++) {
-      selectedTop += descendantColumn.items[i].height;
+      if (descendantColumn.items[i]) { // Add a safety check
+        selectedTop += descendantColumn.items[i].height;
+      }
     }
     
     descendantColumn.scrollOffset = -selectedTop;
     
-    // Select the children (now at adjusted indices)
+    // 5. Select the children and apply the final transform
     descendantColumn.setSelectedIndices(adjustedSelectedIndices);
   }
 
-  onColumnSelect(columnIndex, itemIndex) {
+
+  async onColumnSelect(columnIndex, itemIndex) {
     const column = this.columns[columnIndex];
     const selectedItem = column.items[itemIndex];
     const selectedCursor = selectedItem.cursor;
 
     // Handle ancestor columns (to the left)
     for (let ancestorLevel = columnIndex - 1; ancestorLevel >= 0; ancestorLevel--) {
-      this.populateAncestorColumn(ancestorLevel, selectedCursor, columnIndex);
+      await this.populateAncestorColumn(ancestorLevel, selectedCursor, columnIndex);
     }
 
     // Handle descendant columns (to the right)
@@ -762,9 +784,23 @@ class Multiscroller {
       );
       
       // Populate column with children and viewport fill
-      this.populateAndPositionDescendantColumn(
+      await this.populateAndPositionDescendantColumn( // <-- Add await
         descendantColumn, childItems, allSelectedIndices, descendantLevel
       );
+    }
+    // Now that all columns are populated and selected, sync
+    // their scroll positions based on the item just clicked.
+    // This is "drag by zero" logic.
+    const clickedBounds = column.getSelectedBounds();
+    const viewportHeight = column.element.offsetHeight;
+
+    if (clickedBounds) {
+      this.columns.forEach((col, idx) => {
+        // Sync all *other* columns that have selections
+        if (idx !== columnIndex && col.selectedIndices.length > 0) {
+          col.scrollToProportional(clickedBounds, viewportHeight);
+        }
+      });
     }
   }
 
