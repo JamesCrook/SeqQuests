@@ -146,5 +146,15 @@ def main():
         require_pfam=args.require_pfam
     )
 
+def test_munger_filtering_mouse():
+    """
+    Test function to verify that the data munger filtering works correctly for mouse sequences.
+    """
+    print("Testing data munger filtering for mouse...")
+
+    # Run the data munging for mouse sequences
+    run_data_munging(organisms=['mouse'])
+
 if __name__ == '__main__':
     main()
+    #test_munger_filtering_mouse()

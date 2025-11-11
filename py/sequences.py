@@ -251,6 +251,11 @@ class SwissIndexCache(PickledSequenceCache):
             return record
         return None
 
+    def __iter__(self):
+        """Iterate over all records in the indexed file, yielding them one by one."""
+        for i in range(len(self)):
+            yield self.get_record_by_index(i)
+
     def __del__(self):
         if self.handle:
             self.handle.close()
