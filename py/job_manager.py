@@ -9,7 +9,7 @@ import logging
 from computation import run_computation
 from data_munger import run_data_munging
 from nws_search import run_nws_search
-from sequences import read_swissprot_records
+from sequences import read_swissprot_sequences
 
 """
 Classes for job management.

@@ -306,7 +306,7 @@ def read_fasta_sequences():
     
     return _fasta_cache.iter_records()
 
-def read_swissprot_sequences(file_format='swiss'):
+def read_swissprot_sequences(file_format='swiss_index'):
     """
     Cached version - loads once, then yields from cache.
     Returns tuples of (seq_id, sequence_string) instead of SeqIO.Record objects.

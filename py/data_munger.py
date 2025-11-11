@@ -80,7 +80,7 @@ def run_data_munging(organisms=None, require_go=False, require_ec=False, require
     This function can be called from other modules.
     The 'job' parameter is optional and is used for progress tracking.
     """
-    all_records = read_swissprot_records()
+    all_records = read_swissprot_sequences()
 
     # Correctly call the generator and convert to a list for processing
     filtered_iterator = filter_proteins(
