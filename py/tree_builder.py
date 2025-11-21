@@ -8,6 +8,7 @@ processing them in streaming fashion without requiring pre-sorting.
 
 import argparse
 import sys
+import sequences
 
 class TreeNode:
     def __init__(self, node_id):
@@ -240,7 +241,8 @@ class MaxSpanningTree:
                 if depth == 0:
                     f.write(f"{short_prefix}{connector}Node {node_id} [ROOT]\n")
                 else:
-                    f.write(f"{short_prefix}{connector}Node {node_id} (s:{node.score})\n")
+                    name = sequences.get_protein( node_id )
+                    f.write(f"{short_prefix}{connector}Node {node_id} (s:{node.score}) {name}\n")
                     #       f"(score={node.score}, raw={node.raw_score}, "
                     #       f"loc={node.location}, len={node.length})\n")
                 
@@ -331,6 +333,7 @@ Examples:
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
+        sequences.get_protein( 5 )
         main()
         sys.exit()
         # No arguments provided - run test

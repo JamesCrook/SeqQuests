@@ -1,6 +1,7 @@
 import os
 from Bio import SwissProt, SeqIO
 from io import StringIO
+import re
 
 import pickle
 from pathlib import Path
@@ -361,6 +362,28 @@ def benchmark():
 def main():
     # Just read one sequence from the database and show it.
     print( get_sequence_by_identifier( 1 ))
+
+
+
+
+def get_protein( number ):
+    global _swissprot_cache
+    if _swissprot_cache == None:
+        cache = read_swissprot_sequences(file_format='swiss_index')
+        _swissprot_cache = cache
+    cache = _swissprot_cache
+    record = cache.get_record_by_index(number)
+
+    pattern = r"RecName:\s*Full=([^;]+)"
+    # Search for the pattern in the string
+    match = re.search(pattern, record.description)
+
+    full_name = "NAME MISSING"
+    if match:
+        # group(1) returns the content of the first capturing group () inside the pattern
+        full_name = match.group(1)
+
+    return f"{full_name}; {record.organism}" 
 
 def test_swiss_index_access():
     """
