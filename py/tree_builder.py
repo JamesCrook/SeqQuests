@@ -199,17 +199,21 @@ class MaxSpanningTree:
         links.sort(key=lambda x: x['score'], reverse=True)
         return links
     
-    def write_ascii_tree(self, output_file, score_threshold=0):
+    def write_ascii_tree(self, output_file, score_threshold=0, show_isolated=True):
         """
         Write ASCII tree to file.
         
         Args:
             output_file: File path to write to
             score_threshold: Stop descending branches below this score
+            show_isolated: If True, also list nodes with no connections
         """
         with open(output_file, 'w') as f:
             root = self.find_root()
             children = self.build_children_map()
+            
+            # Track which nodes we've written
+            written_nodes = set()
             
             # Write header
             f.write(f"Maximum Spanning Tree (root: node {root})\n")
@@ -223,7 +227,8 @@ class MaxSpanningTree:
                 return child_list
             
             # Recursive DFS to write tree
-            def write_subtree(node_id, prefix="", is_last=True, depth=0):
+            def write_subtree(node_id, prefix="", is_last=True, depth=0, component=0):
+                written_nodes.add(node_id)  # Track this node                
                 node = self.nodes[node_id]
                 
                 # Determine tree graphics
@@ -238,10 +243,10 @@ class MaxSpanningTree:
                 start_index = adjusted_len - (adjusted_len % 40)
                 short_prefix = f"{start_index}:{prefix[start_index:]}"
                 # Write node info
+                name = sequences.get_protein( node_id )
                 if depth == 0:
-                    f.write(f"{short_prefix}{connector}Node {node_id} [ROOT]\n")
+                    f.write(f"{short_prefix}{connector}Node {node_id} [ROOT {component}] {name} \n")
                 else:
-                    name = sequences.get_protein( node_id )
                     f.write(f"{short_prefix}{connector}Node {node_id} (s:{node.score}) {name}\n")
                     #       f"(score={node.score}, raw={node.raw_score}, "
                     #       f"loc={node.location}, len={node.length})\n")
@@ -264,7 +269,40 @@ class MaxSpanningTree:
                     new_prefix = prefix + branch
                     write_subtree(child_id, new_prefix, is_last_child, depth + 1)
             
-            write_subtree(root)
+            write_subtree(root, component=0)
+            
+            # After main tree, optionally show isolated nodes
+            if show_isolated:
+                # Find all nodes that haven't been written yet
+                unwritten = [i for i in range(len(self.nodes)) if i not in written_nodes]
+                
+                if unwritten:
+                    # Find roots of other components
+                    other_roots = []
+                    for node_id in unwritten:
+                        node = self.nodes[node_id]
+                        # Check if this is a root (points to itself or has no valid parent)
+                        if node.score < 0 or node.parent == node_id:
+                            other_roots.append(node_id)
+                    
+                    # Write each component
+                    for component_num, component_root in enumerate(other_roots, start=2):
+                        if component_root in written_nodes:
+                            continue
+            
+                        write_subtree(component_root, component=component_num)
+                    
+                    # Check for truly isolated nodes (no links at all)
+                    isolated = [i for i in range(len(self.nodes)) 
+                               if i not in written_nodes and self.nodes[i].score < 0]
+                    
+                    if isolated:
+                        f.write("\n" + "=" * 80 + "\n")
+                        f.write(f"ISOLATED NODES (no connections): {len(isolated)}\n")
+                        f.write("-" * 80 + "\n")
+                        for node_id in isolated:
+                            name = sequences.get_protein(node_id)
+                            f.write(f"Node {node_id}: {name}\n")    
 
 def process_links_file(filename, num_nodes):
     tree = MaxSpanningTree(num_nodes)
