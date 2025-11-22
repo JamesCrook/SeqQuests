@@ -183,7 +183,7 @@ class MaxSpanningTree:
         
         return best_root
 
-    def report_twilight(self):
+    def report_twilight(self,f):
 
         def should_skip(r1, r2):
             """Check if this pair should be skipped and return the reason."""
@@ -209,7 +209,7 @@ class MaxSpanningTree:
                 twilight_nodes.append(node)
                 finds += 1
                 
-        print(f"found {finds} finds\n")
+        f.write(f"found {finds} finds\n")
         sorted_twilight_nodes = sorted(twilight_nodes, key=lambda node: node.score, reverse=True)
         
         skip_counts = {
@@ -236,27 +236,27 @@ class MaxSpanningTree:
                 continue
             
             skip_string = ""
-            # Print skip message if we have skipped items, then reset
+            # f.write skip message if we have skipped items, then reset
             if any(skip_counts.values()):
                 skip_parts = [f"{count} {reason}" for reason, count in skip_counts.items() if count > 0]
                 skip_string = f" [...skipped {' and '.join(skip_parts)}]"
                 skip_counts = {key: 0 for key in skip_counts}
             
-            # Print the node information
-            print( f"{node.node_id}-{node.parent} s({node.score}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}")
-            print( f" {node.node_id}: {r1.name}")
-            print( f" {node.parent}: {r2.name}")
+            # f.write the node information
+            f.write( f"{node.node_id}-{node.parent} s({node.score}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}")
+            f.write( f" {node.node_id}: {r1.name}")
+            f.write( f" {node.parent}: {r2.name}")
             
-        # Print final totals at the end
+        # f.write final totals at the end
         grand_total = sum(total_skip_counts.values())
         if grand_total > 0:
-            print("\n" + "=" * 80)
-            print("TOTAL SKIPPED:")
+            f.write("\n" + "=" * 80)
+            f.write("TOTAL SKIPPED:")
             for reason, count in total_skip_counts.items():
                 if count > 0:
-                    print(f"  {reason}: {count}")
-            print(f"  Grand total: {grand_total}")
-            print(f"  Leaving: {finds-grand_total} finds to check")
+                    f.write(f"  {reason}: {count}")
+            f.write(f"  Grand total: {grand_total}")
+            f.write(f"  Leaving: {finds-grand_total} finds to check")
 
     
     def get_sorted_links(self):
@@ -385,12 +385,17 @@ def process_links_file(filename, num_nodes):
     
     with open(filename, 'r') as f:
         next(f)  # Skip header
+        old_query = 0;
         for line in f:
             parts = line.strip().split(',')
             if len(parts) != 5:
                 continue
             query = int(parts[0])
             target = int(parts[1])
+            if query != old_query:
+                old_query = query
+                if query %100 == 0:
+                    print(f"{query}\t{target}")
             if query >= num_nodes:
                 continue
             if target >= num_nodes:
@@ -418,8 +423,8 @@ Examples:
     parser.add_argument('-i', '--input', default="../nws_results/results.csv", help='Input CSV file with links (query_seq,target_seq,score,location,length)')
     parser.add_argument('-o', '--output', default="../nws_results/tree.txt",
                        help='Output file for ASCII tree')
-    parser.add_argument('-n', '--nodes', type=int, default=2000,
-                       help='Number of nodes (proteins) (default: 2000)')
+    parser.add_argument('-n', '--nodes', type=int, default=300000,
+                       help='Number of nodes (proteins) (default: 300000)')
     parser.add_argument('-t', '--threshold', type=int, default=-3,
                        help='Score threshold - stop descending below this (default: 0 = show all)')
     parser.add_argument('-v', '--verbose', action='store_true', default=True,
@@ -440,7 +445,8 @@ Examples:
         print(f"  Links rejected: {tree.links_rejected}")
         print(f"\nWriting ASCII tree to {args.output}...")
     
-    tree.report_twilight()
+    with open("../nws_results/finds.txt", 'w') as f:    
+        tree.report_twilight(f)
     tree.write_ascii_tree(args.output, args.threshold)
     
     if args.verbose:
