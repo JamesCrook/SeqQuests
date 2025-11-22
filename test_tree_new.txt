@@ -1,10 +1,8 @@
-Maximum Spanning Tree (root: node 0)
-Total links: 7
+Maximum Spanning Tree (root: node 3)
+Total links: 2
 ================================================================================
 
-0:Node 0 [ROOT 0] namespace(name='Protein_0', id='P0', entry='ENTRY_0', sequence_length=100)
-0:├─ Node 2 (s:100) namespace(name='Protein_2', id='P2', entry='ENTRY_2', sequence_length=102)
-0:│  └─ Node 3 (s:50) namespace(name='Protein_3', id='P3', entry='ENTRY_3', sequence_length=103)
-0:├─ Node 5 (s:90) namespace(name='Protein_5', id='P5', entry='ENTRY_5', sequence_length=105)
-0:│  └─ Node 4 (s:80) namespace(name='Protein_4', id='P4', entry='ENTRY_4', sequence_length=104)
-0:└─ Node 1 (s:50) namespace(name='Protein_1', id='P1', entry='ENTRY_1', sequence_length=101)
+0:Node 3 [ROOT 0] namespace(name='Protein_3', id='P3', entry='ENTRY_3', sequence_length=103)
+0:└─ Node 2 (s:50) namespace(name='Protein_2', id='P2', entry='ENTRY_2', sequence_length=102)
+0:   └─ Node 1 (s:50) namespace(name='Protein_1', id='P1', entry='ENTRY_1', sequence_length=101)
+0:Node 0 [ROOT 2] namespace(name='Protein_0', id='P0', entry='ENTRY_0', sequence_length=100)

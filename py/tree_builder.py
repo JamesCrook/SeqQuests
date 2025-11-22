@@ -384,6 +384,7 @@ class MaxSpanningTreeArrays:
     def __init__(self, num_nodes):
         # Replaces TreeNode objects with parallel arrays
         self.num_nodes = num_nodes
+        self.max_seen_id = 0 # Track the maximum node ID encountered
         self.parents = [0] * num_nodes
         self.scores = [-1] * num_nodes
         self.raw_scores = [-1] * num_nodes
@@ -409,6 +410,12 @@ class MaxSpanningTreeArrays:
         self.raw_scores[node_id] = raw_score
         self.locations[node_id] = location
         self.lengths[node_id] = length
+
+        # Track max ID seen
+        if node_id > self.max_seen_id:
+            self.max_seen_id = node_id
+        if parent > self.max_seen_id:
+            self.max_seen_id = parent
 
     def find_meeting_point(self, node_a, node_b):
         self.search_id += 1
@@ -513,6 +520,11 @@ class MaxSpanningTreeArrays:
     def add_link(self, node_a, node_b, score, raw_score, location, length):
         self.links_processed += 1
 
+        if node_a > self.max_seen_id:
+            self.max_seen_id = node_a
+        if node_b > self.max_seen_id:
+            self.max_seen_id = node_b
+
         if node_a == node_b:
             return False
 
@@ -537,10 +549,21 @@ class MaxSpanningTreeArrays:
         return True
 
     def build_children_map(self):
-        children = {i: [] for i in range(self.num_nodes)}
+        # Optimization: Use list of lists instead of dict of lists
+        children = [[] for _ in range(self.num_nodes)]
         parents = self.parents
         scores = self.scores
-        for i in range(self.num_nodes):
+
+        # Iterate over all nodes, or just up to max_seen_id?
+        # The arrays are full size, but valid nodes are likely concentrated.
+        # But if we have sparse nodes, we must iterate to find them.
+        # However, parent of any node must be valid.
+
+        # Safe to iterate up to max_seen_id + 1 because any node > max_seen_id
+        # hasn't been touched, so score is -1 (invalid) and it's not a child of anyone.
+        limit = min(self.max_seen_id + 1, self.num_nodes)
+
+        for i in range(limit):
             if scores[i] >= 0:
                 children[parents[i]].append(i)
         return children
@@ -549,7 +572,10 @@ class MaxSpanningTreeArrays:
         roots = []
         parents = self.parents
         scores = self.scores
-        for i in range(self.num_nodes):
+
+        limit = min(self.max_seen_id + 1, self.num_nodes)
+
+        for i in range(limit):
             if scores[i] < 0 or parents[i] == i:
                 roots.append(i)
 
@@ -593,7 +619,9 @@ class MaxSpanningTreeArrays:
         scores = self.scores
         parents = self.parents
 
-        for i in range(self.num_nodes):
+        limit = min(self.max_seen_id + 1, self.num_nodes)
+
+        for i in range(limit):
             if 170 > scores[i] >= 0:
                 twilight_indices.append(i)
                 finds += 1
@@ -687,7 +715,10 @@ class MaxSpanningTreeArrays:
             write_subtree(root, component=0)
 
             if show_isolated:
-                unwritten = [i for i in range(self.num_nodes) if i not in written_nodes]
+                # Optimized: Only check nodes up to max_seen_id for isolation
+                limit = min(self.max_seen_id + 1, self.num_nodes)
+                unwritten = [i for i in range(limit) if i not in written_nodes]
+
                 if unwritten:
                     other_roots = []
                     for node_id in unwritten:
@@ -698,7 +729,7 @@ class MaxSpanningTreeArrays:
                         if component_root in written_nodes: continue
                         write_subtree(component_root, component=component_num)
 
-                    isolated = [i for i in range(self.num_nodes)
+                    isolated = [i for i in range(limit)
                                if i not in written_nodes and self.scores[i] < 0]
 
                     if isolated:
@@ -763,6 +794,25 @@ def process_links_file(filename, num_nodes):
 
     return tree
 
+def scan_for_max_node_id(filename):
+    """
+    Scan the input CSV file to find the maximum query ID (first column).
+    """
+    max_id = 0
+    with open(filename, 'r') as f:
+        next(f) # Skip header
+        for line in f:
+            # We only need the first part
+            comma_index = line.find(',')
+            if comma_index != -1:
+                try:
+                    query_id = int(line[:comma_index])
+                    if query_id > max_id:
+                        max_id = query_id
+                except ValueError:
+                    pass
+    return max_id
+
 def main():
     parser = argparse.ArgumentParser(
         description='Build maximum spanning tree from protein similarity links',
@@ -779,8 +829,8 @@ Examples:
     parser.add_argument('-i', '--input', default="../nws_results/results.csv", help='Input CSV file with links (query_seq,target_seq,score,location,length)')
     parser.add_argument('-o', '--output', default="../nws_results/tree.txt",
                        help='Output file for ASCII tree')
-    parser.add_argument('-n', '--nodes', type=int, default=2000,
-                       help='Number of nodes (proteins) (default: 300000)')
+    parser.add_argument('-n', '--nodes', type=int, default=None,
+                       help='Number of nodes (proteins). If not specified, will be auto-detected from input file.')
     parser.add_argument('-t', '--threshold', type=int, default=-3,
                        help='Score threshold - stop descending below this (default: 0 = show all)')
     parser.add_argument('-v', '--verbose', action='store_true', default=True,
@@ -788,12 +838,22 @@ Examples:
     
     args = parser.parse_args()
     
+    num_nodes = args.nodes
+    if num_nodes is None:
+        if args.verbose:
+            print(f"Scanning {args.input} to determine number of nodes...")
+        max_id = scan_for_max_node_id(args.input)
+        # Allocate enough space for max_id. Node IDs are 0-indexed, so we need max_id + 1
+        num_nodes = max_id + 1
+        if args.verbose:
+            print(f"Detected {num_nodes} nodes.")
+
     if args.verbose:
         print(f"Building maximum spanning tree from {args.input}...")
-        print(f"Number of nodes: {args.nodes}")
+        print(f"Number of nodes: {num_nodes}")
     
     # Use the new array-based implementation for the main CLI
-    tree = process_links_file(args.input, args.nodes)
+    tree = process_links_file(args.input, num_nodes)
     
     if args.verbose:
         print(f"\nStatistics:")
