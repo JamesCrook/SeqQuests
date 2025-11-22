@@ -779,7 +779,7 @@ Examples:
     parser.add_argument('-i', '--input', default="../nws_results/results.csv", help='Input CSV file with links (query_seq,target_seq,score,location,length)')
     parser.add_argument('-o', '--output', default="../nws_results/tree.txt",
                        help='Output file for ASCII tree')
-    parser.add_argument('-n', '--nodes', type=int, default=300000,
+    parser.add_argument('-n', '--nodes', type=int, default=2000,
                        help='Number of nodes (proteins) (default: 300000)')
     parser.add_argument('-t', '--threshold', type=int, default=-3,
                        help='Score threshold - stop descending below this (default: 0 = show all)')
