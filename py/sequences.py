@@ -383,7 +383,13 @@ def get_protein( number ):
         # group(1) returns the content of the first capturing group () inside the pattern
         full_name = match.group(1)
 
-    return f"{full_name}; {record.organism}" 
+    result = SimpleNamespace()        
+    result.name = f"{full_name}; {record.organism}"
+    result.id = record.accessions[0]
+    result.entry = record.entry_name
+    result.sequence_length = record.sequence_length
+
+    return result
 
 def test_swiss_index_access():
     """

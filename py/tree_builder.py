@@ -184,24 +184,79 @@ class MaxSpanningTree:
         return best_root
 
     def report_twilight(self):
+
+        def should_skip(r1, r2):
+            """Check if this pair should be skipped and return the reason."""
+            # Check if both contain "toxin"
+            if 'toxin' in r1.name.lower() and 'toxin' in r2.name.lower():
+                return 'toxins'
+            
+            # Check if either contains "uncharacterized" or "putative"
+            if ('uncharacterized' in r1.name.lower() or 'uncharacterized' in r2.name.lower() or
+                'putative' in r1.name.lower() or 'putative' in r2.name.lower()):
+                return 'uncharacterized'
+            
+            if 'seed storage' in r1.name.lower() and 'seed storage' in r2.name.lower():
+                return 'seed storage'
+
+            return None
+
         finds = 0
         
         twilight_nodes = []
         for node in self.nodes:
-            if 300 > node.score >= 0:
+            if 170 > node.score >= 0:
                 twilight_nodes.append(node)
                 finds += 1
                 
         print(f"found {finds} finds\n")
         sorted_twilight_nodes = sorted(twilight_nodes, key=lambda node: node.score, reverse=True)
         
+        skip_counts = {
+            'toxins': 0,
+            'uncharacterized': 0,
+            'seed storage':0
+        }
+        
+        total_skip_counts = {
+            'toxins': 0,
+            'uncharacterized': 0,
+            'seed storage':0
+        }
+
         for node in sorted_twilight_nodes:
-            print( f"{node.node_id}-{node.parent} s({node.score})")
-            name = sequences.get_protein( node.node_id )
-            print( f" {node.node_id}: {name}")
-            name = sequences.get_protein( node.parent )
-            print( f" {node.parent}: {name}")
+            r1 = sequences.get_protein( node.node_id )
+            r2 = sequences.get_protein( node.parent )
             
+            # Check if we should skip this pair
+            skip_reason = should_skip(r1, r2)
+            if skip_reason:
+                skip_counts[skip_reason] += 1
+                total_skip_counts[skip_reason] += 1
+                continue
+            
+            skip_string = ""
+            # Print skip message if we have skipped items, then reset
+            if any(skip_counts.values()):
+                skip_parts = [f"{count} {reason}" for reason, count in skip_counts.items() if count > 0]
+                skip_string = f" [...skipped {' and '.join(skip_parts)}]"
+                skip_counts = {key: 0 for key in skip_counts}
+            
+            # Print the node information
+            print( f"{node.node_id}-{node.parent} s({node.score}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}")
+            print( f" {node.node_id}: {r1.name}")
+            print( f" {node.parent}: {r2.name}")
+            
+        # Print final totals at the end
+        grand_total = sum(total_skip_counts.values())
+        if grand_total > 0:
+            print("\n" + "=" * 80)
+            print("TOTAL SKIPPED:")
+            for reason, count in total_skip_counts.items():
+                if count > 0:
+                    print(f"  {reason}: {count}")
+            print(f"  Grand total: {grand_total}")
+            print(f"  Leaving: {finds-grand_total} finds to check")
 
     
     def get_sorted_links(self):
