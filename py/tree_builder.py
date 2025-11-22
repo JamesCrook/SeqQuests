@@ -182,6 +182,27 @@ class MaxSpanningTree:
                 best_root = root
         
         return best_root
+
+    def report_twilight(self):
+        finds = 0
+        
+        twilight_nodes = []
+        for node in self.nodes:
+            if 300 > node.score >= 0:
+                twilight_nodes.append(node)
+                finds += 1
+                
+        print(f"found {finds} finds\n")
+        sorted_twilight_nodes = sorted(twilight_nodes, key=lambda node: node.score, reverse=True)
+        
+        for node in sorted_twilight_nodes:
+            print( f"{node.node_id}-{node.parent} s({node.score})")
+            name = sequences.get_protein( node.node_id )
+            print( f" {node.node_id}: {name}")
+            name = sequences.get_protein( node.parent )
+            print( f" {node.parent}: {name}")
+            
+
     
     def get_sorted_links(self):
         """Get all links sorted by score (descending)."""
@@ -364,6 +385,7 @@ Examples:
         print(f"  Links rejected: {tree.links_rejected}")
         print(f"\nWriting ASCII tree to {args.output}...")
     
+    tree.report_twilight()
     tree.write_ascii_tree(args.output, args.threshold)
     
     if args.verbose:
