@@ -8,6 +8,9 @@ processing them in streaming fashion without requiring pre-sorting.
 
 import argparse
 import sys
+import json
+import subprocess
+import os
 import sequences
 
 class TreeNode:
@@ -243,9 +246,9 @@ class MaxSpanningTree:
                 skip_counts = {key: 0 for key in skip_counts}
             
             # f.write the node information
-            f.write( f"{node.node_id}-{node.parent} s({node.score}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}")
-            f.write( f" {node.node_id}: {r1.name}")
-            f.write( f" {node.parent}: {r2.name}")
+            f.write(f"{node.node_id}-{node.parent} s({node.score}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
+            f.write(f" {node.node_id}: {r1.name}\n")
+            f.write(f" {node.parent}: {r2.name}\n")
             
         # f.write final totals at the end
         grand_total = sum(total_skip_counts.values())
@@ -319,11 +322,11 @@ class MaxSpanningTree:
                 start_index = adjusted_len - (adjusted_len % 40)
                 short_prefix = f"{start_index}:{prefix[start_index:]}"
                 # Write node info
-                name = sequences.get_protein( node_id )
+                record = sequences.get_protein( node_id )
                 if depth == 0:
-                    f.write(f"{short_prefix}{connector}Node {node_id} [ROOT {component}] {name} \n")
+                    f.write(f"{short_prefix}{connector}Node {node_id} [ROOT {component}] {record.name} \n")
                 else:
-                    f.write(f"{short_prefix}{connector}Node {node_id} (s:{node.score}) {name}\n")
+                    f.write(f"{short_prefix}{connector}Node {node_id} (s:{node.score}) {record.name}\n")
                     #       f"(score={node.score}, raw={node.raw_score}, "
                     #       f"loc={node.location}, len={node.length})\n")
                 
@@ -395,6 +398,11 @@ class MaxSpanningTreeArrays:
         self.links_added = 0
         self.links_rejected = 0
 
+        # Pre-computed structures from C++ backend (optional)
+        self.precomputed_twilight_nodes = None
+        self.precomputed_children = None
+        self.precomputed_root = None
+
         # Traversal optimization: Arrays instead of dicts for visited tracking
         # visited_indices[node_id] = index_in_path
         # visited_search_ids[node_id] = search_id
@@ -403,6 +411,30 @@ class MaxSpanningTreeArrays:
         self.visited_a_search_ids = [0] * num_nodes
         self.visited_b_search_ids = [0] * num_nodes
         self.search_id = 0
+
+    def load_from_json(self, json_file):
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+
+        self.parents = data['parents']
+        self.scores = data['scores']
+        self.raw_scores = data['raw_scores']
+        self.locations = data['locations']
+        self.lengths = data['lengths']
+
+        self.links_processed = data['links_processed']
+        self.links_added = data['links_added']
+        self.links_rejected = data['links_rejected']
+        self.max_seen_id = data['max_seen_id']
+
+        if 'twilight_nodes' in data:
+            self.precomputed_twilight_nodes = data['twilight_nodes']
+
+        if 'children' in data:
+            self.precomputed_children = data['children']
+
+        if 'root' in data:
+            self.precomputed_root = data['root']
 
     def set_link(self, node_id, parent, score, raw_score, location, length):
         self.parents[node_id] = parent
@@ -549,6 +581,9 @@ class MaxSpanningTreeArrays:
         return True
 
     def build_children_map(self):
+        if self.precomputed_children:
+            return self.precomputed_children
+
         # Optimization: Use list of lists instead of dict of lists
         children = [[] for _ in range(self.num_nodes)]
         parents = self.parents
@@ -569,6 +604,9 @@ class MaxSpanningTreeArrays:
         return children
 
     def find_root(self):
+        if self.precomputed_root is not None:
+            return self.precomputed_root
+
         roots = []
         parents = self.parents
         scores = self.scores
@@ -615,19 +653,23 @@ class MaxSpanningTreeArrays:
             return None
 
         finds = 0
-        twilight_indices = []
+
         scores = self.scores
         parents = self.parents
 
-        limit = min(self.max_seen_id + 1, self.num_nodes)
-
-        for i in range(limit):
-            if 170 > scores[i] >= 0:
-                twilight_indices.append(i)
-                finds += 1
+        if self.precomputed_twilight_nodes is not None:
+            sorted_twilight_indices = self.precomputed_twilight_nodes
+            finds = len(sorted_twilight_indices)
+        else:
+            twilight_indices = []
+            limit = min(self.max_seen_id + 1, self.num_nodes)
+            for i in range(limit):
+                if 170 > scores[i] >= 0:
+                    twilight_indices.append(i)
+                    finds += 1
+            sorted_twilight_indices = sorted(twilight_indices, key=lambda i: scores[i], reverse=True)
 
         f.write(f"found {finds} finds\n")
-        sorted_twilight_indices = sorted(twilight_indices, key=lambda i: scores[i], reverse=True)
 
         skip_counts = {'toxins': 0, 'uncharacterized': 0, 'seed storage':0}
         total_skip_counts = {'toxins': 0, 'uncharacterized': 0, 'seed storage':0}
@@ -674,6 +716,10 @@ class MaxSpanningTreeArrays:
             f.write("=" * 80 + "\n\n")
 
             def get_sorted_children(parent_id):
+                # If we have precomputed children (which are sorted), just return them
+                if self.precomputed_children:
+                    return children[parent_id]
+
                 child_list = children[parent_id][:]
                 child_list.sort(key=lambda c: self.scores[c], reverse=True)
                 return child_list
@@ -794,6 +840,58 @@ def process_links_file(filename, num_nodes):
 
     return tree
 
+def run_cpp_tree_builder(input_file, num_nodes=None):
+    """Run the C++ implementation and return a MaxSpanningTreeArrays object."""
+    temp_json = "temp_tree_output.json"
+
+    cmd = ["bin/tree_builder_cpp", "-i", input_file, "-o", temp_json]
+    if num_nodes is not None:
+        cmd.extend(["-n", str(num_nodes)])
+
+    try:
+        print("Running C++ tree builder...")
+        subprocess.run(cmd, check=True)
+
+        # If num_nodes was not provided, we need to peek at the JSON to know how big of an object to create.
+        # Actually, load_from_json will overwrite the arrays anyway, but we need an initial size for the constructor.
+        # Let's just peek at the file first or modify the class to handle dynamic sizing.
+        # Or we can just load the JSON fully here.
+
+        with open(temp_json, 'r') as f:
+            data = json.load(f)
+
+        # Determine size from arrays
+        actual_num_nodes = len(data['parents'])
+
+        tree = MaxSpanningTreeArrays(actual_num_nodes)
+        # We can reload from file or just use the data we loaded.
+        # But to keep method clean, let's just call tree.load_from_json
+        # Wait, we can just populate it manually here since we have 'data'
+
+        tree.parents = data['parents']
+        tree.scores = data['scores']
+        tree.raw_scores = data['raw_scores']
+        tree.locations = data['locations']
+        tree.lengths = data['lengths']
+
+        tree.links_processed = data['links_processed']
+        tree.links_added = data['links_added']
+        tree.links_rejected = data['links_rejected']
+        tree.max_seen_id = data['max_seen_id']
+
+        if 'twilight_nodes' in data:
+            tree.precomputed_twilight_nodes = data['twilight_nodes']
+        if 'children' in data:
+            tree.precomputed_children = data['children']
+        if 'root' in data:
+            tree.precomputed_root = data['root']
+
+    finally:
+        if os.path.exists(temp_json):
+            os.remove(temp_json)
+
+    return tree
+
 def scan_for_max_node_id(filename):
     """
     Scan the input CSV file to find the maximum query ID (first column).
@@ -835,25 +933,32 @@ Examples:
                        help='Score threshold - stop descending below this (default: 0 = show all)')
     parser.add_argument('-v', '--verbose', action='store_true', default=True,
                        help='Print statistics and progress')
+    parser.add_argument('--cpp', action='store_true', help='Use C++ backend for faster processing')
     
     args = parser.parse_args()
     
-    num_nodes = args.nodes
-    if num_nodes is None:
+    if args.cpp:
         if args.verbose:
-            print(f"Scanning {args.input} to determine number of nodes...")
-        max_id = scan_for_max_node_id(args.input)
-        # Allocate enough space for max_id. Node IDs are 0-indexed, so we need max_id + 1
-        num_nodes = max_id + 1
-        if args.verbose:
-            print(f"Detected {num_nodes} nodes.")
+            print("Using C++ backend.")
+        # C++ backend handles scanning if nodes not provided
+        tree = run_cpp_tree_builder(args.input, args.nodes)
+    else:
+        num_nodes = args.nodes
+        if num_nodes is None:
+            if args.verbose:
+                print(f"Scanning {args.input} to determine number of nodes...")
+            max_id = scan_for_max_node_id(args.input)
+            # Allocate enough space for max_id. Node IDs are 0-indexed, so we need max_id + 1
+            num_nodes = max_id + 1
+            if args.verbose:
+                print(f"Detected {num_nodes} nodes.")
 
-    if args.verbose:
-        print(f"Building maximum spanning tree from {args.input}...")
-        print(f"Number of nodes: {num_nodes}")
-    
-    # Use the new array-based implementation for the main CLI
-    tree = process_links_file(args.input, num_nodes)
+        if args.verbose:
+            print(f"Building maximum spanning tree from {args.input}...")
+            print(f"Number of nodes: {num_nodes}")
+
+        # Use the new array-based implementation for the main CLI
+        tree = process_links_file(args.input, num_nodes)
     
     if args.verbose:
         print(f"\nStatistics:")

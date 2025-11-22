@@ -30,7 +30,7 @@ xcrun -sdk macosx metal -c c_src/nws.metal -o bin/nws.air \
     -D THREADS=$THREADS -D UNROLL=$UNROLL
 xcrun -sdk macosx metallib bin/nws.air -o bin/nws.metallib
 
-echo "--- Compiling C Code ---"
+echo "--- Compiling C Code (metal_nws) ---"
 # -g -fsanitize=address may be useful.
 # -O2 for speed
 clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm \
@@ -38,5 +38,9 @@ clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm \
     -D THREADS=$THREADS -D UNROLL=$UNROLL \
     -framework Foundation -framework Metal -framework QuartzCore
 
+echo "--- Compiling C++ Tree Builder ---"
+clang++ -std=c++17 -O2 -o bin/tree_builder_cpp c_src/tree_builder.cpp
+
 echo "--- Compilation Successful ---"
 echo "To run: ./bin/metal_nws"
+echo "To run: ./bin/tree_builder_cpp"

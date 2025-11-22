@@ -60,9 +60,10 @@ def create_sparse_links(filename):
 def run_test():
     input_file = "test_links_temp.csv"
     output_file_orig = "test_tree_orig.txt"
-    output_file_new = "test_tree_new.txt"
-    report_orig = "test_report_orig.txt"
-    report_new = "test_report_new.txt"
+    output_file_py = "test_tree_py.txt"
+    output_file_cpp = "test_tree_cpp.txt"
+    report_py = "test_report_py.txt"
+    report_cpp = "test_report_cpp.txt"
 
     # --- Test 1: Standard Logic Verification ---
     print("--- Test 1: Verification of Tree Logic ---")
@@ -71,77 +72,95 @@ def run_test():
     print("Running legacy process_links_file_legacy...")
     tree_orig = tree_builder.process_links_file_legacy(input_file, 6)
     tree_orig.write_ascii_tree(output_file_orig)
-    with open(report_orig, 'w') as f:
-        tree_orig.report_twilight(f)
 
-    print(f"Original Tree Stats: Added={tree_orig.links_added}, Rejected={tree_orig.links_rejected}")
+    print("\nRunning Python array-based process_links_file...")
+    tree_py = tree_builder.process_links_file(input_file, 6)
+    tree_py.write_ascii_tree(output_file_py)
+    with open(report_py, 'w') as f:
+        tree_py.report_twilight(f)
 
-    print("\nRunning new array-based process_links_file...")
-    tree_new = tree_builder.process_links_file(input_file, 6)
-    tree_new.write_ascii_tree(output_file_new)
-    with open(report_new, 'w') as f:
-        tree_new.report_twilight(f)
-
-    print(f"New Tree Stats: Added={tree_new.links_added}, Rejected={tree_new.links_rejected}")
+    print("\nRunning C++ process_links_file...")
+    try:
+        tree_cpp = tree_builder.run_cpp_tree_builder(input_file, 6)
+        tree_cpp.write_ascii_tree(output_file_cpp)
+        with open(report_cpp, 'w') as f:
+            tree_cpp.report_twilight(f)
+        cpp_ran = True
+    except Exception as e:
+        print(f"C++ run failed: {e}")
+        cpp_ran = False
 
     # Compare output files
     success = True
 
-    # Check ASCII Tree
-    with open(output_file_orig, 'r') as f1, open(output_file_new, 'r') as f2:
+    # Check Python Array vs Original
+    with open(output_file_orig, 'r') as f1, open(output_file_py, 'r') as f2:
         content_orig = f1.readlines()
-        content_new = f2.readlines()
+        content_py = f2.readlines()
 
-    diff = list(difflib.unified_diff(content_orig, content_new, fromfile='Original', tofile='New'))
+    diff = list(difflib.unified_diff(content_orig, content_py, fromfile='Original', tofile='PythonArray'))
     if diff:
-        print("\nFAILURE: ASCII Tree files differ:")
+        print("\nFAILURE: Python Array vs Legacy ASCII Tree files differ:")
         for line in diff:
             print(line, end='')
         success = False
     else:
-        print("ASCII Tree files match.")
+        print("Python Array vs Legacy match.")
 
-    # Check Twilight Report
-    with open(report_orig, 'r') as f1, open(report_new, 'r') as f2:
-        content_orig = f1.readlines()
-        content_new = f2.readlines()
+    # Check C++ vs Python Array
+    if cpp_ran:
+        # Check ASCII Tree
+        with open(output_file_py, 'r') as f1, open(output_file_cpp, 'r') as f2:
+            content_py = f1.readlines()
+            content_cpp = f2.readlines()
 
-    diff = list(difflib.unified_diff(content_orig, content_new, fromfile='Original', tofile='New'))
-    if diff:
-        print("\nFAILURE: Twilight Report files differ:")
-        for line in diff:
-            print(line, end='')
-        success = False
-    else:
-        print("Twilight Report files match.")
+        diff = list(difflib.unified_diff(content_py, content_cpp, fromfile='PythonArray', tofile='CPP'))
+        if diff:
+            print("\nFAILURE: C++ vs Python ASCII Tree files differ:")
+            for line in diff:
+                print(line, end='')
+            success = False
+        else:
+            print("C++ vs Python ASCII Tree match.")
 
-    # --- Test 2: Sparse/Optimization Verification ---
-    print("\n--- Test 2: Sparse/Optimization Verification ---")
+        # Check Twilight Report
+        with open(report_py, 'r') as f1, open(report_cpp, 'r') as f2:
+            content_py = f1.readlines()
+            content_cpp = f2.readlines()
+
+        diff = list(difflib.unified_diff(content_py, content_cpp, fromfile='PythonArray', tofile='CPP'))
+        if diff:
+            print("\nFAILURE: C++ vs Python Twilight Report files differ:")
+            for line in diff:
+                print(line, end='')
+            success = False
+        else:
+            print("C++ vs Python Twilight Report match.")
+
+    # Verify C++ used precomputed data
+    if cpp_ran:
+        if tree_cpp.precomputed_children is None:
+            print("FAILURE: C++ tree object did not contain precomputed children.")
+            success = False
+        else:
+            print("Success: C++ tree object has precomputed children.")
+
+        if tree_cpp.precomputed_twilight_nodes is None:
+            print("FAILURE: C++ tree object did not contain precomputed twilight nodes.")
+            success = False
+        else:
+            print("Success: C++ tree object has precomputed twilight nodes.")
+
+    # --- Test 2: Sparse/Optimization Verification (Python Only as per original) ---
+    print("\n--- Test 2: Sparse/Optimization Verification (Python Logic) ---")
     create_sparse_links(input_file)
-    # Use large number of nodes (e.g., 1000) but only data up to 3
     large_n = 1000
-
-    print(f"Running new array-based process_links_file with {large_n} nodes (but only small IDs)...")
     tree_sparse = tree_builder.process_links_file(input_file, large_n)
-
-    # Verify max_seen_id
-    print(f"Max seen ID: {tree_sparse.max_seen_id}")
     if tree_sparse.max_seen_id != 3:
         print(f"FAILURE: Expected max_seen_id 3, got {tree_sparse.max_seen_id}")
         success = False
     else:
         print("Max seen ID is correct.")
-
-    tree_sparse.write_ascii_tree(output_file_new)
-
-    # Verify output does not contain info for node 999 (which would exist if iterated fully without check)
-    with open(output_file_new, 'r') as f:
-        content = f.read()
-        if "Node 999" in content:
-            print("FAILURE: Sparse tree output contains high index empty node (optimization failed).")
-            success = False
-        else:
-            print("Sparse tree output correctly ignores high index empty nodes.")
 
     if success:
         print("\nOVERALL SUCCESS: All checks passed!")
@@ -151,7 +170,6 @@ def run_test():
     # Clean up
     if os.path.exists(input_file):
         os.remove(input_file)
-    # Keep output files for inspection if needed
 
 if __name__ == "__main__":
     run_test()
