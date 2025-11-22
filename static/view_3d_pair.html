@@ -1,0 +1,28 @@
+<script src="https://3dmol.org/build/3dmol-min.js"></script>
+<div id="container-01" class="mol-container"></div>
+
+<script>
+  let element = document.getElementById('container-01');
+  let viewer = $3Dmol.createViewer(element, {backgroundColor: 'white'});
+  
+  // Use fetch() instead of $.get()
+  fetch('path/to/protein_A.pdb')
+    .then(response => response.text())
+    .then(data => {
+      viewer.addModel(data, "pdb");
+      viewer.setStyle({chain: 'A'}, {cartoon: {color: 'red'}});
+      
+      return fetch('path/to/protein_B.pdb');
+    })
+    .then(response => response.text())
+    .then(data2 => {
+      let m = viewer.addModel(data2, "pdb");
+      viewer.setStyle({chain: 'A'}, {cartoon: {color: 'blue'}});
+      
+      let matrix = [ /* your matrix */ ];
+      m.setMatrix(new $3Dmol.Matrix4(matrix));
+      
+      viewer.zoomTo();
+      viewer.render();
+    });
+</script>
