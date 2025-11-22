@@ -603,7 +603,7 @@ class MaxSpanningTreeArrays:
 
     # Compatibility methods for reporting
     def report_twilight(self, f):
-        # Re-implement using array access
+
         def should_skip(r1, r2):
             if 'toxin' in r1.name.lower() and 'toxin' in r2.name.lower():
                 return 'toxins'
@@ -649,19 +649,19 @@ class MaxSpanningTreeArrays:
                 skip_string = f" [...skipped {' and '.join(skip_parts)}]"
                 skip_counts = {key: 0 for key in skip_counts}
 
-            f.write(f"{node_id}-{parent_id} s({scores[node_id]}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}")
-            f.write(f" {node_id}: {r1.name}")
-            f.write(f" {parent_id}: {r2.name}")
+            f.write(f"{node_id}-{parent_id} s({scores[node_id]}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
+            f.write(f" {node_id}: {r1.name}\n")
+            f.write(f" {parent_id}: {r2.name}\n")
 
         grand_total = sum(total_skip_counts.values())
         if grand_total > 0:
-            f.write("\n" + "=" * 80)
-            f.write("TOTAL SKIPPED:")
+            f.write("\n" + "=" * 80 + "\n")
+            f.write("TOTAL SKIPPED:\n")
             for reason, count in total_skip_counts.items():
                 if count > 0:
-                    f.write(f"  {reason}: {count}")
-            f.write(f"  Grand total: {grand_total}")
-            f.write(f"  Leaving: {finds-grand_total} finds to check")
+                    f.write(f"  {reason}: {count}\n")
+            f.write(f"  Grand total: {grand_total}\n")
+            f.write(f"  Leaving: {finds-grand_total} finds to check\n")
 
     def write_ascii_tree(self, output_file, score_threshold=0, show_isolated=True):
         with open(output_file, 'w') as f:
@@ -692,11 +692,11 @@ class MaxSpanningTreeArrays:
                 start_index = adjusted_len - (adjusted_len % 40)
                 short_prefix = f"{start_index}:{prefix[start_index:]}"
 
-                name = sequences.get_protein(node_id)
+                record = sequences.get_protein(node_id)
                 if depth == 0:
-                    f.write(f"{short_prefix}{connector}Node {node_id} [ROOT {component}] {name} \n")
+                    f.write(f"{short_prefix}{connector}Node {node_id} [ROOT {component}] {record.name} \n")
                 else:
-                    f.write(f"{short_prefix}{connector}Node {node_id} (s:{self.scores[node_id]}) {name}\n")
+                    f.write(f"{short_prefix}{connector}Node {node_id} (s:{self.scores[node_id]}) {record.name}\n")
 
                 sorted_children = get_sorted_children(node_id)
 
@@ -737,8 +737,8 @@ class MaxSpanningTreeArrays:
                         f.write(f"ISOLATED NODES (no connections): {len(isolated)}\n")
                         f.write("-" * 80 + "\n")
                         for node_id in isolated:
-                            name = sequences.get_protein(node_id)
-                            f.write(f"Node {node_id}: {name}\n")
+                            record = sequences.get_protein(node_id)
+                            f.write(f"Node {node_id}: {record.name}\n")
 
 def process_links_file_legacy(filename, num_nodes):
     tree = MaxSpanningTree(num_nodes)
