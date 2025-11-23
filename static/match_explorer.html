@@ -370,7 +370,7 @@
             border-radius: 8px;
             border-left: 3px solid var(--accent-primary);
             white-space: pre-wrap;
-            width: 80ch;
+            width: 84ch;
         }
 
         .alignment-viewer {
@@ -577,7 +577,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
                 
-                const response = await fetch(`${API_BASE_URL}/api/sequences/${id1}/${id2}`, {
+                const response = await fetch(`${API_BASE_URL}/api/comparison/${id1}/${id2}`, {
                     signal: controller.signal
                 });
                 
@@ -724,18 +724,11 @@
 
             // Try to fetch findings from server (includes health check)
             const serverFindings = await fetchFindingsList();
-            
-            if (serverFindings) {
-                // We got real data from server
-                isServerConnected = true;
-                usingRealFindings = true;
-                setConnectionStatus(true);
-            } else {
-                // Fall back to mock data
-                isServerConnected = false;
-                usingRealFindings = false;
-                setConnectionStatus(false);
-            }
+            const bFound = serverFindings ? true:false;
+
+            isServerConnected = bFound;
+            usingRealFindings = bFound;
+            setConnectionStatus(bFound);
             
             const dataToUse = serverFindings || findingsData;
             const parsedFindings = parseFindings(dataToUse);
@@ -825,12 +818,15 @@
             // Try to fetch from server first
             let serverData = await fetchSequenceDetails(id1, id2);
             
-            let seq1, seq2, alignment;
+            let seq1, seq2, alignment, score;
             
             if (serverData) {
                 // Use server data
                 seq1 = serverData.sequence1;
                 seq2 = serverData.sequence2;
+                score = serverData.score;
+                seq1Details = seq1;
+                seq2Details = seq2;
                 alignment = {
                     align1: serverData.alignment1,
                     align2: serverData.alignment2,
@@ -840,12 +836,16 @@
                 // Fall back to mock data
                 seq1 = generateMockSequence(parseInt(len1));
                 seq2 = generateMockSequence(parseInt(len2));
+                score = -1;
+                seq1Details = formatSequenceWithLineNumbers(seq1);
+                seq2Details = formatSequenceWithLineNumbers(seq2);
+
                 alignment = generateMockAlignment(seq1, seq2);
             }
             
             // Calculate stats
             const matches = (alignment.matches.match(/\|/g) || []).length;
-            const similarity = ((matches / Math.max(seq1.length, seq2.length)) * 100).toFixed(1);
+            const similarity = score ;//((matches / Math.max(seq1.length, seq2.length)) * 100).toFixed(1);
             
             // Update badges
             detailBadge.textContent = `${similarity}% identity`;
@@ -890,12 +890,12 @@
                 
                 <div class="sequence-section">
                     <div class="sequence-label">Sequence 1 (ID: ${id1})</div>
-                    <div class="sequence-text">${formatSequenceWithLineNumbers(seq1)}</div>
+                    <div class="sequence-text">${seq1Details}</div>
                 </div>
                 
                 <div class="sequence-section">
                     <div class="sequence-label">Sequence 2 (ID: ${id2})</div>
-                    <div class="sequence-text">${formatSequenceWithLineNumbers(seq2)}</div>
+                    <div class="sequence-text">${seq2Details}</div>
                 </div>
             `;
             
@@ -911,3 +911,5 @@
     </script>
 </body>
 </html>
+
+RA   Dodson R.J., Haft D.H., Hickey E.K., Peterson J.D., Umayam L.A., Gill S.R.,

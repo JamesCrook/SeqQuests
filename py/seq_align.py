@@ -1,7 +1,7 @@
 from Bio.Align import PairwiseAligner
 from Bio.Align import substitution_matrices
 
-def align_local_swissprot(seq_a_str, seq_b_str):
+def align_local_swissprot(seq_a_str, seq_b_str, weights = "PAM250"):
     """
     Performs a Local Smith-Waterman alignment (sensitive).
     Returns:
@@ -16,12 +16,12 @@ def align_local_swissprot(seq_a_str, seq_b_str):
     # 2. Set Sensitivity Parameters (Twilight Zone Settings)
     # BLOSUM62 is standard. For deep twilight, BLOSUM45 or BLOSUM80 might be tuned,
     # but BLOSUM62 is the best generalist.
-    aligner.substitution_matrix = substitution_matrices.load("BLOSUM62")
+    aligner.substitution_matrix = substitution_matrices.load(weights)
     
     # Gap Penalties (Open, Extend) - heavily affects 'sensitivity'
     # Standard: Open -10, Extend -0.5
-    aligner.open_gap_score = -10
-    aligner.extend_gap_score = -0.5
+    aligner.open_gap_score = 0
+    aligner.extend_gap_score = -10
     
     # 3. Perform Alignment
     alignments = aligner.align(seq_a_str, seq_b_str)
@@ -69,22 +69,22 @@ def align_local_swissprot(seq_a_str, seq_b_str):
     return result
 
 # --- Usage Example ---
+if __name__ == "__main__":
+    # Sequence A: 104 kDa microneme/rhoptry antigen (Theileria) - Fragment
+    # Sequence B: SH3 domain-binding protein 1 (Human) - Fragment
+    # (Using dummy data similar to your twilight zone hit)
+    seq_theileria = "MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA"
+    seq_human     = "MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG"
 
-# Sequence A: 104 kDa microneme/rhoptry antigen (Theileria) - Fragment
-# Sequence B: SH3 domain-binding protein 1 (Human) - Fragment
-# (Using dummy data similar to your twilight zone hit)
-seq_theileria = "MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA"
-seq_human     = "MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG"
+    data = align_local_swissprot(seq_theileria, seq_human)
 
-data = align_local_swissprot(seq_theileria, seq_human)
-
-if data:
-    print(f"Alignment Score: {data['score']}")
-    print("\nVisual Alignment:")
-    print(data['visual_text'])
-    
-    print("-" * 40)
-    print(f"Seq A Indices (0-based): {data['seq_a_indices']}")
-    print(f"Seq B Indices (0-based): {data['seq_b_indices']}")
-    print(f"Summary: SeqA [{data['range_summary']['seq_a_start']}-{data['range_summary']['seq_a_end']}] "
-          f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}]")
+    if data:
+        print(f"Alignment Score: {data['score']}")
+        print("\nVisual Alignment:")
+        print(data['visual_text'])
+        
+        print("-" * 40)
+        print(f"Seq A Indices (0-based): {data['seq_a_indices']}")
+        print(f"Seq B Indices (0-based): {data['seq_b_indices']}")
+        print(f"Summary: SeqA [{data['range_summary']['seq_a_start']}-{data['range_summary']['seq_a_end']}] "
+              f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}]")

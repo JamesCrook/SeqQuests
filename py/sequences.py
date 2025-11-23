@@ -388,6 +388,7 @@ def get_protein( number ):
     result.id = record.accessions[0]
     result.entry = record.entry_name
     result.sequence_length = record.sequence_length
+    result.full = record
 
     return result
 

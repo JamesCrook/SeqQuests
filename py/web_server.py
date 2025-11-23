@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from job_manager import JobManager, JOB_TYPES
 import sequences
+import seq_align
 import os
 from pathlib import Path
 
@@ -147,6 +148,22 @@ async def get_findings():
         return FINDINGS_FILE.read_text()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading findings: {str(e)}")
+
+@app.get("/api/comparison/{id1}/{id2}")
+async def get_sequence_alignment(id1: str, id2: str):
+    s1 = sequences.get_protein( int(id1) )
+    s2 = sequences.get_protein( int(id2) )
+    alignment = seq_align.align_local_swissprot( s1.full.sequence, s2.full.sequence)
+
+    parts = alignment['visual_text'].split('\n')
+    return {
+        "sequence1": s1.full.raw,
+        "sequence2": s2.full.raw,
+        "score": alignment['score'],
+        "alignment1": parts[0],
+        "alignment2": parts[2],
+        "matches": parts[1],
+    }
 
 @app.get("/api/sequence/{identifier}")
 async def get_sequence(identifier: str):
