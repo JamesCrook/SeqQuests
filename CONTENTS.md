@@ -36,6 +36,11 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 *   **`sequences.py`**: The data access layer. Abstracts reading from Swiss-Prot (`.dat`) and FASTA files. Handles caching (Pickle) and Indexing for performance.
 *   **`seq_align.py`**: A pure Python implementation of Smith-Waterman. Useful for debugging and verifying scores against the Metal implementation.
 *   **`pam_converter.py`**: Utility to convert Biopython's PAM250 matrix into the specific 32x32 integer format required by the Metal kernel.
+*   **`computation.py`**: Defines and manages `ComputationJob`s, primarily for Tree Building tasks.
+*   **`taxa_lca.py`**: Utilities for determining the Lowest Common Ancestor (LCA) in taxonomy trees.
+*   **`swiss_to_pdb.py`**: Tools for mapping Swiss-Prot entries to Protein Data Bank (PDB) structures.
+*   **`kabsch_3d_align.py`**: Implementation of the Kabsch algorithm for aligning 3D protein structures.
+*   **`match_explorer.py`**: Backend logic for the Match Explorer feature.
 
 ## 3. Metal & C++ Source (`c_src/`, `metal/`)
 
@@ -49,6 +54,13 @@ Contains the frontend code (HTML/JS) for the dashboard.
 *   `index.html`: Main layout.
 *   `jobs.html`: Job list and creation.
 *   `config_*.html`: Configuration forms for specific job types.
+*   `app.js`: Main application logic, handling global polling and UI updates.
+*   `job_monitor.js`: Shared JavaScript logic for configuration iframes and job status monitoring.
+*   `monitor.js`: Specific monitoring logic.
+*   `style.css`: Global stylesheets.
+*   `monitor.css`: Styles specific to the job monitor interface.
+*   `stream.js`: Handles streaming output from jobs.
+*   `multiscroller.js`: Logic for the multi-column scrolling view.
 
 ## 5. System Architecture
 
