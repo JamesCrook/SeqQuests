@@ -1,68 +1,122 @@
-from Bio.Align import PairwiseAligner
 from Bio.Align import substitution_matrices
+import numpy as np
 
-def align_local_swissprot(seq_a_str, seq_b_str, weights = "PAM250"):
+def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250"):
     """
-    Performs a Local Smith-Waterman alignment (sensitive).
+    Performs a Local Smith-Waterman alignment using a custom implementation.
+    This correctly handles zero gap open penalty.
+    
     Returns:
-        - formatted_text: The visual alignment string
-        - align_data: A dictionary with indices and raw aligned strings
+        - A dictionary with alignment score, visual text, and index mappings
     """
     
-    # 1. Configure the Aligner (Smith-Waterman / Local)
-    aligner = PairwiseAligner()
-    aligner.mode = 'local'  # 'global' would be Needleman-Wunsch
+    # Load substitution matrix
+    sub_matrix = substitution_matrices.load(weights)
     
-    # 2. Set Sensitivity Parameters (Twilight Zone Settings)
-    # BLOSUM62 is standard. For deep twilight, BLOSUM45 or BLOSUM80 might be tuned,
-    # but BLOSUM62 is the best generalist.
-    aligner.substitution_matrix = substitution_matrices.load(weights)
+    # Gap penalties
+    gap_open = 0
+    gap_extend = -10
     
-    # Gap Penalties (Open, Extend) - heavily affects 'sensitivity'
-    # Standard: Open -10, Extend -0.5
-    aligner.open_gap_score = 0
-    aligner.extend_gap_score = -10
+    # Initialize sequences
+    seq_a = seq_a_str
+    seq_b = seq_b_str
+    m, n = len(seq_a), len(seq_b)
     
-    # 3. Perform Alignment
-    alignments = aligner.align(seq_a_str, seq_b_str)
+    # Initialize scoring matrix (m+1 x n+1)
+    H = np.zeros((m + 1, n + 1), dtype=float)
     
-    # If no alignment found (score <= 0), return None
-    if not alignments:
+    # Track maximum score and its position
+    max_score = 0
+    max_pos = (0, 0)
+    
+    # Fill the scoring matrix
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            # Match/mismatch score
+            match = H[i-1, j-1] + sub_matrix[seq_a[i-1]][seq_b[j-1]]
+            
+            # Gap in seq_b (delete from seq_a)
+            delete = H[i-1, j] + gap_extend
+            
+            # Gap in seq_a (insert in seq_a)
+            insert = H[i, j-1] + gap_extend
+            
+            # Smith-Waterman: take max of all options, or 0
+            H[i, j] = max(0, match, delete, insert)
+            
+            # Track maximum score
+            if H[i, j] > max_score:
+                max_score = H[i, j]
+                max_pos = (i, j)
+    
+    # If no alignment found
+    if max_score <= 0:
         return None
-
-    # Get the single best alignment (top scoring)
-    top_aln = alignments[0]
     
-    # 4. Extract Indices
-    # top_aln.aligned is a tuple of two lists: (ranges_in_seq_a, ranges_in_seq_b)
-    # ranges are tuples (start, end)
-    ranges_a = top_aln.aligned[0]
-    ranges_b = top_aln.aligned[1]
-    
-    # Flatten ranges to get a list of ALL indices involved in the alignment
-    # Useful for your 3D viewer mapping
+    # Traceback from max_pos until we hit 0
+    i, j = max_pos
+    aligned_a = []
+    aligned_b = []
     indices_a = []
-    for start, end in ranges_a:
-        indices_a.extend(range(start, end))
-        
     indices_b = []
-    for start, end in ranges_b:
-        indices_b.extend(range(start, end))
-
-    # 5. Prepare Output Data
-    # Note: top_aln.format() produces the visual "text" alignment
     
+    while i > 0 and j > 0 and H[i, j] > 0:
+        current_score = H[i, j]
+        diagonal = H[i-1, j-1]
+        up = H[i-1, j]
+        left = H[i, j-1]
+        
+        # Determine which direction we came from
+        if current_score == diagonal + sub_matrix[seq_a[i-1]][seq_b[j-1]]:
+            # Match/mismatch
+            aligned_a.append(seq_a[i-1])
+            aligned_b.append(seq_b[j-1])
+            indices_a.append(i-1)
+            indices_b.append(j-1)
+            i -= 1
+            j -= 1
+        elif current_score == up + gap_extend:
+            # Gap in seq_b
+            aligned_a.append(seq_a[i-1])
+            aligned_b.append('-')
+            indices_a.append(i-1)
+            i -= 1
+        else:
+            # Gap in seq_a
+            aligned_a.append('-')
+            aligned_b.append(seq_b[j-1])
+            indices_b.append(j-1)
+            j -= 1
+    
+    # Reverse alignments (we traced backwards)
+    aligned_a = ''.join(reversed(aligned_a))
+    aligned_b = ''.join(reversed(aligned_b))
+    indices_a = list(reversed(indices_a))
+    indices_b = list(reversed(indices_b))
+    
+    # Create visual alignment
+    match_line = ''
+    for a, b in zip(aligned_a, aligned_b):
+        if a == b:
+            match_line += '|'
+        elif a == '-' or b == '-':
+            match_line += ' '
+        else:
+            match_line += '.'
+    
+    visual_text = f"{aligned_a}\n{match_line}\n{aligned_b}"
+    
+    # Prepare result
     result = {
-        "score": top_aln.score,
-        "visual_text": str(top_aln),  # Visual representation with | and gaps
-        "seq_a_indices": indices_a,   # List of 0-based indices in Seq A that matched
-        "seq_b_indices": indices_b,   # List of 0-based indices in Seq B that matched
+        "score": max_score,
+        "visual_text": visual_text,
+        "seq_a_indices": indices_a,
+        "seq_b_indices": indices_b,
         "range_summary": {
-            # Overall start/end of the alignment block (for the Info Card)
-            "seq_a_start": indices_a[0], 
-            "seq_a_end": indices_a[-1],
-            "seq_b_start": indices_b[0], 
-            "seq_b_end": indices_b[-1]
+            "seq_a_start": indices_a[0] if indices_a else 0,
+            "seq_a_end": indices_a[-1] if indices_a else 0,
+            "seq_b_start": indices_b[0] if indices_b else 0,
+            "seq_b_end": indices_b[-1] if indices_b else 0
         }
     }
     
