@@ -41,7 +41,7 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 
 *   **`c_src/metal_nws.mm`**: The production C++/Metal implementation of the search algorithm.
 *   **`c_src/nws.metal`**: The Metal shader kernel code.
-*   **`metal/metal_nws.py`**: **Obsolete/Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
+*   **`metal/metal_nws.py`**: **Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
 
 ## 4. Web Interface (`static/`)
 
