@@ -844,7 +844,7 @@ def run_cpp_tree_builder(input_file, num_nodes=None):
     """Run the C++ implementation and return a MaxSpanningTreeArrays object."""
     temp_json = "temp_tree_output.json"
 
-    cmd = ["bin/tree_builder_cpp", "-i", input_file, "-o", temp_json]
+    cmd = ["../bin/tree_builder_cpp", "-i", input_file, "-o", temp_json]
     if num_nodes is not None:
         cmd.extend(["-n", str(num_nodes)])
 
@@ -933,7 +933,7 @@ Examples:
                        help='Score threshold - stop descending below this (default: 0 = show all)')
     parser.add_argument('-v', '--verbose', action='store_true', default=True,
                        help='Print statistics and progress')
-    parser.add_argument('--cpp', action='store_true', help='Use C++ backend for faster processing')
+    parser.add_argument('--cpp', action='store_true', help='Use C++ backend for faster processing', default=True)
     
     args = parser.parse_args()
     
