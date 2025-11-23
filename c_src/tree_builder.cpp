@@ -234,7 +234,7 @@ public:
         std::vector<int> twilight;
         int limit = std::min(max_seen_id + 1, num_nodes);
         for (int i = 0; i < limit; i++) {
-            if (scores[i] >= 0 && scores[i] < 170) {
+            if (scores[i] >= 0 && scores[i] < 300) {
                 twilight.push_back(i);
             }
         }
@@ -319,12 +319,21 @@ int scan_for_max_node_id(const std::string& filename) {
     if (!std::getline(infile, line)) return 0; // Skip header
 
     int max_id = 0;
+    int old_id = 0;
     while (std::getline(infile, line)) {
         size_t comma_pos = line.find(',');
         if (comma_pos != std::string::npos) {
             try {
                 int id = std::stoi(line.substr(0, comma_pos));
                 if (id > max_id) max_id = id;
+
+                if( id > old_id ){
+                    old_id = id;
+                    if (id % 1000 == 0) {
+                        std::cout << "scanned: " << id <<  std::endl;
+                    }
+                }
+
             } catch (...) {}
         }
     }
@@ -437,8 +446,8 @@ int main(int argc, char* argv[]) {
 
             if (query != old_query) {
                 old_query = query;
-                if (query % 100 == 0) {
-                    std::cout << query << "\t" << target << std::endl;
+                if (query % 1000 == 0) {
+                    std::cout << "addlink: " << query << "\t" << target << std::endl;
                 }
             }
 
