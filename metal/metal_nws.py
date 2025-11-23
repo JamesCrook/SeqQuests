@@ -9,7 +9,10 @@ This version is now obsolete as we have a fully C++/Metal version
 """
 
 import numpy as np
-import Metal
+try:
+    import Metal
+except ImportError:
+    Metal = None
 import ctypes
 
 import sys

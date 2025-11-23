@@ -6,12 +6,17 @@ def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250"):
     Performs a Local Smith-Waterman alignment using a custom implementation.
     This correctly handles zero gap open penalty.
     
+    weights can be a string (loaded from Biopython) or a dict-like object (custom matrix).
+
     Returns:
         - A dictionary with alignment score, visual text, and index mappings
     """
     
     # Load substitution matrix
-    sub_matrix = substitution_matrices.load(weights)
+    if isinstance(weights, str):
+        sub_matrix = substitution_matrices.load(weights)
+    else:
+        sub_matrix = weights
     
     # Gap penalties
     gap_open = 0
