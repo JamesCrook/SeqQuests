@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 from job_manager import JobManager, JOB_TYPES
 import sequences
 import os
-
+from pathlib import Path
 
 """
 FastAPI web server acting as a thin wrapper over the raw job functions and static html.
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+FINDINGS_FILE = Path("./nws_results/finds.txt")  # Path to your main results file
+
 
 # Mount static files directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -133,6 +137,17 @@ async def get_proteins():
             break
     return proteins
 
+@app.get("/api/findings", response_class=PlainTextResponse)
+async def get_findings():
+    """Return the findings file content"""
+    if not FINDINGS_FILE.exists():
+        raise HTTPException(status_code=404, detail="Findings file not found")
+    
+    try:
+        return FINDINGS_FILE.read_text()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading findings: {str(e)}")
+
 @app.get("/api/sequence/{identifier}")
 async def get_sequence(identifier: str):
     """Get a single protein sequence by accession number or index."""
@@ -151,7 +166,7 @@ async def get_sequence(identifier: str):
 @app.get("/")
 async def read_root():
     """Serve the main index page."""
-    return FileResponse('static/index.html')
+    return FileResponse('static/match_explorer.html')
 
 @app.get("/jobs")
 async def read_jobs():
