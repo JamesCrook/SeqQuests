@@ -2,6 +2,7 @@ import os
 from Bio import SwissProt, SeqIO
 from io import StringIO
 import re
+import argparse
 
 import pickle
 from pathlib import Path
@@ -359,13 +360,6 @@ def benchmark():
     elapsed = time.time() - start
     print(f"Execution time: {elapsed:.4f} seconds")
 
-def main():
-    # Just read one sequence from the database and show it.
-    print( get_sequence_by_identifier( 1 ))
-
-
-
-
 def get_protein( number ):
     global _swissprot_cache
     if _swissprot_cache == None:
@@ -444,8 +438,26 @@ def verify_sequences():
     elapsed = time.time() - start
     print(f"Execution time: {elapsed:.4f} seconds")
 
+def main():
+    parser = argparse.ArgumentParser(description="Sequence access utilities")
+    parser.add_argument("--test", action="store_true", help="Run self-test")
+    parser.add_argument("--verify", action="store_true", help="Verify sequences")
+    parser.add_argument("--benchmark", action="store_true", help="Run benchmark")
+    parser.add_argument("--get", type=int, help="Get sequence by index")
+
+    args = parser.parse_args()
+
+    if args.test:
+        test_swiss_index_access()
+    elif args.verify:
+        verify_sequences()
+    elif args.benchmark:
+        benchmark()
+    elif args.get is not None:
+        print(get_sequence_by_identifier(args.get))
+    else:
+        # Default action for backward compatibility or simple check
+        print("No action specified. Use --test, --verify, --benchmark, or --get <id>.")
+
 if __name__ == "__main__":
-    #main()
-    #benchmark()
-    #verify_sequences()
-    test_swiss_index_access()
+    main()

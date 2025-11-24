@@ -1,16 +1,27 @@
-# Data Munger
+# Data Munger Documentation
 
-The `data_munger.py` script is a command-line tool responsible for processing raw protein data from a Swiss-Prot file (`swissprot.dat.txt`). Its primary purpose is to read this data, apply a series of filters, and then write the resulting protein sequences to a new file in FASTA format.
+## Overview
+`data_munger.py` is responsible for filtering and processing Swiss-Prot protein data. It reads sequences, applies filters (like organism, GO terms, EC numbers), and outputs the results.
 
-## Key Features
+## Usage
+Can be run as a standalone script or as a job.
 
-- **Swiss-Prot Parsing:** Using Biopython, it reads and parses the multi-line format of Swiss-Prot data files.
-- **Protein Filtering:** It applies filters to select for high-quality, well-characterized proteins. For example, requiring any filtered protein have at least one GO term, EC number, or Pfam domain associated with it. The filtering can restrict down to a subset of source organisms if so desired.
-- **FASTA Output:** The script generates a clean FASTA file containing the ids/names and sequences of the proteins that pass the filtering criteria.
+```bash
+python py/data_munger.py [options]
+```
 
-## Test Data
-This repo includes the first few tens of proteins from swisport in /data as test data. This will be used if there is no file at the configured path in script sequences.py.
+## Command Line Arguments
+| Argument | Description |
+|----------|-------------|
+| `--organisms` | List of organisms to include (e.g., `human`, `mouse`, `rat`, `ecoli`). |
+| `--require-go` | Only include proteins with Gene Ontology (GO) terms. |
+| `--require-ec` | Only include proteins with Enzyme Commission (EC) numbers. |
+| `--require-pfam` | Only include proteins with Pfam domains. |
+| `--test` | Run the internal test function (filtering for mouse). |
 
-## Performance Optimization
-
-The script uses sequences.py for file access. That script, when reading already produced FASTA format data utilizes Python's `pickle` modul, creating a pickle file if none was present. Loading data from this binary pickle file is substantially faster than re-parsing the text-based FASTA file.
+## Job Configuration
+When running as a job, the configuration dictionary matches the command line arguments:
+* `organisms`: List[str]
+* `require_go`: bool
+* `require_ec`: bool
+* `require_pfam`: bool

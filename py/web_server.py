@@ -8,6 +8,7 @@ import asyncio
 from typing import Dict, Any
 import logging
 from pydantic import BaseModel
+import argparse
 
 from job_manager import JobManager, JOB_TYPES
 import sequences
@@ -230,6 +231,13 @@ async def read_page(page: str):
 
 
 if __name__ == "__main__":
-    import uvicorn
-    logger.info("Starting REST server on http://localhost:8000")
-    uvicorn.run("web_server:app", host="0.0.0.0", port=8000)
+    parser = argparse.ArgumentParser(description="Web Server module")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
+
+    if args.test:
+        print("Web Server module test stub")
+    else:
+        import uvicorn
+        logger.info("Starting REST server on http://localhost:8000")
+        uvicorn.run("web_server:app", host="0.0.0.0", port=8000)

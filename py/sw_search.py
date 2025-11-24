@@ -229,16 +229,19 @@ class SWRunner:
 
 
 def batch_logged():
-    import argparse
-    
     parser = argparse.ArgumentParser(description="SW Runner - Long-running protein search harness")
     parser.add_argument("--output_dir", default="sw_results", help="Output directory")
     parser.add_argument("--flush_interval", type=int, default=60, help="Seconds between disk flushes")
     parser.add_argument("--num_sequences", type=int, default=570000, help="Total sequences in database")
     parser.add_argument("--start_at", type=int, help="Override starting sequence (default: auto-detect from last line)")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
     
     args = parser.parse_args()
     
+    if args.test:
+        print("SW Search test stub")
+        return
+
     runner = SWRunner(
         output_dir=args.output_dir,
         flush_interval=args.flush_interval
@@ -523,4 +526,5 @@ def main():
     batch_logged()
 
 if __name__ == "__main__":
+    import argparse
     main()

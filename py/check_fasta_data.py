@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import itertools
+import argparse
 
 from pathlib import Path
 
@@ -93,4 +94,12 @@ def test_data_integrity():
         print(f"FAILURE: Found {mismatches} mismatches.")
 
 if __name__ == "__main__":
-    test_data_integrity()
+    parser = argparse.ArgumentParser(description="Check FASTA data integrity")
+    parser.add_argument("--test", action="store_true", help="Run self-test (checks data integrity)")
+    args = parser.parse_args()
+
+    if args.test:
+        test_data_integrity()
+    else:
+        # Default behavior is to run the check
+        test_data_integrity()

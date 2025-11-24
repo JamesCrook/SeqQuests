@@ -1,5 +1,6 @@
 import time
 import logging
+import argparse
 from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -69,3 +70,11 @@ def run_computation(job: "Job", config: Dict[str, Any] = None):
             current_step=f"Error: {str(e)}",
             errors=job.get_state()["errors"] + [str(e)]
         )
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Computation module")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
+
+    if args.test:
+        print("Computation module test stub")

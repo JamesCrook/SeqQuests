@@ -126,26 +126,6 @@ def run_data_munging(organisms=None, require_go=False, require_ec=False, require
     if not job:
         print(f"Found {proteins_processed} records matching the criteria.")
 
-def main():
-    """
-    Command-line interface for filtering protein data.
-    """
-    parser = argparse.ArgumentParser(description="Filter Swiss-Prot protein data.")
-    parser.add_argument('--organisms', nargs='+', choices=list(ORGANISM_MAP.keys()), help="Filter by one or more organisms.")
-    parser.add_argument('--require-go', action='store_true', help="Only include proteins with GO terms.")
-    parser.add_argument('--require-ec', action='store_true', help="Only include proteins with EC numbers.")
-    parser.add_argument('--require-pfam', action='store_true', help="Only include proteins with Pfam domains.")
-
-    args = parser.parse_args()
-
-    print("Filtering protein data...")
-    run_data_munging(
-        organisms=args.organisms,
-        require_go=args.require_go,
-        require_ec=args.require_ec,
-        require_pfam=args.require_pfam
-    )
-
 def test_munger_filtering_mouse():
     """
     Test function to verify that the data munger filtering works correctly for mouse sequences.
@@ -155,6 +135,29 @@ def test_munger_filtering_mouse():
     # Run the data munging for mouse sequences
     run_data_munging(organisms=['mouse'])
 
+def main():
+    """
+    Command-line interface for filtering protein data.
+    """
+    parser = argparse.ArgumentParser(description="Filter Swiss-Prot protein data.")
+    parser.add_argument('--organisms', nargs='+', choices=list(ORGANISM_MAP.keys()), help="Filter by one or more organisms.")
+    parser.add_argument('--require-go', action='store_true', help="Only include proteins with GO terms.")
+    parser.add_argument('--require-ec', action='store_true', help="Only include proteins with EC numbers.")
+    parser.add_argument('--require-pfam', action='store_true', help="Only include proteins with Pfam domains.")
+    parser.add_argument('--test', action='store_true', help="Run test function (mouse filtering).")
+
+    args = parser.parse_args()
+
+    if args.test:
+        test_munger_filtering_mouse()
+    else:
+        print("Filtering protein data...")
+        run_data_munging(
+            organisms=args.organisms,
+            require_go=args.require_go,
+            require_ec=args.require_ec,
+            require_pfam=args.require_pfam
+        )
+
 if __name__ == '__main__':
-    #main()
-    test_munger_filtering_mouse()
+    main()

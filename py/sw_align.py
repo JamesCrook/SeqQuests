@@ -1,5 +1,6 @@
 from Bio.Align import substitution_matrices
 import numpy as np
+import argparse
 
 
 def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250"):
@@ -130,22 +131,30 @@ def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250"):
 
 # --- Usage Example ---
 if __name__ == "__main__":
-    # Sequence A: 104 kDa microneme/rhoptry antigen (Theileria) - Fragment
-    # Sequence B: SH3 domain-binding protein 1 (Human) - Fragment
-    # (Using dummy data similar to your twilight zone hit)
-    seq_theileria = "MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA"
-    seq_human     = "MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG"
+    parser = argparse.ArgumentParser(description="SW Align module")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
 
-    data = align_local_swissprot(seq_theileria, seq_human)
+    if args.test:
+        print("SW Align module test stub")
+        # Sequence A: 104 kDa microneme/rhoptry antigen (Theileria) - Fragment
+        # Sequence B: SH3 domain-binding protein 1 (Human) - Fragment
+        # (Using dummy data similar to your twilight zone hit)
+        seq_theileria = "MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA"
+        seq_human     = "MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG"
 
-    if data:
-        print(f"Alignment Score: {data['score']}")
-        print("\nVisual Alignment:")
-        print(data['visual_text'])
-        
-        print("-" * 40)
-        print(f"Seq A Indices (0-based): {data['seq_a_indices']}")
-        print(f"Seq B Indices (0-based): {data['seq_b_indices']}")
-        print(f"Summary: SeqA [{data['range_summary']['seq_a_start']}-{data['range_summary']['seq_a_end']}] "
-              f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}] "
-              f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}]")
+        data = align_local_swissprot(seq_theileria, seq_human)
+
+        if data:
+            print(f"Alignment Score: {data['score']}")
+            print("\nVisual Alignment:")
+            print(data['visual_text'])
+
+            print("-" * 40)
+            print(f"Seq A Indices (0-based): {data['seq_a_indices']}")
+            print(f"Seq B Indices (0-based): {data['seq_b_indices']}")
+            print(f"Summary: SeqA [{data['range_summary']['seq_a_start']}-{data['range_summary']['seq_a_end']}] "
+                f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}] "
+                f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}]")
+    else:
+        print("Use --test to run usage example")

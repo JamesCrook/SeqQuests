@@ -1,25 +1,31 @@
-# Web Server Task Manager
+# Web Server Documentation
 
-The `web_server.py` script launches a web-based user interface for managing and monitoring bioinformatics jobs. It is built using the FastAPI framework which provides a RESTful API.
+## Overview
+`web_server.py` is a FastAPI-based web server that provides the user interface and API for the project. It serves static HTML/JS/CSS files and exposes endpoints for job management (create, start, stop, configure, monitor).
 
-## Core Functionality
+## Usage
 
-The web server acts as a central control panel for biosequence jobs. It allows users to create, configure, and monitor the progress of these jobs through the web interface.
+```bash
+python py/web_server.py
+```
 
--   **Configure:** Each job type has a configuration page where users can set and view parameters.
--   **Start:** Initiates a configured job.
--   **Pause & Resume:** Jobs can be temporarily paused and later resumed.
--   **Delete:** Removes a job from the system.
+## Command Line Arguments
+| Argument | Description |
+|----------|-------------|
+| `--test` | Run a test stub instead of starting the server. |
 
-## Progress Monitoring
+## API Endpoints
+* `GET /`: Serve main UI.
+* `GET /api/job_types`: List available job types.
+* `GET /api/jobs`: List current jobs.
+* `POST /api/job`: Create a job.
+* `POST /api/job/{id}/start`: Start a job.
+* `POST /api/job/{id}/pause`: Pause a job.
+* `POST /api/job/{id}/resume`: Resume a job.
+* `DELETE /api/job/{id}`: Delete a job.
+* `POST /api/job/{id}/configure`: Configure a job.
+* `GET /api/findings`: Get results file.
+* `GET /stream-data`: Stream results CSV.
 
-The web interface provides two levels of detail for monitoring job progress:
-
-1.  **Job List (Summary View):** The dashboard displays a list of all jobs. For each job, a concise **progress string** is shown, providing an at-a-glance status update (e.g., "Processing sequence 100/1000").
-2.  **Job Details (Detailed View):** When a user selects a specific job, more detailed information for that job is shown below the job list, for example the last ten lines of output.
-
-## Real-time UI Feedback with `pty`
-
-Standard command-line tools accessed through a pipe will buffer their output and only send updates in large, infrequent chunks. This can make the UI unresponsive.
-
-By running the jobs within a `pty`, the web server can capture its output character-by-character, as it is generated. This avoids delays from buffering multiple lines.
+## Static Files
+Served from `/static`.

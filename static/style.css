@@ -103,3 +103,9 @@ button:disabled {
     height: 100%;
     border: 1px solid #ccc;
 }
+
+.log-output {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    white-space: pre;
+}

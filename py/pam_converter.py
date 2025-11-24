@@ -8,6 +8,7 @@ import numpy as np
 from Bio import SeqIO
 from Bio.Align import substitution_matrices
 import sequences
+import argparse
 
 def convert_pam_to_32x32():
     """
@@ -84,6 +85,14 @@ def make_fasta_lut(fasta_rec, pam_32x32):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="PAM converter utility")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
+
+    if args.test:
+        print("PAM converter test stub")
+        return
+
     # Convert PAM table to 32x32
     print("=" * 60)
     print("Converting Dayhoff 250 PAM table to 32x32 array")

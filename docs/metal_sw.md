@@ -1,24 +1,24 @@
-# Metal SW Searcher
+# Metal SW Documentation
 
-`metal_sw.mm` is a command-line tool that performs a Smith-Waterman (SW) local sequence alignment search. It is written in Objective-C and utilizes Apple's Metal framework to GPU accelerate search.
+## Overview
+`metal_sw` (compiled from `c_src/metal_sw.mm` and `c_src/sw.metal`) is the core high-performance compute engine. It uses Apple's Metal API to perform Smith-Waterman local alignment on the GPU.
 
-## Core Functionality
+## Usage
 
-The tool takes a query protein sequence and searches for local alignments against a database of protein sequences in FASTA format. It operates directly on pre-compiled binary data, avoiding the overhead of parsing text files at runtime. The binary data is prepared using script `prepare_data.py`
+```bash
+./bin/metal_sw [options]
+```
 
-## PAM Look-Up Table (LUT)
+## Command Line Arguments
+| Argument | Description |
+|----------|-------------|
+| `--pam_data` | Path to binary PAM matrix file (default: `pam250.bin`). |
+| `--fasta_data` | Path to binary FASTA database file (default: `fasta.bin`). |
+| `--start_at` | Sequence index to start processing from. |
+| `--num_seqs` | Number of sequences to process. |
+| `--reporting_threshold` | Minimum score to report a hit (default: 110). |
+| `--debug_slot` | Debugging parameter for specific slot monitoring. |
+| `--slow_output` | artificial delay for testing UI responsiveness. |
 
-For each search, the tool pre-computes a look-up table (LUT) for the query sequence based on the PAM substitution matrix. This `pam_lut` is a `int16` array with a size 32 times that of the query sequence. This lut removes one step of indirect access from the alignment calculation.
-
-The actual amino acid alphabet in the PAM substitution matrix is 26. 32 is the next largest power of 2. The characater '@' is used for end of sequence, and has a penalty of 30,000 for matching anything. This is part of resetting the scores at the end of sequences without doing branching.
-
-## Parallel Execution
-
-The search of one query sequence is against a database of sequences. The workload is divided as follows:
-
--   **THREADS:** This compile-time constant, usually 4096, defines how many database sequences are processed in parallel by the GPU. Each sequence is assigned to a separate thread.
--   **UNROLL:** This constant, usually 32, determines how many elements of a database sequence are processed by a single GPU thread in one go. Each of the THREADS threads is working on a grid of size query sequence size x UNROLL. All threads work on the same sized blocks of data.
-
-## Kernel Output
-
-The Metal kernel executes the SW algorithm and, for each database sequence, it returns an array of scores, each thread returning batches of size UNROLL. These scores are the **maximum local alignment score ending at each residue** in the database sequence. Additionally the threads do a running max for sequences in the UNROLLed block, to get the overall max score for each sequence.
+## Architecture
+The host code (`metal_sw.mm`) manages data loading, Metal buffer allocation, and kernel dispatch. The shader code (`sw.metal`) performs the actual alignment on the GPU.

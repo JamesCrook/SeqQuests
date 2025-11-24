@@ -2,6 +2,7 @@ import requests
 import os
 from pathlib import Path
 from Bio.PDB import PDBParser
+import argparse
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -64,13 +65,10 @@ def get_alphafold_atoms(uniprot_id, aligned_indices):
 
     return atoms
 
-# Example usage:
-indices_A = [10, 11, 12, ...] 
-indices_B = [45, 46, 47, ...] 
-atoms_A = get_alphafold_atoms("P12345", indices_A)
-atoms_B = get_alphafold_atoms("Q98765", indices_B)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Swiss to PDB converter")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
 
-if atoms_A and atoms_B and len(atoms_A) == len(atoms_B):
-    # Calculate rotation matrix (using the Bio.PDB code from previous turn)
-    matrix = calculate_superposition(atoms_A, atoms_B)
-    # Save matrix to DB/JSON for the frontend to read    
+    if args.test:
+        print("Swiss to PDB module test stub")

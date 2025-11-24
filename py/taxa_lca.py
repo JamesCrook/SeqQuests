@@ -1,7 +1,8 @@
 from ete3 import NCBITaxa
+import argparse
 
 # Initialize once (downloads database on first run)
-ncbi = NCBITaxa()
+# ncbi = NCBITaxa()
 
 # Define "Boring" Housekeeping Keywords
 # If both proteins have any of these, we downgrade the "Surprise" score.
@@ -63,6 +64,10 @@ def classify_pair(taxid_a, taxid_b, desc_a, desc_b):
     else: # Genus, Species
         return ("Close Relative", 5, "Likely paralog or recent speciation")
 
-# Example Usage
-# 665 (Fly) vs 966 (Bacteria)
-# result = classify_pair(7365, 1263082, "Dev protein", "Dehydrogenase")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Taxa LCA module")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
+
+    if args.test:
+        print("Taxa LCA module test stub")

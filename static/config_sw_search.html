@@ -3,6 +3,7 @@
   <head>
     <title>Configure and Monitor SW Search Job</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css">
+    <link rel="icon" href="/static/wheel.ico">
   </head>
   <body>
     <h2>Configure SW Search Job</h2>
@@ -67,7 +68,7 @@
 
             detailDiv.innerHTML = `
                 <h3>Output Log (last 30 lines):</h3>
-                <ul id="output-log" style="font-family:'Courier New',Courier,monospace;font-size:12px; white-space:pre;">
+                <ul id="output-log" class="log-output">
                     ${outputLogHtml}
                 </ul>
             `;

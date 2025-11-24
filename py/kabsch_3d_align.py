@@ -1,5 +1,6 @@
 from Bio.PDB import PDBParser, Superimposer
 import numpy as np
+import argparse
 
 def calculate_superposition(pdb_file_a, pdb_file_b, align_a_indices, align_b_indices):
     """
@@ -32,3 +33,11 @@ def calculate_superposition(pdb_file_a, pdb_file_b, align_a_indices, align_b_ind
     matrix_4x4[:3, 3] = tran
     
     return matrix_4x4.flatten().tolist()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Kabsch 3D Alignment module")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
+
+    if args.test:
+        print("Kabsch 3D Align module test stub")

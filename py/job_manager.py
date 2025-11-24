@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, Type
 import logging
+import argparse
 
 # Import job functions
 from computation import run_computation
@@ -256,3 +257,11 @@ class JobManager:
                 }
                 for job_id, job in self.jobs.items()
             }
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Job Manager module")
+    parser.add_argument("--test", action="store_true", help="Run test stub")
+    args = parser.parse_args()
+
+    if args.test:
+        print("Job Manager module test stub")
