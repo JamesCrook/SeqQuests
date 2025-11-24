@@ -6,8 +6,13 @@
     <link rel="icon" href="/static/wheel.ico">
   </head>
   <body>
-    <div class="container">
-    <h1>Job Control Panel</h1>
+    <header>
+        <h1>Job Control Panel</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Checking Connection</span>
+        </div>
+    </header>
     <div id="controls">
       <button onclick="addJob()">Add Job</button>
       <div id="job-specific-controls" style="display: inline-block;">
@@ -21,10 +26,14 @@
         </button>
       </div>
     </div>
-    <ul>
-    <li><a href="match_explorer.html">Matches</a></li>
-    <li><a href="stream_demo.html">Streaming Demo</a></li>
-    </ul>
+    <div class="panel">
+      <div class="panel-header">
+        <ul>
+          <li><a href="match_explorer.html">Matches</a></li>
+          <li><a href="stream_demo.html">Streaming Demo</a></li>
+        </ul>
+      </div>
+    </div>
     <div id="pollControl">
       <label>
         Poll Interval:
@@ -51,7 +60,6 @@
       <h3>Log</h3>
       <div id="log">
       </div>
-    </div>
     </div>
     <div id="config-modal">
       <div id="modal-content">

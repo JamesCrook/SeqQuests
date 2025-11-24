@@ -8,49 +8,56 @@
     <link rel="stylesheet" type="text/css" href="/static/style.css">
   </head>
   <body>
-    <div class="container">
-      <div class="panel">
-      <div class="panel-header">
-          <div class="panel-title">Protein Sequence Statistics</div>
-      </div>
-      <div class="demo-padding">
-      <p>This html UI is a demo of how web_server.py can provide streamed data, in this case the stream of found links between proteins (a 4GB+ file). This program may later be elaborated to show more statistics about these links such as a graph of the distribution of scores at different levels.</p>
-      <br>
-      <button id="startBtn" onclick="startProcessing()">
-        Start Processing
-      </button>
-      <div id="status">
-      </div>
-      <div class="progress-bar progress-bar-container">
-          <div class="progress-fill" id="progressFill">
-          </div>
-      </div>
-      <div class="stats-bar stats-bar-wrap">
-        <div class="stat-item">
-          <span class="stat-label">Total Records:</span>
-          <span class="stat-value" id="totalRecords">0</span>
+
+    <header>
+        <h1>Active Data</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Checking Connection</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Avg Column 1:</span>
-          <span class="stat-value" id="sumCol1">0</span>
+    </header>
+
+    <div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">Protein Sequence Statistics</div>
+    </div>
+    <div class="demo-padding">
+    <p>This html UI is a demo of how web_server.py can provide streamed data, in this case the stream of found links between proteins (a 4GB+ file). This program may later be elaborated to show more statistics about these links such as a graph of the distribution of scores at different levels.</p>
+    <br>
+    <button id="startBtn" onclick="startProcessing()">
+      Start Processing
+    </button>
+    <div id="status">
+    </div>
+    <div class="progress-bar progress-bar-container">
+        <div class="progress-fill" id="progressFill">
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Avg Column 2:</span>
-          <span class="stat-value" id="sumCol2">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Avg Column 3:</span>
-          <span class="stat-value" id="sumCol3">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Processing Rate:</span>
-          <span class="stat-value" id="rate">0 records/sec</span>
-        </div>
+    </div>
+    <div class="stats-bar stats-bar-wrap">
+      <div class="stat-item">
+        <span class="stat-label">Total Records:</span>
+        <span class="stat-value" id="totalRecords">0</span>
       </div>
+      <div class="stat-item">
+        <span class="stat-label">Avg Column 1:</span>
+        <span class="stat-value" id="sumCol1">0</span>
       </div>
+      <div class="stat-item">
+        <span class="stat-label">Avg Column 2:</span>
+        <span class="stat-value" id="sumCol2">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Avg Column 3:</span>
+        <span class="stat-value" id="sumCol3">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Processing Rate:</span>
+        <span class="stat-value" id="rate">0 records/sec</span>
       </div>
     </div>
-    <script src="/static/stream.js"></script>
+    </div>
+    </div>
+    <script src="./stream.js"></script>
     <script>
     let startTime;
         
@@ -78,7 +85,7 @@
             
             const statusDiv = document.getElementById('status');
             statusDiv.textContent = message;
-            statusDiv.className = 'status ' + type;
+            statusDiv.className = 'status bar-' + type;
         }
         
         async function startProcessing() {
