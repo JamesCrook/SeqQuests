@@ -418,7 +418,7 @@ class MaxSpanningTree:
                             f.write(f"Node {node_id}: {record.name}\n")
 
 def process_links_file(filename, num_nodes):
-    tree = MaxSpanningTreeArrays(num_nodes)
+    tree = MaxSpanningTree(num_nodes)
 
     with open(filename, 'r') as f:
         next(f)  # Skip header
@@ -445,7 +445,7 @@ def process_links_file(filename, num_nodes):
     return tree
 
 def run_cpp_tree_builder(input_file, num_nodes=None):
-    """Run the C++ implementation and return a MaxSpanningTreeArrays object."""
+    """Run the C++ implementation and return a MaxSpanningTree object."""
     temp_json = "temp_tree_output.json"
 
     executable = PROJECT_ROOT / "bin/tree_builder_cpp"
@@ -468,7 +468,7 @@ def run_cpp_tree_builder(input_file, num_nodes=None):
         # Determine size from arrays
         actual_num_nodes = len(data['parents'])
 
-        tree = MaxSpanningTreeArrays(actual_num_nodes)
+        tree = MaxSpanningTree(actual_num_nodes)
         # We can reload from file or just use the data we loaded.
         # But to keep method clean, let's just call tree.load_from_json
         # Wait, we can just populate it manually here since we have 'data'
@@ -498,9 +498,6 @@ def run_cpp_tree_builder(input_file, num_nodes=None):
 
     return tree
 
-# Alias for backward compatibility/clarity since the implementation uses arrays
-MaxSpanningTreeArrays = MaxSpanningTree
-
 def scan_for_max_node_id(filename):
     """
     Scan the input CSV file to find the maximum query ID (first column).
@@ -526,15 +523,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s -i links.csv -o tree.txt
-  %(prog)s -i links.csv -o tree.txt --nodes 157000
-  %(prog)s -i links.csv -o tree.txt --threshold 200
-  %(prog)s -i links.csv -o tree.txt --threshold 200 --verbose
+  %(prog)s -i links.csv -o sw_tree.txt
+  %(prog)s -i links.csv -o sw_tree.txt --nodes 157000
+  %(prog)s -i links.csv -o sw_tree.txt --threshold 200
+  %(prog)s -i links.csv -o sw_tree.txt --threshold 200 --verbose
         """
     )
     
-    default_input = PROJECT_ROOT / "sw_results/results.csv"
-    default_output = PROJECT_ROOT / "sw_results/tree.txt"
+    default_input = PROJECT_ROOT / "sw_results/sw_results.csv"
+    default_output = PROJECT_ROOT / "sw_results/sw_tree.txt"
 
     parser.add_argument('-i', '--input', default=str(default_input), help='Input CSV file with links (query_seq,target_seq,score,location,length)')
     parser.add_argument('-o', '--output', default=str(default_output),
@@ -599,7 +596,7 @@ Examples:
         print(f"  Links rejected: {tree.links_rejected}")
         print(f"\nWriting ASCII tree to {args.output}...")
     
-    finds_file = PROJECT_ROOT / "sw_results/finds.txt"
+    finds_file = PROJECT_ROOT / "sw_results/sw_finds.txt"
     with open(finds_file, 'w') as f:
         tree.report_twilight(f)
     tree.write_ascii_tree(args.output, args.threshold)

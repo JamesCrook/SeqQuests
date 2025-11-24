@@ -3,6 +3,8 @@
 ## Overview
 `data_munger.py` is responsible for filtering and processing Swiss-Prot protein data. It reads sequences, applies filters (like organism, GO terms, EC numbers), and outputs the results.
 
+This does not yet write any output file. It is intended in future to prepare FastA versions of Swiss-Prot.
+
 ## Usage
 Can be run as a standalone script or as a job.
 

@@ -25,7 +25,7 @@ python py/web_server.py
 * `DELETE /api/job/{id}`: Delete a job.
 * `POST /api/job/{id}/configure`: Configure a job.
 * `GET /api/findings`: Get results file.
-* `GET /stream-data`: Stream results CSV.
+* `GET /stream-data`: Stream Smith Waterman results CSV.
 
 ## Static Files
 Served from `/static`.

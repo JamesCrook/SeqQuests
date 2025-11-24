@@ -218,7 +218,7 @@ async def stream_file(filepath: str, chunk_size: int = 8192):
 # Provides an API to the links data as a stream of data  
 @app.get("/stream-data")
 async def stream_data():
-    filepath = PROJECT_ROOT / 'sw_results' / 'results.csv'
+    filepath = PROJECT_ROOT / 'sw_results' / 'sw_results.csv'
     return StreamingResponse(
         stream_file(str(filepath)),
         media_type="text/plain"

@@ -12,8 +12,8 @@ python py/tree_builder.py [options]
 ## Command Line Arguments
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `-i`, `--input` | `sw_results/results.csv` | Input CSV file with links. |
-| `-o`, `--output` | `sw_results/tree.txt` | Output file for the ASCII tree. |
+| `-i`, `--input` | `sw_results/sw_results.csv` | Input CSV file with links. |
+| `-o`, `--output` | `sw_results/sw_tree.txt` | Output file for the ASCII tree. |
 | `-n`, `--nodes` | Auto-detect | Number of nodes (proteins). |
 | `-t`, `--threshold` | -3 | Score threshold to stop descending. |
 | `-v`, `--verbose` | True | Print statistics and progress. |
