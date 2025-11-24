@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Jules
+verification/
+
 # Mac Crap
 .DS_Store
 *.bin

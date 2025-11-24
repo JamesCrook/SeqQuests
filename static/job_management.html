@@ -2,10 +2,11 @@
 <html>
   <head>
     <title>Job Control Panel</title>
-    <link rel="stylesheet" type="text/css" href="./style.css">
-    <link rel="icon" href="./wheel.ico">
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+    <link rel="icon" href="/static/wheel.ico">
   </head>
   <body>
+    <div class="container">
     <h1>Job Control Panel</h1>
     <div id="controls">
       <button onclick="addJob()">Add Job</button>
@@ -51,13 +52,16 @@
       <div id="log">
       </div>
     </div>
+    </div>
     <div id="config-modal">
       <div id="modal-content">
         <iframe id="config-iframe">
         </iframe>
-        <button onclick="closeModal()">Close</button>
+        <div class="modal-footer">
+            <button onclick="closeModal()">Close</button>
+        </div>
       </div>
     </div>
-    <script src="./app.js"></script>
+    <script src="/static/app.js"></script>
   </body>
 </html>

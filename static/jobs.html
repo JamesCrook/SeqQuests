@@ -4,33 +4,13 @@
     <title>Select Job Type</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css">
     <link rel="icon" href="/static/wheel.ico">
-    <style>
-    body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            flex-direction: column;
-        }
-        .job-button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 8px;
-        }
-    </style>
   </head>
   <body>
+    <div class="container center-container">
     <h1>Select Job Type</h1>
-    <div id="job-buttons">
+    <div id="job-buttons" class="panel centered-panel-content">
       <!-- Buttons will be generated here -->
+    </div>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', async function() {
