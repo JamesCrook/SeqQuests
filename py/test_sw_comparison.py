@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'metal'))
 
 from sw_align import align_local_swissprot
 import pam_converter
-from metal_sw import sw_step
+from sw_search_metal import sw_step
 
 comment = '42840-32796 s(299) Q9JLV1-P37278 Length: 577/926 [...skipped 1 uncharacterized and 4 similar names] 42840: BAG family molecular chaperone regulator 3; Mus musculus (Mouse). 32796: Calcium-transporting ATPase; Synechococcus elongatus (strain ATCC 33912 / PCC 7942 / FACHB-805) (Anacystis nidulans R2).'
 

@@ -25,7 +25,7 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 The UI allows multiple simultaneous jobs to be run, paused, resumed. Users can connect to the running jobs display from a remote machine and view the configuration parameters that were used for a job.
 
 ### Sequence Search (SW)
-**Executable:** `bin/metal_sw` (Compiled from `c_src/metal_sw.mm`)
+**Executable:** `bin/sw_search_metal` (Compiled from `c_src/sw_search_metal.mm`)
 **Python Wrapper:** `py/sw_search.py`
 **Status:** Mature (High Performance)
 **Description:** A Metal-accelerated (GPU) implementation of the Smith-Waterman algorithm. It performs massive parallel searches of a query sequence against a database, producing protein similarity data - a list of high scoring links.
@@ -59,9 +59,9 @@ Typically this program is run iterating over all sequences in a database, to get
 
 ## 3. Metal & C++ Source (`c_src/`, `metal/`)
 
-*   **`c_src/metal_sw.mm`**: The production C++/Metal implementation of the search algorithm.
+*   **`c_src/sw_search_metal.mm`**: The production C++/Metal implementation of the search algorithm.
 *   **`c_src/sw.metal`**: The Metal shader kernel code.
-*   **`metal/metal_sw.py`**: **Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
+*   **`metal/sw_search_metal.py`**: **Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
 
 ## 4. Web Interface (`static/`)
 
@@ -81,12 +81,12 @@ Contains the frontend code (HTML/JS) for the dashboard.
 1.  **User** interacts with **Web Dashboard**.
 2.  **Web Server** creates a **Job** via **Job Manager**.
 3.  **Job** runs a specific script or executable:
-    *   *Search Job* -> Wraps `bin/metal_sw`.
+    *   *Search Job* -> Wraps `bin/sw_search_metal`.
     *   *Computation Job* -> Runs `py/tree_builder.py`.
     *   *Data Job* -> Runs `py/data_munger.py`.
 4.  **Results** are monitored via the Dashboard.
 
 ## 6. Setup & Compilation
 
-*   **Compile Native Code:** Run `./compile.sh` to build `bin/metal_sw` and `bin/tree_builder_cpp`.
+*   **Compile Native Code:** Run `./compile.sh` to build `bin/sw_search_metal` and `bin/tree_builder_cpp`.
 *   **Python Path:** Ensure `PYTHONPATH` includes the `py/` directory (e.g., `PYTHONPATH=py python py/web_server.py`).

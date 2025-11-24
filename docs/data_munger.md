@@ -21,8 +21,8 @@ python py/data_munger.py [options]
 | `--require-pfam` | Only include proteins with Pfam domains. |
 | `--test` | Run the internal test function (filtering for mouse). |
 
-## Job Configuration
-When running as a job, the configuration dictionary matches the command line arguments:
+## Job Configuration UI
+When running as a job, the UI configuration dictionary matches the command line arguments:
 * `organisms`: List[str]
 * `require_go`: bool
 * `require_ec`: bool

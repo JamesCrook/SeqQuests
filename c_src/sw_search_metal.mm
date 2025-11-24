@@ -26,7 +26,7 @@
 /*
 # Metal SW Searcher
 
-`metal_sw.mm` is a command-line tool that performs a Smith-Waterman (SW) local sequence alignment search. It is written in Objective-C and utilizes Apple's Metal framework to GPU accelerate search.
+`sw_search_metal.mm` is a command-line tool that performs a Smith-Waterman (SW) local sequence alignment search. It is written in Objective-C and utilizes Apple's Metal framework to GPU accelerate search.
 
 ## Core Functionality
 

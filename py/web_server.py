@@ -39,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-FINDINGS_FILE = PROJECT_ROOT / "sw_results" / "finds.txt"  # Path to your main results file
+FINDINGS_FILE = PROJECT_ROOT / "sw_results" / "sw_finds.txt"  # Path to your main results file
 
 
 # Mount static files directory
@@ -188,6 +188,11 @@ async def get_sequence(identifier: str):
 async def read_root():
     """Serve the main index page."""
     return FileResponse(PROJECT_ROOT / 'static/job_management.html')
+
+@app.get("/favicon.ico")
+async def read_favicon():
+    """Serve the job selection page."""
+    return FileResponse(PROJECT_ROOT / 'static/wheel.ico')
 
 @app.get("/jobs")
 async def read_jobs():

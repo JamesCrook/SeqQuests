@@ -3,6 +3,8 @@
 ## Overview
 `sw_search.py` is a Python wrapper around the high-performance Metal (GPU) Smith-Waterman search executable. It manages the execution, monitors output, and handles long-running search jobs.
 
+Unlike the underlying executable, the wrapper will resume a search buy looking at the tail of the output file to dewtermine what sequence to start with.
+
 ## Usage
 
 ```bash
@@ -18,12 +20,4 @@ python py/sw_search.py [options]
 | `--start_at` | Auto-detect | Sequence index to start/resume from. |
 | `--test` | N/A | Run a test stub. |
 
-## Job Configuration
-When running as a job (`SwSearchJob`), it accepts:
-* `debug_slot`: int (Debug parameter for the Metal kernel)
-* `reporting_threshold`: int (Score threshold for reporting hits)
-* `start_at`: int (Sequence index to start at)
-* `num_seqs`: int (Number of sequences to process)
-* `slow_output`: bool (If true, slows down output for debugging)
-* `pam_data`: str (Path to PAM matrix binary file)
-* `fasta_data`: str (Path to FASTA database binary file)
+

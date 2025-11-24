@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build script for metal_sw, including its kernel
+# Build script for sw_search_metal, including its kernel
 # Exit on error
 set -e
 
@@ -30,10 +30,10 @@ xcrun -sdk macosx metal -c c_src/sw.metal -o bin/sw.air \
     -D THREADS=$THREADS -D UNROLL=$UNROLL
 xcrun -sdk macosx metallib bin/sw.air -o bin/sw.metallib
 
-echo "--- Compiling C Code (metal_sw) ---"
+echo "--- Compiling C Code (sw_search_metal) ---"
 # -g -fsanitize=address may be useful.
 # -O2 for speed
-clang++ -std=c++17 -O2 -o bin/metal_sw c_src/metal_sw.mm \
+clang++ -std=c++17 -O2 -o bin/sw_search_metal c_src/sw_search_metal.mm \
     -I$HOME/metal-cpp \
     -D THREADS=$THREADS -D UNROLL=$UNROLL \
     -framework Foundation -framework Metal -framework QuartzCore
@@ -42,5 +42,5 @@ echo "--- Compiling C++ Tree Builder ---"
 clang++ -std=c++17 -O2 -o bin/tree_builder_cpp c_src/tree_builder.cpp
 
 echo "--- Compilation Successful ---"
-echo "To run: ./bin/metal_sw"
+echo "To run: ./bin/sw_search_metal"
 echo "To run: ./bin/tree_builder_cpp"
