@@ -186,7 +186,7 @@ async def get_sequence(identifier: str):
 @app.get("/")
 async def read_root():
     """Serve the main index page."""
-    return FileResponse(PROJECT_ROOT / 'static/match_explorer.html')
+    return FileResponse(PROJECT_ROOT / 'static/job_management.html')
 
 @app.get("/jobs")
 async def read_jobs():
@@ -222,6 +222,12 @@ async def stream_data():
         stream_file(str(filepath)),
         media_type="text/plain"
     )
+
+@app.get("/{page}")
+async def read_page(page: str):
+    """Serve the main index page."""
+    return FileResponse(PROJECT_ROOT / f'static/{page}')
+
 
 if __name__ == "__main__":
     import uvicorn

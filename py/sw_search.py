@@ -438,7 +438,7 @@ class CommandRunner:
 
 def run_sw_search(
     job,
-    debug_slot: int = -1,
+    debug_slot: int = -10,
     reporting_threshold: int = 110,
     start_at: int = 0,
     num_seqs: int = 1,
