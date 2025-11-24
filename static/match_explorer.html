@@ -192,6 +192,37 @@
             border: 1px solid var(--accent-primary);
         }
 
+        .copy-button {
+            background: rgba(255, 153, 102, 0.2);
+            color: var(--accent-primary);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'Work Sans', sans-serif;
+            border: 1px solid var(--accent-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .copy-button:hover {
+            background: rgba(255, 153, 102, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 153, 102, 0.3);
+        }
+
+        .copy-button:active {
+            transform: translateY(0);
+        }
+
+        .copy-button.copied {
+            background: rgba(153, 204, 255, 0.2);
+            color: var(--accent-success);
+            border-color: var(--accent-success);
+        }
+
         .findings-list {
             flex: 1;
             overflow-y: auto;
@@ -483,7 +514,10 @@
         <div class="panel alignment-panel">
             <div class="panel-header">
                 <div class="panel-title">Alignment Visualization</div>
-                <div class="panel-badge" id="alignmentBadge">—</div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button class="copy-button" id="copyAlignmentBtn" onclick="copyAlignment()">Copy Alignment</button>
+                    <div class="panel-badge" id="alignmentBadge">—</div>
+                </div>
             </div>
             <div class="alignment-viewer-container" id="alignmentViewer">
                 <div class="empty-state">
@@ -904,6 +938,37 @@
             isLoadingSequence = false;
         }
 
+        // Copy alignment to clipboard
+        function copyAlignment() {
+            const alignmentViewer = document.getElementById('alignmentViewer');
+            const copyBtn = document.getElementById('copyAlignmentBtn');
+            
+            // Get the text content from the pre element
+            const preElement = alignmentViewer.querySelector('pre');
+            
+            if (!preElement || preElement.textContent.includes('No alignment selected') || preElement.textContent.includes('Loading')) {
+                return;
+            }
+            
+            const alignmentText = preElement.textContent;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(alignmentText).then(() => {
+                // Show success feedback
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy alignment:', err);
+            });
+        }
+
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             initializeApp();
@@ -911,5 +976,3 @@
     </script>
 </body>
 </html>
-
-RA   Dodson R.J., Haft D.H., Hickey E.K., Peterson J.D., Umayam L.A., Gill S.R.,
