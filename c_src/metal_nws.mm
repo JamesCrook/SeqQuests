@@ -115,7 +115,7 @@ int main(int argc, char * argv[]) {
 }
 
 void parse_arguments(int argc, char* argv[], AppSettings* settings) {
-    settings->debug_slot = -1;
+    settings->debug_slot = -10;
     settings->reporting_threshold = 110;
     settings->start_at = 0;
     settings->num_seqs = 1;
@@ -225,8 +225,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
     int pos[THREADS] = {0};
     int pos_reported[THREADS] = {0};
-    int seqno[THREADS], seqno_reported[THREADS], first_hit[THREADS], last_hit[THREADS];
-    for(int i=0; i<THREADS; ++i) seqno[i] = seqno_reported[i] = first_hit[i] = last_hit[i] = -1;
+    int seqno[THREADS], seqno_to_report[THREADS], first_hit[THREADS], last_hit[THREADS];
+    for(int i=0; i<THREADS; ++i) seqno[i] = seqno_to_report[i] = first_hit[i] = last_hit[i] = -1;
 
     int seq = -1;
     bool more_data = true;
@@ -234,10 +234,12 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     int step = -1;
     int finds = 0;
 
+    int seqChar = 0;
     while(more_data) {
         @autoreleasepool {        
             step++;
             more_data = false;
+
 
             for (int i = 0; i < THREADS; ++i) {
                 for (int j = 0; j < UNROLL; j++){
@@ -252,6 +254,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                         if (seq < data_manager->num_fasta_records) {
                             pos[i] = 0;
                             seqno[i] = seq;
+                            if( seqno_to_report[i]==-1)
+                                seqno_to_report[i] = seq;
                         } else {
                             seqno[i] = -2;
                             continue;
@@ -292,14 +296,20 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
             }
 
             for (int i = 0; i < THREADS; ++i) {
-                if(i == settings->debug_slot) {
-                    // ... debug output ...
-                }
 
-                if(seqno_reported[i] == -1) seqno_reported[i] = seqno[i];
+                //if(seqno_to_report[i] == -1) seqno_to_report[i] = seqno[i];
+
 
                 for (int j = 0; j < UNROLL; j++){
-                    if(seqno_reported[i] == -2) continue;
+                    if(seqno_to_report[i] == -2) continue;
+                    if(seqno_to_report[i] == settings->debug_slot) {
+                        int16_t scoret1 = final_max[(i * UNROLL +j) * 2 ];
+                        int16_t scoret2 = final_max[(i * UNROLL +j) * 2 + 1];
+                        char aminoAcid = '@'+aa_data[i*UNROLL+j];
+                        printf( "Seq:%d %c i:%d j:%d t1:%d t2:%d\n",seqno_to_report[i], aminoAcid, seqChar, j, scoret1, scoret2);
+                        seqChar++;
+                        // ... debug output ...
+                    }
 
                     // score here is max for this column...
                     int16_t score = final_max[(i * UNROLL +j) * 2];
@@ -314,17 +324,20 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                         score = final_max[(i * UNROLL +j) * 2 + 1];
                         if (score >= settings->reporting_threshold) {
                             if( settings->machine_output ){
-                                printf("HIT:%d,%d,%d,%d,%d\n", query, seqno_reported[i], score, first_hit[i],last_hit[i]-first_hit[i] );
+                                printf("HIT:%d,%d,%d,%d,%d\n", query, seqno_to_report[i], score, first_hit[i],last_hit[i]-first_hit[i] );
                             }
                             else {
                                 printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
-                                    step, seqno_reported[i], data_manager->fasta_records[seqno_reported[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_reported[i]].description);
+                                    step, seqno_to_report[i], data_manager->fasta_records[seqno_to_report[i]].sequence_len - 1, score, data_manager->fasta_records[seqno_to_report[i]].description);
                             }
                             if(settings->slow_output) usleep(100000);
                             finds++;
                         }
                         final_max[(i * UNROLL +j)* 2 + 1] = 0;
-                        seqno_reported[i] = seqno[i];
+                        if( seqno_to_report[i] == seqno[i] )
+                            seqno_to_report[i] = -1;
+                        else
+                            seqno_to_report[i] = seqno[i];
                         pos_reported[i] = 0;
                         first_hit[i] = -1;
                         last_hit[i] = -1;// not actually required.
