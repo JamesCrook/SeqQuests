@@ -11,7 +11,10 @@ import sys
 import json
 import subprocess
 import os
+from pathlib import Path
 import sequences
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 class MaxSpanningTree:
     def __init__(self, num_nodes):
@@ -445,7 +448,8 @@ def run_cpp_tree_builder(input_file, num_nodes=None):
     """Run the C++ implementation and return a MaxSpanningTreeArrays object."""
     temp_json = "temp_tree_output.json"
 
-    cmd = ["../bin/tree_builder_cpp", "-i", input_file, "-o", temp_json]
+    executable = PROJECT_ROOT / "bin/tree_builder_cpp"
+    cmd = [str(executable), "-i", input_file, "-o", temp_json]
     if num_nodes is not None:
         cmd.extend(["-n", str(num_nodes)])
 
@@ -526,8 +530,11 @@ Examples:
         """
     )
     
-    parser.add_argument('-i', '--input', default="../sw_results/results.csv", help='Input CSV file with links (query_seq,target_seq,score,location,length)')
-    parser.add_argument('-o', '--output', default="../sw_results/tree.txt",
+    default_input = PROJECT_ROOT / "sw_results/results.csv"
+    default_output = PROJECT_ROOT / "sw_results/tree.txt"
+
+    parser.add_argument('-i', '--input', default=str(default_input), help='Input CSV file with links (query_seq,target_seq,score,location,length)')
+    parser.add_argument('-o', '--output', default=str(default_output),
                        help='Output file for ASCII tree')
     parser.add_argument('-n', '--nodes', type=int, default=None,
                        help='Number of nodes (proteins). If not specified, will be auto-detected from input file.')
@@ -569,7 +576,8 @@ Examples:
         print(f"  Links rejected: {tree.links_rejected}")
         print(f"\nWriting ASCII tree to {args.output}...")
     
-    with open("../sw_results/finds.txt", 'w') as f:
+    finds_file = PROJECT_ROOT / "sw_results/finds.txt"
+    with open(finds_file, 'w') as f:
         tree.report_twilight(f)
     tree.write_ascii_tree(args.output, args.threshold)
     

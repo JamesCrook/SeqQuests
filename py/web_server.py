@@ -24,6 +24,9 @@ Through the website so exposed we can start, configure, stop and monitor jobs.
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Determine project root
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 app = FastAPI()
 
 # Add CORS middleware to allow all origins
@@ -35,11 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-FINDINGS_FILE = Path("./sw_results/finds.txt")  # Path to your main results file
+FINDINGS_FILE = PROJECT_ROOT / "sw_results" / "finds.txt"  # Path to your main results file
 
 
 # Mount static files directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 
 # Global job manager
 job_manager = JobManager()
@@ -183,17 +186,17 @@ async def get_sequence(identifier: str):
 @app.get("/")
 async def read_root():
     """Serve the main index page."""
-    return FileResponse('static/match_explorer.html')
+    return FileResponse(PROJECT_ROOT / 'static/match_explorer.html')
 
 @app.get("/jobs")
 async def read_jobs():
     """Serve the job selection page."""
-    return FileResponse('static/jobs.html')
+    return FileResponse(PROJECT_ROOT / 'static/jobs.html')
 
 @app.get("/config/{job_type}")
 async def get_config_page(job_type: str):
     """Serve the configuration page for a given job type."""
-    page_path = f'static/config_{job_type}.html'
+    page_path = PROJECT_ROOT / f'static/config_{job_type}.html'
     try:
         return FileResponse(page_path)
     except RuntimeError:
@@ -214,10 +217,9 @@ async def stream_file(filepath: str, chunk_size: int = 8192):
 # Provides an API to the links data as a stream of data  
 @app.get("/stream-data")
 async def stream_data():
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filepath = os.path.join(project_root, 'sw_results', 'results.csv')
+    filepath = PROJECT_ROOT / 'sw_results' / 'results.csv'
     return StreamingResponse(
-        stream_file(filepath),
+        stream_file(str(filepath)),
         media_type="text/plain"
     )
 

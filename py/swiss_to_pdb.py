@@ -1,11 +1,13 @@
 import requests
 import os
+from pathlib import Path
 from Bio.PDB import PDBParser
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 # Cache directory to avoid re-downloading 150k structures
-PDB_CACHE_DIR = "./pdb_cache"
-if not os.path.exists(PDB_CACHE_DIR):
-    os.makedirs(PDB_CACHE_DIR)
+PDB_CACHE_DIR = PROJECT_ROOT / "pdb_cache"
+PDB_CACHE_DIR.mkdir(exist_ok=True)
 
 def get_alphafold_atoms(uniprot_id, aligned_indices):
     """
@@ -20,11 +22,11 @@ def get_alphafold_atoms(uniprot_id, aligned_indices):
     # 1. Construct Path & URL
     # Note: v4 is current best practice. 'F1' covers 98% of proteins.
     pdb_filename = f"AF-{uniprot_id}-F1-model_v4.pdb"
-    local_path = os.path.join(PDB_CACHE_DIR, pdb_filename)
+    local_path = PDB_CACHE_DIR / pdb_filename
     url = f"https://alphafold.ebi.ac.uk/files/{pdb_filename}"
 
     # 2. Fetch if missing
-    if not os.path.exists(local_path):
+    if not local_path.exists():
         print(f"Fetching {uniprot_id}...")
         response = requests.get(url)
         if response.status_code == 200:
@@ -37,7 +39,7 @@ def get_alphafold_atoms(uniprot_id, aligned_indices):
 
     # 3. Parse PDB
     parser = PDBParser(QUIET=True)
-    structure = parser.get_structure(uniprot_id, local_path)
+    structure = parser.get_structure(uniprot_id, str(local_path))
     model = structure[0] # AlphaFold structures only have 1 model
     chain = model['A']   # AlphaFold structures only have Chain A
     

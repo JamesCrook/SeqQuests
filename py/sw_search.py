@@ -12,6 +12,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 """
 CommandRunner is a wrapper for a command. It invokes the command capturing the output via a pty
@@ -28,7 +29,12 @@ class SWRunner:
                  output_dir="sw_results",
                  flush_interval=60):  # Seconds between flushes
         
+        # If output_dir is relative, make it relative to PROJECT_ROOT
+        # If it's absolute, use it as is.
         self.output_dir = Path(output_dir)
+        if not self.output_dir.is_absolute():
+             self.output_dir = PROJECT_ROOT / self.output_dir
+
         self.output_dir.mkdir(exist_ok=True)
         
         self.flush_interval = flush_interval
@@ -151,8 +157,10 @@ class SWRunner:
         print(f"{'='*70}\n")
         
         # Build command for continuous run
+        executable_path = PROJECT_ROOT / "bin/metal_sw"
+
         cmd = [
-            "./bin/metal_sw",
+            str(executable_path),
             "--start_at", str(start_seq),
             "--num_seqs", str(num_sequences - start_seq),
             "--reporting_threshold", "110"
@@ -279,6 +287,7 @@ class CommandRunner:
             stdout=slave_fd,
             stderr=slave_fd,
             stdin=subprocess.PIPE,
+            cwd=str(PROJECT_ROOT),
             close_fds=True
         )
 
@@ -434,22 +443,31 @@ def run_sw_search(
     start_at: int = 0,
     num_seqs: int = 1,
     slow_output: bool = False,
-    pam_data: str = "c_src/pam250.bin",
-    fasta_data: str = "c_src/fasta.bin",
+    pam_data: str = "./c_src/pam250.bin",
+    fasta_data: str = "./c_src/fasta.bin",
 ):
     """
     This function wraps the metal_sw.mm executable and monitor its output.
     """
-    executable_path = "./bin/metal_sw"
+    executable_path = PROJECT_ROOT / "bin/metal_sw"
+
+    # Resolve data paths relative to project root if they are relative
+    pam_path = Path(pam_data)
+    if not pam_path.is_absolute():
+        pam_path = PROJECT_ROOT / pam_path
+
+    fasta_path = Path(fasta_data)
+    if not fasta_path.is_absolute():
+        fasta_path = PROJECT_ROOT / fasta_path
 
     args = [
-        executable_path,
+        str(executable_path),
         "--debug_slot", str(debug_slot),
         "--reporting_threshold", str(reporting_threshold),
         "--start_at", str(start_at),
         "--num_seqs", str(num_seqs),
-        "--pam_data", pam_data,
-        "--fasta_data", fasta_data,
+        "--pam_data", str(pam_path),
+        "--fasta_data", str(fasta_path),
     ]
     if slow_output:
         args.append("--slow_output")
