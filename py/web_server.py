@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from job_manager import JobManager, JOB_TYPES
 import sequences
-import seq_align
+import nws_align
 import os
 from pathlib import Path
 
@@ -153,7 +153,7 @@ async def get_findings():
 async def get_sequence_alignment(id1: str, id2: str):
     s1 = sequences.get_protein( int(id1) )
     s2 = sequences.get_protein( int(id2) )
-    alignment = seq_align.align_local_swissprot( s1.full.sequence, s2.full.sequence)
+    alignment = nws_align.align_local_swissprot( s1.full.sequence, s2.full.sequence)
 
     parts = alignment['visual_text'].split('\n')
     return {
@@ -211,6 +211,7 @@ async def stream_file(filepath: str, chunk_size: int = 8192):
             # Optional: allow other tasks to run
             await asyncio.sleep(0)
 
+# Provides an API to the links data as a stream of data  
 @app.get("/stream-data")
 async def stream_data():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -219,7 +220,6 @@ async def stream_data():
         stream_file(filepath),
         media_type="text/plain"
     )
-
 
 if __name__ == "__main__":
     import uvicorn

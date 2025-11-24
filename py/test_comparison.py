@@ -7,7 +7,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'py'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'metal'))
 
-from seq_align import align_local_swissprot
+from nws_align import align_local_swissprot
 import pam_converter
 from metal_nws import nws_step
 
@@ -22,16 +22,16 @@ seq2 = 'MKGAIVSASLTDVRQPIAHWHSLTVEECHQQLDAHRNGLTAEVAADRLALYGPNELVEQAGRSPLQILWDQF
 comment2 = '969-602 s(118) P0DX24-P13750 Length: 366/359 [...skipped 4 uncharacterized] 969: 3-beta-hydroxysteroid dehydrogenase {ECO:0000303|PubMed:35108497}; Mycolicibacterium neoaurum (Mycobacterium neoaurum). 602: Patr class I histocompatibility antigen, B-1 alpha chain; Pan troglodytes (Chimpanzee).'
 
 
-def run_seq_align_test():
-    print("--- Running seq_align.py test (Standard Biopython PAM250) ---")
+def run_nws_align_test():
+    print("--- Running nws_align.py test (Standard Biopython PAM250) ---")
     data = align_local_swissprot(seq1, seq2)
     if data:
         print(f"Alignment Score: {data['score']}")
     else:
         print("No alignment found")
 
-def run_seq_align_test_blosum62():
-    print("--- Running seq_align.py test (Biopython BLOSUM62) ---")
+def run_nws_align_test_blosum62():
+    print("--- Running nws_align.py test (Biopython BLOSUM62) ---")
     try:
         data = align_local_swissprot(seq1, seq2, weights="BLOSUM62")
         if data:
@@ -41,11 +41,11 @@ def run_seq_align_test_blosum62():
     except Exception as e:
         print(f"Failed to run BLOSUM62: {e}")
 
-def run_seq_align_test_custom_rounded():
-    print("--- Running seq_align.py test (Custom Rounded PAM250) ---")
+def run_nws_align_test_custom_rounded():
+    print("--- Running nws_align.py test (Custom Rounded PAM250) ---")
     pam_32x32, aa_letters = pam_converter.convert_pam_to_32x32()
 
-    # Adapt 32x32 array to dictionary expected by seq_align
+    # Adapt 32x32 array to dictionary expected by nws_align
     # The matrix should be indexable by [char_a][char_b]
 
     class CustomMatrix:
@@ -142,7 +142,7 @@ def run_metal_proxy_test():
     print(f"Metal Proxy Score: {final_max[1]}") # final_max[thread*2+1] is the max score
 
 if __name__ == "__main__":
-    run_seq_align_test()
-    run_seq_align_test_blosum62()
-    run_seq_align_test_custom_rounded()
+    run_nws_align_test()
+    run_nws_align_test_blosum62()
+    run_nws_align_test_custom_rounded()
     run_metal_proxy_test()

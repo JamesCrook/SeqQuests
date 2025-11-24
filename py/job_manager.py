@@ -179,17 +179,38 @@ JOB_TYPES = [
         "id": "computation",
         "display_name": "Computation",
         "class": ComputationJob,
+        "help": "A dummy computational job for testing the jobs framework",
     },
     {
         "id": "data_munging",
         "display_name": "Data Munging",
         "class": DataMungingJob,
+        "help": "Job to create a filtered dataset. You configure what to filter. It does not yet write any files and is just for testing.",
     },
     {
         "id": "nws_search",
         "display_name": "NWS Search",
         "class": NwsSearchJob,
+        "help": "Performs a full all-on-all swissprot to swissprot protein comparison, producing a csv file with high scoring links.",
     },
+#    {
+#        "id": "tree_builder",
+#        "display_name": "Tree Builder",
+#        "class": TreeBuilderJob,
+#        "help": "Takes the high scoring links file and produces a maximal scoring tree of protein similarities. This is a massive data reduction O(N^2) -> O(N), keeping the best links between families of similar proteins. The retained lower scoring links may not be significant.",
+#    },
+#    {
+#        "id": "prepare_binary_data",
+#        "display_name": "Make Binary Data",
+#        "class": BinaryDataJob,
+#        "help": "A preparation step before nws searching, makes binary versions of PAM data and fastA data.",
+#    },
+#    {
+#        "id": "check_fasta_data",
+#        "display_name": "Is FastA OK",
+#        "class": FastACheckJob,
+#        "help": "Checks that the items in the FastA database correspond to the items in the SwissProt database."
+#    },
 ]
 
 class JobManager:

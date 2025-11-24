@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <map>
 
+// This is a C++ translation of tree_builder.py
+
 class MaxSpanningTree {
 public:
     int num_nodes;
@@ -385,86 +387,92 @@ void write_json(std::ostream& out, MaxSpanningTree& tree) {
     out << "}\n";
 }
 
-int main(int argc, char* argv[]) {
+struct AppSettings {
     std::string input_file;
     std::string output_file;
-    int num_nodes = -1;
+    int num_nodes;
+};
 
+void parse_arguments(int argc, char* argv[], AppSettings* settings) {
+    settings->input_file = "";
+    settings->output_file = "";
+    settings->num_nodes = -1;
+    
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "-i" && i + 1 < argc) {
-            input_file = argv[++i];
+            settings->input_file = argv[++i];
         } else if (arg == "-o" && i + 1 < argc) {
-            output_file = argv[++i];
+            settings->output_file = argv[++i];
         } else if (arg == "-n" && i + 1 < argc) {
-            num_nodes = std::stoi(argv[++i]);
+            settings->num_nodes = std::stoi(argv[++i]);
         }
     }
+}
 
-    if (input_file.empty() || output_file.empty()) {
+int main(int argc, char* argv[]) {
+    AppSettings settings;
+    parse_arguments(argc, argv, &settings);
+    
+    if (settings.input_file.empty() || settings.output_file.empty()) {
         std::cerr << "Usage: " << argv[0] << " -i <input_csv> -o <output_json> [-n <num_nodes>]" << std::endl;
         return 1;
     }
-
-    if (num_nodes == -1) {
+    
+    if (settings.num_nodes == -1) {
         std::cout << "Scanning for max node ID..." << std::endl;
-        num_nodes = scan_for_max_node_id(input_file) + 1;
-        std::cout << "Detected " << num_nodes << " nodes." << std::endl;
+        settings.num_nodes = scan_for_max_node_id(settings.input_file) + 1;
+        std::cout << "Detected " << settings.num_nodes << " nodes." << std::endl;
     }
-
-    MaxSpanningTree tree(num_nodes);
-
-    std::cout << "Processing " << input_file << "..." << std::endl;
-    std::ifstream infile(input_file);
+    
+    MaxSpanningTree tree(settings.num_nodes);
+    std::cout << "Processing " << settings.input_file << "..." << std::endl;
+    
+    std::ifstream infile(settings.input_file);
     if (!infile.is_open()) {
         std::cerr << "Error opening input file" << std::endl;
         return 1;
     }
-
+    
     std::string line;
     // Skip header
     if (!std::getline(infile, line)) return 0;
-
+    
     int old_query = -1;
     while (std::getline(infile, line)) {
         std::stringstream ss(line);
         std::string segment;
         std::vector<std::string> parts;
-
         while (std::getline(ss, segment, ',')) {
             parts.push_back(segment);
         }
-
         if (parts.size() < 5) continue;
-
+        
         try {
             int query = std::stoi(parts[0]);
             int target = std::stoi(parts[1]);
             int score = std::stoi(parts[2]);
             int location = std::stoi(parts[3]);
             int length = std::stoi(parts[4]);
-
+            
             if (query != old_query) {
                 old_query = query;
                 if (query % 1000 == 0) {
                     std::cout << "addlink: " << query << "\t" << target << std::endl;
                 }
             }
-
-            if (query >= num_nodes || target >= num_nodes) continue;
-
+            
+            if (query >= settings.num_nodes || target >= settings.num_nodes) continue;
             tree.add_link(query, target, score, score, location, length);
-
         } catch (const std::exception& e) {
             continue;
         }
     }
-
-    std::cout << "Writing JSON to " << output_file << "..." << std::endl;
-    std::ofstream outfile(output_file);
+    
+    std::cout << "Writing JSON to " << settings.output_file << "..." << std::endl;
+    std::ofstream outfile(settings.output_file);
     write_json(outfile, tree);
-
     std::cout << "Done." << std::endl;
-
+    
     return 0;
 }

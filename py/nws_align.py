@@ -1,6 +1,7 @@
 from Bio.Align import substitution_matrices
 import numpy as np
 
+
 def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250"):
     """
     Performs a Local Smith-Waterman alignment using a custom implementation.

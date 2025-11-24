@@ -4,7 +4,7 @@ The `web_server.py` script launches a web-based user interface for managing and 
 
 ## Core Functionality
 
-The web server acts as a central control panel for `data_munger` and `nws_search`. It allows users to create, configure, and monitor the progress of these jobs through the web interface.
+The web server acts as a central control panel for biosequence jobs. It allows users to create, configure, and monitor the progress of these jobs through the web interface.
 
 -   **Configure:** Each job type has a configuration page where users can set and view parameters.
 -   **Start:** Initiates a configured job.
@@ -22,4 +22,4 @@ The web interface provides two levels of detail for monitoring job progress:
 
 Standard command-line tools accessed through a pipe will buffer their output and only send updates in large, infrequent chunks. This can make the UI unresponsive.
 
-By running the `nws_search` process within a `pty`, the web server can capture its output character-by-character, as it is generated. This avoids delays from buffering multiple lines.
+By running the jobs within a `pty`, the web server can capture its output character-by-character, as it is generated. This avoids delays from buffering multiple lines.

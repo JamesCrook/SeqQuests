@@ -14,9 +14,8 @@ from pathlib import Path
 
 
 """
-This is a wrapper for a command. It invokes the command capturing the output via a pty
+CommandRunner is a wrapper for a command. It invokes the command capturing the output via a pty
 and it reads that output to maintain a status.
-
 
 nws_search is a job for the task runner framework
 
