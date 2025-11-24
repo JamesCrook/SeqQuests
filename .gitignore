@@ -7,10 +7,10 @@ __pycache__/
 .DS_Store
 *.bin
 bin/
-NWS_Metal/
+SW_Metal/
 
 # Project specific data 
-nws_results/
+sw_results/
 
 # C extensions
 *.so

@@ -8,7 +8,7 @@ import logging
 # Import job functions
 from computation import run_computation
 from data_munger import run_data_munging
-from nws_search import run_nws_search
+from sw_search import run_sw_search
 from sequences import read_swissprot_sequences
 
 """
@@ -145,18 +145,18 @@ class DataMungingJob(Job):
         logger.info(f"Data munging job {self.job_id} finished.")
 
 
-class NwsSearchJob(Job):
+class SwSearchJob(Job):
     def __init__(self, job_id: str, manager: 'JobManager'):
-        super().__init__(job_id, "nws_search", manager)
+        super().__init__(job_id, "sw_search", manager)
         self.state.update({
             "output_log": [],
         })
 
     def run(self):
-        logger.info(f"Running NWS search job {self.job_id} with config {self.state['config']}")
+        logger.info(f"Running SW search job {self.job_id} with config {self.state['config']}")
         try:
             config = self.state['config']
-            run_nws_search(
+            run_sw_search(
                 job=self,
                 debug_slot=config.get('debug_slot', -1),
                 reporting_threshold=config.get('reporting_threshold', 110),
@@ -171,7 +171,7 @@ class NwsSearchJob(Job):
         except Exception as e:
             logger.error(f"Job {self.job_id} failed: {e}")
             self.update(status="failed", errors=[str(e)])
-        logger.info(f"NWS search job {self.job_id} finished.")
+        logger.info(f"SW search job {self.job_id} finished.")
 
 
 JOB_TYPES = [
@@ -188,9 +188,9 @@ JOB_TYPES = [
         "help": "Job to create a filtered dataset. You configure what to filter. It does not yet write any files and is just for testing.",
     },
     {
-        "id": "nws_search",
-        "display_name": "NWS Search",
-        "class": NwsSearchJob,
+        "id": "sw_search",
+        "display_name": "Smith-Waterman Search",
+        "class": SwSearchJob,
         "help": "Performs a full all-on-all swissprot to swissprot protein comparison, producing a csv file with high scoring links.",
     },
 #    {
@@ -203,7 +203,7 @@ JOB_TYPES = [
 #        "id": "prepare_binary_data",
 #        "display_name": "Make Binary Data",
 #        "class": BinaryDataJob,
-#        "help": "A preparation step before nws searching, makes binary versions of PAM data and fastA data.",
+#        "help": "A preparation step before sw searching, makes binary versions of PAM data and fastA data.",
 #    },
 #    {
 #        "id": "check_fasta_data",

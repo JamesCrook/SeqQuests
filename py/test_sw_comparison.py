@@ -7,9 +7,9 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'py'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'metal'))
 
-from nws_align import align_local_swissprot
+from sw_align import align_local_swissprot
 import pam_converter
-from metal_nws import nws_step
+from metal_sw import sw_step
 
 comment = '42840-32796 s(299) Q9JLV1-P37278 Length: 577/926 [...skipped 1 uncharacterized and 4 similar names] 42840: BAG family molecular chaperone regulator 3; Mus musculus (Mouse). 32796: Calcium-transporting ATPase; Synechococcus elongatus (strain ATCC 33912 / PCC 7942 / FACHB-805) (Anacystis nidulans R2).'
 
@@ -22,16 +22,16 @@ seq2 = 'MKGAIVSASLTDVRQPIAHWHSLTVEECHQQLDAHRNGLTAEVAADRLALYGPNELVEQAGRSPLQILWDQF
 comment2 = '969-602 s(118) P0DX24-P13750 Length: 366/359 [...skipped 4 uncharacterized] 969: 3-beta-hydroxysteroid dehydrogenase {ECO:0000303|PubMed:35108497}; Mycolicibacterium neoaurum (Mycobacterium neoaurum). 602: Patr class I histocompatibility antigen, B-1 alpha chain; Pan troglodytes (Chimpanzee).'
 
 
-def run_nws_align_test():
-    print("--- Running nws_align.py test (Standard Biopython PAM250) ---")
+def run_sw_align_test():
+    print("--- Running sw_align.py test (Standard Biopython PAM250) ---")
     data = align_local_swissprot(seq1, seq2)
     if data:
         print(f"Alignment Score: {data['score']}")
     else:
         print("No alignment found")
 
-def run_nws_align_test_blosum62():
-    print("--- Running nws_align.py test (Biopython BLOSUM62) ---")
+def run_sw_align_test_blosum62():
+    print("--- Running sw_align.py test (Biopython BLOSUM62) ---")
     try:
         data = align_local_swissprot(seq1, seq2, weights="BLOSUM62")
         if data:
@@ -41,11 +41,11 @@ def run_nws_align_test_blosum62():
     except Exception as e:
         print(f"Failed to run BLOSUM62: {e}")
 
-def run_nws_align_test_custom_rounded():
-    print("--- Running nws_align.py test (Custom Rounded PAM250) ---")
+def run_sw_align_test_custom_rounded():
+    print("--- Running sw_align.py test (Custom Rounded PAM250) ---")
     pam_32x32, aa_letters = pam_converter.convert_pam_to_32x32()
 
-    # Adapt 32x32 array to dictionary expected by nws_align
+    # Adapt 32x32 array to dictionary expected by sw_align
     # The matrix should be indexable by [char_a][char_b]
 
     class CustomMatrix:
@@ -102,7 +102,7 @@ def make_fasta_lut_from_string(sequence, pam_32x32):
     return pam_lut
 
 def run_metal_proxy_test():
-    print("\n--- Running Metal Proxy (nws_step) test ---")
+    print("\n--- Running Metal Proxy (sw_step) test ---")
 
     # 1. Prepare PAM Matrix (Rounded)
     pam_32x32, _ = pam_converter.convert_pam_to_32x32()
@@ -137,12 +137,12 @@ def run_metal_proxy_test():
             curr_out = input_arr
 
         # Run step
-        nws_step(curr_in, curr_out, pam_flat, aa_data, final_max, num_threads, num_rows)
+        sw_step(curr_in, curr_out, pam_flat, aa_data, final_max, num_threads, num_rows)
 
     print(f"Metal Proxy Score: {final_max[1]}") # final_max[thread*2+1] is the max score
 
 if __name__ == "__main__":
-    run_nws_align_test()
-    run_nws_align_test_blosum62()
-    run_nws_align_test_custom_rounded()
+    run_sw_align_test()
+    run_sw_align_test_blosum62()
+    run_sw_align_test_custom_rounded()
     run_metal_proxy_test()

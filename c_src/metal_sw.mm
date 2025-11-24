@@ -154,14 +154,14 @@ bool setup_metal(MetalState* metal_state) {
     printf("Device: %s\n", metal_state->device->name()->utf8String());
 
     NS::Error* error = nullptr;
-    NS::String* library_path = NS::String::string("bin/nws.metallib", NS::UTF8StringEncoding);
+    NS::String* library_path = NS::String::string("bin/sw.metallib", NS::UTF8StringEncoding);
     metal_state->library = metal_state->device->newLibrary(library_path, &error);
     if (!metal_state->library) {
         fprintf(stderr, "Failed to create library: %s\n", error->localizedDescription()->utf8String());
         return false;
     }
 
-    MTL::Function* kernel_function = metal_state->library->newFunction(NS::String::string("nws_step", NS::UTF8StringEncoding));
+    MTL::Function* kernel_function = metal_state->library->newFunction(NS::String::string("sw_step", NS::UTF8StringEncoding));
     metal_state->pipeline = metal_state->device->newComputePipelineState(kernel_function, &error);
     if (!metal_state->pipeline) {
         fprintf(stderr, "Failed to create pipeline state: %s\n", error->localizedDescription()->utf8String());
@@ -216,7 +216,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
 }
 
 void run_search(int query, MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows) {
-    printf("\nRunning NWS steps...\n");
+    printf("\nRunning Smith-Waterman steps...\n");
     auto start = std::chrono::high_resolution_clock::now();
 
     int16_t* aa_data = (int16_t*)metal_state->aa_buffer->contents();

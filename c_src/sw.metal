@@ -9,7 +9,7 @@ using namespace metal;
 #define UNROLL (32)
 #endif
 
-kernel void nws_step(
+kernel void sw_step(
     device const short* input [[buffer(0)]],
     device short* output [[buffer(1)]],
     device short* pam [[buffer(2)]],

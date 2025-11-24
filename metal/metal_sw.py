@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local similarity NWS search, using metal
+Local similarity SW search, using metal
 Uses zero-copy buffers for output.
 
 We prepare a pam look up table, pam_lut for one probe sequence,
@@ -32,11 +32,11 @@ instances running.
 final_max is the per-columen max 
 """
 
-nws_shader_source = """
+sw_shader_source = """
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void nws_step( 
+kernel void sw_step(
     device const short* input [[buffer(0)]],
     device short* output [[buffer(1)]],
     device short* pam [[buffer(2)]],
@@ -79,9 +79,9 @@ kernel void nws_step(
 """
 
 
-def nws_step(input_arr, output_arr, pam, aa, final_max, num_threads, num_rows):
+def sw_step(input_arr, output_arr, pam, aa, final_max, num_threads, num_rows):
     """
-    Python implementation of the nws_step Metal kernel.
+    Python implementation of the sw_step Metal kernel.
     """
     
     input_flat = input_arr.ravel()
@@ -174,7 +174,7 @@ def invoke_pass(queue, pipeline, buffer_input, buffer_output, buffer_pam, buffer
     command_buffer.commit()
     command_buffer.waitUntilCompleted()
 
-# --- NWS (Needleman-Wunsch-Smith) Functions ---
+# --- SW (Smith-Waterman) Functions ---
 def make_metal_buffers(device, threads, rows):
     """Creates and returns a dictionary of Metal buffers and related data."""
     print("\n--- Initializing Metal Buffers ---")
@@ -187,7 +187,7 @@ def make_metal_buffers(device, threads, rows):
     pam_data = np.zeros((rows * 32), dtype=np.int16, order='C')
     aa_data = np.zeros(threads, dtype=np.int16, order='C')
 
-    pipeline = compile_shader(device, nws_shader_source, "nws_step")
+    pipeline = compile_shader(device, sw_shader_source, "sw_step")
     
     buffers = {
         'device': device,
@@ -297,7 +297,7 @@ def yield_aa(threads, aa_data, final_max):
 
 
 def run_metal_steps(all_buffers, threads, rows):
-    """Runs the NWS comparison until we run out of database."""
+    """Runs the SW comparison until we run out of database."""
     device = all_buffers['device']
     pipeline = all_buffers['pipeline']
     buffers = all_buffers['data_buffers']
@@ -317,7 +317,7 @@ def run_metal_steps(all_buffers, threads, rows):
     use_metal = True
     dummy_step = False
 
-    print(f"Running NWS steps...")
+    print(f"Running SW steps...")
     start = time.time()
     step =-1
     work = None
@@ -337,7 +337,7 @@ def run_metal_steps(all_buffers, threads, rows):
                 threads_buffer, rows_buffer, threads
             )
         else :
-            nws_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data, 
+            sw_step(buffc[in_idx], buffc[out_idx], pam_data, aa_data,
                 final_max, threads, rows)
 
     elapsed = time.time() - start

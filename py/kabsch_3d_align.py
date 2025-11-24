@@ -10,7 +10,7 @@ def calculate_superposition(pdb_file_a, pdb_file_b, align_a_indices, align_b_ind
     struct_b = parser.get_structure("B", pdb_file_b)
     
     # Extract CA atoms for the aligned region ONLY
-    # Assumption: You have mapped your NWS alignment to PDB residue numbers
+    # Assumption: You have mapped your SW alignment to PDB residue numbers
     atoms_a = [struct_a[0]['A'][i]['CA'] for i in align_a_indices if 'CA' in struct_a[0]['A'][i]]
     atoms_b = [struct_b[0]['A'][i]['CA'] for i in align_b_indices if 'CA' in struct_b[0]['A'][i]]
     

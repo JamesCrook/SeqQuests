@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from job_manager import JobManager, JOB_TYPES
 import sequences
-import nws_align
+import sw_align
 import os
 from pathlib import Path
 
@@ -35,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-FINDINGS_FILE = Path("./nws_results/finds.txt")  # Path to your main results file
+FINDINGS_FILE = Path("./sw_results/finds.txt")  # Path to your main results file
 
 
 # Mount static files directory
@@ -153,7 +153,7 @@ async def get_findings():
 async def get_sequence_alignment(id1: str, id2: str):
     s1 = sequences.get_protein( int(id1) )
     s2 = sequences.get_protein( int(id2) )
-    alignment = nws_align.align_local_swissprot( s1.full.sequence, s2.full.sequence)
+    alignment = sw_align.align_local_swissprot( s1.full.sequence, s2.full.sequence)
 
     parts = alignment['visual_text'].split('\n')
     return {
@@ -215,7 +215,7 @@ async def stream_file(filepath: str, chunk_size: int = 8192):
 @app.get("/stream-data")
 async def stream_data():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filepath = os.path.join(project_root, 'nws_results', 'results.csv')
+    filepath = os.path.join(project_root, 'sw_results', 'results.csv')
     return StreamingResponse(
         stream_file(filepath),
         media_type="text/plain"

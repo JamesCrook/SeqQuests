@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Prepares binary data files for the C version of the NWS search.
+Prepares binary data files for the C version of the SW search.
 - pam250.bin: A 32x32 int16 matrix.
 - fasta.bin: A sequence of records, each containing the description and sequence.
 """

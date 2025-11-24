@@ -17,15 +17,15 @@ from pathlib import Path
 CommandRunner is a wrapper for a command. It invokes the command capturing the output via a pty
 and it reads that output to maintain a status.
 
-nws_search is a job for the task runner framework
+sw_search is a job for the task runner framework
 
 """
 
 
 
-class NWSRunner:
+class SWRunner:
     def __init__(self, 
-                 output_dir="nws_results",
+                 output_dir="sw_results",
                  flush_interval=60):  # Seconds between flushes
         
         self.output_dir = Path(output_dir)
@@ -143,7 +143,7 @@ class NWSRunner:
             start_seq = self.start_seq
         
         print(f"\n{'='*70}")
-        print(f"NWS Runner Starting")
+        print(f"SW Runner Starting")
         print(f"Starting from sequence: {start_seq}")
         print(f"Total sequences: {num_sequences}")
         print(f"Flush interval: {self.flush_interval}s")
@@ -152,7 +152,7 @@ class NWSRunner:
         
         # Build command for continuous run
         cmd = [
-            "./bin/metal_nws",
+            "./bin/metal_sw",
             "--start_at", str(start_seq),
             "--num_seqs", str(num_sequences - start_seq),
             "--reporting_threshold", "110"
@@ -223,15 +223,15 @@ class NWSRunner:
 def batch_logged():
     import argparse
     
-    parser = argparse.ArgumentParser(description="NWS Runner - Long-running protein search harness")
-    parser.add_argument("--output_dir", default="nws_results", help="Output directory")
+    parser = argparse.ArgumentParser(description="SW Runner - Long-running protein search harness")
+    parser.add_argument("--output_dir", default="sw_results", help="Output directory")
     parser.add_argument("--flush_interval", type=int, default=60, help="Seconds between disk flushes")
     parser.add_argument("--num_sequences", type=int, default=570000, help="Total sequences in database")
     parser.add_argument("--start_at", type=int, help="Override starting sequence (default: auto-detect from last line)")
     
     args = parser.parse_args()
     
-    runner = NWSRunner(
+    runner = SWRunner(
         output_dir=args.output_dir,
         flush_interval=args.flush_interval
     )
@@ -254,7 +254,7 @@ class CommandRunner:
         Initialize the runner with the command to execute.
 
         Args:
-            command: List of command arguments, e.g., ['./bin/metal_nws', 'query.fasta', 'database.fasta']
+            command: List of command arguments, e.g., ['./bin/metal_sw', 'query.fasta', 'database.fasta']
             log_error_callback: Optional callback function for logging errors
         """
         self.command = command
@@ -270,7 +270,7 @@ class CommandRunner:
             logger.error(message)
 
     def start(self):
-        """Start the metal_nws process using a pseudo-terminal for unbuffered output."""
+        """Start the metal_sw process using a pseudo-terminal for unbuffered output."""
         # Create a pseudo-terminal
         self.master_fd, slave_fd = pty.openpty()
 
@@ -427,7 +427,7 @@ class CommandRunner:
         return self.process.poll() if self.process else None
 
 
-def run_nws_search(
+def run_sw_search(
     job,
     debug_slot: int = -1,
     reporting_threshold: int = 110,
@@ -438,9 +438,9 @@ def run_nws_search(
     fasta_data: str = "c_src/fasta.bin",
 ):
     """
-    This function wraps the metal_nws.mm executable and monitor its output.
+    This function wraps the metal_sw.mm executable and monitor its output.
     """
-    executable_path = "./bin/metal_nws"
+    executable_path = "./bin/metal_sw"
 
     args = [
         executable_path,
@@ -491,7 +491,7 @@ def run_nws_search(
 
 
     #if return_code != 0:
-    #    logger.error(f"NWS search job {job.job_id} failed with return code {return_code}")
+    #    logger.error(f"SW search job {job.job_id} failed with return code {return_code}")
     #    job.update(status="failed", errors=[f"Process exited with code {return_code}"])
 
 def main():
@@ -501,7 +501,7 @@ def main():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    #run_nws_search(None)
+    #run_sw_search(None)
     batch_logged()
 
 if __name__ == "__main__":

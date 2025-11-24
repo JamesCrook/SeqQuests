@@ -147,4 +147,5 @@ if __name__ == "__main__":
         print(f"Seq A Indices (0-based): {data['seq_a_indices']}")
         print(f"Seq B Indices (0-based): {data['seq_b_indices']}")
         print(f"Summary: SeqA [{data['range_summary']['seq_a_start']}-{data['range_summary']['seq_a_end']}] "
+              f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}] "
               f"aligns with SeqB [{data['range_summary']['seq_b_start']}-{data['range_summary']['seq_b_end']}]")

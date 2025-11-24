@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build script for metal_nws, including its kernel
+# Build script for metal_sw, including its kernel
 # Exit on error
 set -e
 
@@ -26,14 +26,14 @@ fi
 echo "--- Compiling for $CHIP with THREADS=$THREADS, UNROLL=$UNROLL ---"
 
 echo "--- Compiling Metal Shader ---"
-xcrun -sdk macosx metal -c c_src/nws.metal -o bin/nws.air \
+xcrun -sdk macosx metal -c c_src/sw.metal -o bin/sw.air \
     -D THREADS=$THREADS -D UNROLL=$UNROLL
-xcrun -sdk macosx metallib bin/nws.air -o bin/nws.metallib
+xcrun -sdk macosx metallib bin/sw.air -o bin/sw.metallib
 
-echo "--- Compiling C Code (metal_nws) ---"
+echo "--- Compiling C Code (metal_sw) ---"
 # -g -fsanitize=address may be useful.
 # -O2 for speed
-clang++ -std=c++17 -O2 -o bin/metal_nws c_src/metal_nws.mm \
+clang++ -std=c++17 -O2 -o bin/metal_sw c_src/metal_sw.mm \
     -I$HOME/metal-cpp \
     -D THREADS=$THREADS -D UNROLL=$UNROLL \
     -framework Foundation -framework Metal -framework QuartzCore
@@ -42,5 +42,5 @@ echo "--- Compiling C++ Tree Builder ---"
 clang++ -std=c++17 -O2 -o bin/tree_builder_cpp c_src/tree_builder.cpp
 
 echo "--- Compilation Successful ---"
-echo "To run: ./bin/metal_nws"
+echo "To run: ./bin/metal_sw"
 echo "To run: ./bin/tree_builder_cpp"

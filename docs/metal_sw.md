@@ -1,6 +1,6 @@
-# Metal NWS Searcher
+# Metal SW Searcher
 
-`metal_nws.mm` is a command-line tool that performs a Needleman-Wunsch-Smith (NWS) local sequence alignment search. It is written in Objective-C and utilizes Apple's Metal framework to GPU accelerate search.
+`metal_sw.mm` is a command-line tool that performs a Smith-Waterman (SW) local sequence alignment search. It is written in Objective-C and utilizes Apple's Metal framework to GPU accelerate search.
 
 ## Core Functionality
 
@@ -21,4 +21,4 @@ The search of one query sequence is against a database of sequences. The workloa
 
 ## Kernel Output
 
-The Metal kernel executes the NWS algorithm and, for each database sequence, it returns an array of scores, each thread returning batches of size UNROLL. These scores are the **maximum local alignment score ending at each residue** in the database sequence. Additionally the threads do a running max for sequences in the UNROLLed block, to get the overall max score for each sequence. 
+The Metal kernel executes the SW algorithm and, for each database sequence, it returns an array of scores, each thread returning batches of size UNROLL. These scores are the **maximum local alignment score ending at each residue** in the database sequence. Additionally the threads do a running max for sequences in the UNROLLed block, to get the overall max score for each sequence.

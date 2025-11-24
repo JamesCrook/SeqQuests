@@ -526,8 +526,8 @@ Examples:
         """
     )
     
-    parser.add_argument('-i', '--input', default="../nws_results/results.csv", help='Input CSV file with links (query_seq,target_seq,score,location,length)')
-    parser.add_argument('-o', '--output', default="../nws_results/tree.txt",
+    parser.add_argument('-i', '--input', default="../sw_results/results.csv", help='Input CSV file with links (query_seq,target_seq,score,location,length)')
+    parser.add_argument('-o', '--output', default="../sw_results/tree.txt",
                        help='Output file for ASCII tree')
     parser.add_argument('-n', '--nodes', type=int, default=None,
                        help='Number of nodes (proteins). If not specified, will be auto-detected from input file.')
@@ -569,7 +569,7 @@ Examples:
         print(f"  Links rejected: {tree.links_rejected}")
         print(f"\nWriting ASCII tree to {args.output}...")
     
-    with open("../nws_results/finds.txt", 'w') as f:    
+    with open("../sw_results/finds.txt", 'w') as f:
         tree.report_twilight(f)
     tree.write_ascii_tree(args.output, args.threshold)
     
