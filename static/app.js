@@ -93,7 +93,7 @@ async function removeJob(jobId) {
 function configureJob(show = true) {
   if(!currentJobId || !currentJobType) return;
   const iframe = document.getElementById('config-iframe');
-  iframe.src = `/config/${currentJobType}?job_id=${currentJobId}`;
+  iframe.src = `./config_${currentJobType}?job_id=${currentJobId}`;
   document.getElementById('config-modal').style.display = show ? 'block' :
     'none';
 }

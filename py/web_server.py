@@ -199,7 +199,7 @@ async def read_jobs():
     """Serve the job selection page."""
     return FileResponse(PROJECT_ROOT / 'static/jobs.html')
 
-@app.get("/config/{job_type}")
+@app.get("/config_{job_type}")
 async def get_config_page(job_type: str):
     """Serve the configuration page for a given job type."""
     page_path = PROJECT_ROOT / f'static/config_{job_type}.html'
