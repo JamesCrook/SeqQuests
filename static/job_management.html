@@ -4,6 +4,7 @@
     <title>Job Control Panel</title>
     <link rel="stylesheet" type="text/css" href="./style.css">
     <link rel="icon" href="./wheel.ico">
+    <script src="./lcars.js"></script>
   </head>
   <body>
     <header>
@@ -18,6 +19,7 @@
             <span id="statusText">Checking Connection</span>
         </div>
     </header>
+    <div class="container">
     <div id="controls">
       <button onclick="addJob()">Add Job</button>
       <div id="job-specific-controls" style="display: inline-block;">
@@ -66,6 +68,7 @@
       <div id="log">
       </div>
     </div>
+  </div>
     <div id="config-modal">
       <div id="modal-content">
         <iframe id="config-iframe">
