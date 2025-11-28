@@ -5,6 +5,7 @@
     <link rel="stylesheet" type="text/css" href="./style.css">
     <link rel="icon" href="./wheel.ico">
     <script src="./lcars.js"></script>
+    <script src="./app.js"></script>
   </head>
   <body>
     <header>
@@ -19,65 +20,30 @@
             <span id="statusText">Checking Connection</span>
         </div>
     </header>
-    <div class="container">
-    <div id="controls">
-      <button onclick="addJob()">Add Job</button>
-      <div id="job-specific-controls" style="display: inline-block;">
-        <button id="startButton" onclick="startJob()" disabled="">Start</button>
-        <button id="pauseButton" onclick="pauseJob()" disabled="">Pause</button>
-        <button id="resumeButton" onclick="resumeJob()" disabled="">
-          Resume
-        </button>
-        <button id="configureButton" onclick="configureJob()" disabled="">
-          Configure
-        </button>
-      </div>
+
+    <!-- Main Content Container that will be populated by LCARS -->
+    <div id="main-container" style="height: calc(100vh - 80px); overflow: hidden;">
+        <!-- Placeholder for LCARS content -->
     </div>
-    <div class="panel">
-      <div class="panel-header">
-        <ul>
-          <li><a href="match_explorer.html">Matches</a></li>
-          <li><a href="stream_demo.html">Streaming Demo</a></li>
-        </ul>
-      </div>
-    </div>
-    <div id="pollControl">
-      <label>
-        Poll Interval:
-        <select id="pollInterval" onchange="updatePollInterval()">
-          <option value="0">Manual Only</option>
-          <option value="500">0.5 seconds</option>
-          <option value="1000" selected="">1 second</option>
-          <option value="5000">5 seconds</option>
-          <option value="10000">10 seconds</option>
-        </select>
-      </label>
-      <span id="pollStatus">Polling: Active</span>
-    </div>
-    <div id="main-content">
-      <div id="jobList">
-        <h3>Jobs</h3>
-        <div id="jobs">
-        </div>
-      </div>
-      <div id="job-details">
-      </div>
-    </div>
-    <div id="log-container">
-      <h3>Log</h3>
-      <div id="log">
-      </div>
-    </div>
-  </div>
-    <div id="config-modal">
-      <div id="modal-content">
-        <iframe id="config-iframe">
-        </iframe>
-        <div class="modal-footer">
-            <button onclick="closeModal()">Close</button>
-        </div>
-      </div>
-    </div>
-    <script src="./app.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load the job management partial immediately
+            // Since this IS the job management page, we act as if "Job Queue" command was sent.
+            // But we are not inside an LCARS layout with MainPanel/SubPanel.
+            // This page seems to be a dedicated page.
+            // The user said: "job_management.html... should fetch their actual panel content in much the same way"
+            // And "Ideally Job Queue is wired up to load the main container from job_management.html"
+
+            // To reuse Lcars.loadPartial, we need an ID.
+            // Let's load into #main-container
+            Lcars.loadPartial('main-container', './partials/job_management_content.html', () => {
+                 // Init
+                 if (typeof window.initJobManagement === 'function') {
+                     window.initJobManagement();
+                 }
+            });
+        });
+    </script>
   </body>
 </html>

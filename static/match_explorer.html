@@ -7,6 +7,7 @@
     <link rel="icon" href="./wheel.ico">
     <link rel="stylesheet" type="text/css" href="./style.css">
     <script src="./match_explorer.js"></script>
+    <script src="./lcars.js"></script>
 
 </head>
 <body>
@@ -26,48 +27,13 @@
 
     <div class="container explorer-layout">
         <!-- Top Panel: Alignment View -->
-        <div class="panel alignment-panel" id="TopPanel">
-            <div class="panel-header">
-                <div class="panel-title">Alignment Visualization</div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <button class="copy-button" id="copyAlignmentBtn" onclick="copyAlignment()">Copy Alignment</button>
-                    <div class="panel-badge" id="alignmentBadge">—</div>
-                </div>
-            </div>
-            <div class="alignment-viewer-container" id="alignmentViewer">
-                <div class="empty-state">
-                    <div class="empty-state-icon">╳</div>
-                    <div class="empty-state-text">No alignment selected</div>
-                    <div class="empty-state-subtext">Hover over an entry to view alignment</div>
-                </div>
-            </div>
-        </div>
+        <div id="TopPanel"></div>
 
         <!-- Left Panel: Findings List -->
-        <div class="panel findings-panel" id="LeftPanel">
-            <div class="panel-header">
-                <div class="panel-title">Protein Alignments</div>
-                <div class="panel-badge" id="entriesCount">14 entries</div>
-            </div>
-            <div class="findings-list" id="findingsList">
-                <!-- Findings will be populated here -->
-            </div>
-        </div>
+        <div id="LeftPanel"></div>
 
         <!-- Right Panel: Detail View -->
-        <div class="panel detail-panel-container" id="RightPanel">
-            <div class="panel-header">
-                <div class="panel-title">Sequence Details</div>
-                <div class="panel-badge" id="detailBadge">—</div>
-            </div>
-            <div class="sequence-viewer" id="detailViewer">
-                <div class="empty-state">
-                    <div class="empty-state-icon">◯</div>
-                    <div class="empty-state-text">Select an alignment to view details</div>
-                    <div class="empty-state-subtext">Hover over entries in the left panel to explore sequence data</div>
-                </div>
-            </div>
-        </div>
+        <div id="RightPanel"></div>
     </div>
 
     <script>
@@ -83,7 +49,24 @@
         
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
-            initializeApp();
+            // Load partials using Lcars
+
+            // We load all three.
+            // Note: Lcars.loadPartial is async but we fire them off.
+            // We need to wait for all of them before initializing the logic?
+            // The initializeApp logic binds to elements. It will fail if elements aren't there.
+
+            // Chain the loads or use Promise.all if loadPartial returned a promise (it does).
+
+            Promise.all([
+                Lcars.loadPartial('TopPanel', './partials/alignment_view.html'),
+                Lcars.loadPartial('LeftPanel', './partials/findings_list.html'),
+                Lcars.loadPartial('RightPanel', './partials/detail_view.html')
+            ]).then(() => {
+                if (typeof window.initializeApp === 'function') {
+                    window.initializeApp();
+                }
+            });
         });
     </script>
 </body>

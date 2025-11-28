@@ -1,0 +1,59 @@
+<div class="container" style="max-height: 100%; display: flex; flex-direction: column;">
+  <div id="controls" style="flex: 0 0 auto;">
+    <button onclick="addJob()">Add Job</button>
+    <div id="job-specific-controls" style="display: inline-block;">
+      <button id="startButton" onclick="startJob()" disabled="">Start</button>
+      <button id="pauseButton" onclick="pauseJob()" disabled="">Pause</button>
+      <button id="resumeButton" onclick="resumeJob()" disabled="">
+        Resume
+      </button>
+      <button id="configureButton" onclick="configureJob()" disabled="">
+        Configure
+      </button>
+    </div>
+  </div>
+  <div class="panel" style="flex: 0 0 auto;">
+    <div class="panel-header">
+      <ul>
+        <li><a href="match_explorer.html">Matches</a></li>
+        <li><a href="stream_demo.html">Streaming Demo</a></li>
+      </ul>
+    </div>
+  </div>
+  <div id="pollControl" style="flex: 0 0 auto;">
+    <label>
+      Poll Interval:
+      <select id="pollInterval" onchange="updatePollInterval()">
+        <option value="0">Manual Only</option>
+        <option value="500">0.5 seconds</option>
+        <option value="1000" selected="">1 second</option>
+        <option value="5000">5 seconds</option>
+        <option value="10000">10 seconds</option>
+      </select>
+    </label>
+    <span id="pollStatus">Polling: Active</span>
+  </div>
+  <div id="main-content" style="flex: 1 1 auto; overflow-y: auto;">
+    <div id="jobList">
+      <h3>Jobs</h3>
+      <div id="jobs">
+      </div>
+    </div>
+    <div id="job-details">
+    </div>
+  </div>
+  <div id="log-container" style="flex: 0 0 150px;">
+    <h3>Log</h3>
+    <div id="log">
+    </div>
+  </div>
+  <div id="config-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; background: var(--bg-secondary); padding: 20px; border: 1px solid var(--accent-primary); width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+      <div id="modal-content">
+        <div id="config-container">
+        </div>
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button onclick="closeModal()">Close</button>
+        </div>
+      </div>
+  </div>
+</div>

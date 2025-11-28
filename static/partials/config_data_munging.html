@@ -1,0 +1,84 @@
+<div style="padding: 20px;">
+    <h2>Configure Data Munging Job</h2>
+    <form id="config-form">
+      <label>Select Organisms:</label>
+      <div id="organisms-checkboxes">
+        <label>
+          <input type="checkbox" id="human" name="organisms" value="human">
+          Human
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="rat" name="organisms" value="rat">
+          Rat
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="ecoli" name="organisms" value="ecoli">
+          E. coli
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="yeast" name="organisms" value="yeast">
+          Yeast
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="chicken" name="organisms" value="chicken">
+          Chicken
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="mouse" name="organisms" value="mouse">
+          Mouse
+        </label>
+        <br>
+      </div>
+      <br>
+      <button type="button" onclick="saveConfigMunging()">Save Configuration</button>
+    </form>
+    <hr>
+    <h2>Job Progress</h2>
+    <div id="detailDiv">
+    </div>
+</div>
+<script>
+    window.saveConfigMunging = async function() {
+        const jobId = typeof currentJobId !== 'undefined' ? currentJobId : getJobIdFromUrl();
+        const organisms = ['human', 'rat', 'ecoli', 'yeast', 'chicken', 'mouse'];
+        const selectedOrganisms = organisms.filter(org => document.getElementById(org).checked);
+
+        const config = {
+            organisms: selectedOrganisms
+        };
+
+        try {
+            await apiCall(`/api/job/${jobId}/configure`, 'POST', { config });
+            addLog(`Configuration for job ${jobId} saved.`, 'success');
+            closeModal();
+        } catch (e) {
+            addLog(`Failed to save configuration: ${e}`, 'error');
+        }
+    }
+
+    window.setStatus = function(data) {
+        const detailDiv = document.getElementById('detailDiv');
+        if(!detailDiv) return;
+        let acceptedItemsHtml = '';
+        if (data.last_ten_accepted && data.last_ten_accepted.length > 0) {
+            acceptedItemsHtml = data.last_ten_accepted.map(item => `<li>${item}</li>`).join('');
+        }
+
+        detailDiv.innerHTML = `
+            <p><strong>Sequences Examined:</strong> <span id="sequences-examined">${data.sequences_examined || 0}</span></p>
+            <p><strong>Proteins Processed:</strong> <span id="proteins-processed">${data.proteins_processed || 0}</span></p>
+            <p><strong>Most Recent Item:</strong> <span id="most-recent-item">${data.most_recent_item || '-'}</span></p>
+            <h3>Last Ten Accepted Items:</h3>
+            <ul id="last-ten-accepted">
+                ${acceptedItemsHtml}
+            </ul>
+        `;
+    }
+
+    if (typeof loadJobConfig === 'function') loadJobConfig();
+</script>

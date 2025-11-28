@@ -14,14 +14,40 @@ class LcarsUI {
         if (action == 'Help')
             this.doHelp();
         else if (action == 'Alignment')
-            this.doAlignment()
+            this.doAlignment();
+        else if (action == 'Search Results')
+            this.doSearchResults();
+        else if (action == 'Job Queue')
+            this.doJobQueue();
         else
             alert(`No handler for ${action}`);
     }
 
     setPanel(panel, text) {
         let div = document.getElementById(panel);
+        if (!div) {
+            console.warn(`Panel ${panel} not found.`);
+            return;
+        }
         div.innerHTML = this.asHtml(text);
+
+        // Execute any scripts in the loaded content
+        this.executeScripts(div);
+    }
+
+    executeScripts(container) {
+        const scripts = container.getElementsByTagName('script');
+        for (let i = 0; i < scripts.length; i++) {
+            const script = scripts[i];
+            const newScript = document.createElement('script');
+            if (script.src) {
+                newScript.src = script.src;
+            } else {
+                newScript.textContent = script.textContent;
+            }
+            document.body.appendChild(newScript); // Execute by appending to body
+            // document.body.removeChild(newScript); // Optional cleanup
+        }
     }
 
     setMainPanel(text) {
@@ -30,6 +56,19 @@ class LcarsUI {
 
     setSubPanel(text) {
         this.setPanel('SubPanel', text)
+    }
+
+    async loadPartial(panelId, url, callback) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load ${url}`);
+            const html = await response.text();
+            this.setPanel(panelId, html);
+            if (callback) callback();
+        } catch (e) {
+            console.error(e);
+            this.setPanel(panelId, `Error loading ${url}`);
+        }
     }
 
     async doHelp() {
@@ -70,7 +109,34 @@ class LcarsUI {
     }
 
     doAlignment() {
-        this.setMainPanel("Alignment Coming Soon")
+        this.loadPartial('MainPanel', './partials/alignment_view.html', () => {
+             // Re-initialize match explorer logic if needed, or it might rely on global event handlers
+             // Since we just loaded the structure, if match_explorer.js is loaded, it might need a trigger
+             if (typeof initializeApp === 'function') initializeApp();
+        });
+    }
+
+    doSearchResults() {
+         this.loadPartial('SubPanel', './partials/findings_list.html', () => {
+             // For Findings List, we also rely on match_explorer.js
+             if (typeof initializeApp === 'function') initializeApp();
+         });
+    }
+
+    doJobQueue() {
+        this.loadPartial('MainPanel', './partials/job_management_content.html', async () => {
+             // Init job management
+             if (typeof refreshJobs === 'function') {
+                 // Re-attach event listeners or state if needed.
+                 // app.js has window.addEventListener('load') which ran on page load.
+                 // We need to re-run the initialization logic.
+                 addLog('Job Queue panel loaded');
+                 await refreshJobs();
+                 updatePollInterval();
+                 // Re-select job if one was selected?
+                 if (currentJobId) selectJob(currentJobId, currentJobType);
+             }
+        });
     }
 
     // Do not remove this comment.

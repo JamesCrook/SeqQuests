@@ -1,0 +1,47 @@
+<div style="padding: 20px;">
+    <h2>Configure Computation Job</h2>
+    <form id="configForm">
+      <label for="max_proteins">Max Proteins:</label>
+      <input type="number" id="max_proteins" name="max_proteins" value="100">
+      <br>
+      <label for="use_fast_sw">Use Fast SW:</label>
+      <input type="checkbox" id="use_fast_sw" name="use_fast_sw" checked="">
+      <br>
+      <button type="button" onclick="saveConfigComputation()">Save Configuration</button>
+    </form>
+    <div id="detailDiv">
+    </div>
+</div>
+<script>
+    // Config script logic for Computation Job
+    window.setStatus = function(data) {
+        const detailDiv = document.getElementById('detailDiv');
+        if(!detailDiv) return;
+        detailDiv.innerHTML = `
+            <div class="stat">Proteins: <span id="proteins">${data.total_proteins || 0}</span></div>
+            <div class="stat">Progress: <span id="pairs">${data.processed_pairs || 0}</span> / <span id="totalPairs">${data.total_pairs || 0}</span> pairs</div>
+            <div class="stat">Time: <span id="elapsed">${Math.round(data.elapsed_time || 0)}</span>s</div>
+            <div class="stat">Memory: CPU <span id="cpuMem">${Math.round(data.memory_usage_mb || 0)}</span>MB</div>
+            <div class="stat">Bridges found: <span id="bridges">${data.bridges_found || 0}</span></div>
+        `;
+    }
+
+    window.saveConfigComputation = function() {
+        // Assuming global helper to get Job ID (from app.js or job_monitor.js equivalent)
+        // Since we are not in an iframe, we use currentJobId from app.js
+        const jobId = typeof currentJobId !== 'undefined' ? currentJobId : getJobIdFromUrl();
+        if (!jobId) return;
+
+        const config = {
+            max_proteins: document.getElementById('max_proteins').value,
+            use_fast_sw: document.getElementById('use_fast_sw').checked,
+        };
+
+        apiCall(`/api/job/${jobId}/configure`, 'POST', { config })
+            .then(() => addLog(`Configuration saved for job ${jobId}`))
+            .catch(e => addLog(`Failed to save config: ${e}`, 'error'));
+    }
+
+    // Initialize config values
+    if (typeof loadJobConfig === 'function') loadJobConfig();
+</script>

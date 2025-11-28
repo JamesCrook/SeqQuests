@@ -1,6 +1,11 @@
 function getJobIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('job_id');
+  let id = params.get('job_id');
+  // Fallback to global currentJobId if defined (when not in iframe)
+  if (!id && typeof currentJobId !== 'undefined') {
+      id = currentJobId;
+  }
+  return id;
 }
 
 async function loadJobConfig() {
@@ -8,7 +13,18 @@ async function loadJobConfig() {
   if(!jobId) return;
 
   try {
-    const data = await parent.apiCall(`/api/job/${jobId}/status`);
+    // If running in same window, apiCall is available globally.
+    // If in iframe (legacy), parent.apiCall.
+    // We check availability.
+    const apiCallFn = (typeof apiCall === 'function') ? apiCall : (parent && parent.apiCall ? parent.apiCall : null);
+    const addLogFn = (typeof addLog === 'function') ? addLog : (parent && parent.addLog ? parent.addLog : console.log);
+
+    if (!apiCallFn) {
+        console.error("No apiCall function found.");
+        return;
+    }
+
+    const data = await apiCallFn(`/api/job/${jobId}/status`);
     if(data.config) {
       for(const key in data.config) {
         if(key === 'organisms' && Array.isArray(data.config[key])) {
@@ -31,6 +47,7 @@ async function loadJobConfig() {
       }
     }
   } catch (e) {
-    parent.addLog(`Failed to load config for job ${jobId}: ${e}`, 'error');
+    const addLogFn = (typeof addLog === 'function') ? addLog : (parent && parent.addLog ? parent.addLog : console.log);
+    addLogFn(`Failed to load config for job ${jobId}: ${e}`, 'error');
   }
 }

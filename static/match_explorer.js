@@ -1,5 +1,9 @@
 // API Configuration
 function setConnectionStatus(connected) {
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    if (!statusDot || !statusText) return;
+
     if (connected) {
         statusDot.classList.add('connected');
         statusDot.classList.remove('disconnected');
@@ -182,7 +186,16 @@ let findings = null;
 
 
 // Initialize the application
-async function initializeApp() {
+// Made global so it can be called from lcars.js
+window.initializeApp = async function() {
+    // Check if required elements exist
+    if (!document.getElementById('findingsList')) {
+        // We might be loading just one part, or not loaded yet.
+        // If we are called, it means we likely expect them to be there.
+        // But if we only loaded findingsList (SubPanel) and not Alignment (MainPanel), we shouldn't fail hard.
+        // However, initializeApp tries to populate findings list.
+    }
+
     // Prevent multiple simultaneous initializations
     if (isInitializing) {
         return;
@@ -192,6 +205,7 @@ async function initializeApp() {
     // Connection status management
     statusDot = document.getElementById('statusDot');
     statusText = document.getElementById('statusText');
+
     findings = parseFindings(findingsData);
 
 
@@ -207,17 +221,22 @@ async function initializeApp() {
     const parsedFindings = parseFindings(dataToUse);
 
     // Update entry count
-    document.getElementById('entriesCount').textContent = `${parsedFindings.length} entries`;
+    const entriesCount = document.getElementById('entriesCount');
+    if (entriesCount) {
+        entriesCount.textContent = `${parsedFindings.length} entries`;
+    }
 
     // Populate findings list
     populateFindingsList(parsedFindings);
     
     isInitializing = false;
-}
+};
 
 // Populate findings list
 function populateFindingsList(findingsArray) {
     const findingsList = document.getElementById('findingsList');
+    if (!findingsList) return;
+
     findingsList.innerHTML = '';
     
     findingsArray.forEach((finding, index) => {
@@ -266,9 +285,14 @@ async function loadSequenceDetails(finding, index) {
     const detailBadge = document.getElementById('detailBadge');
     const alignmentBadge = document.getElementById('alignmentBadge');
     
-    // Show loading state
-    detailViewer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading sequence data...</span></div>';
-    alignmentViewer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading alignment...</span></div>';
+    // Check if viewers exist (we might only have one panel loaded)
+
+    if (detailViewer) {
+         detailViewer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading sequence data...</span></div>';
+    }
+    if (alignmentViewer) {
+         alignmentViewer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading alignment...</span></div>';
+    }
     
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -321,8 +345,8 @@ async function loadSequenceDetails(finding, index) {
     const similarity = score ;//((matches / Math.max(seq1.length, seq2.length)) * 100).toFixed(1);
     
     // Update badges
-    detailBadge.textContent = `${similarity}% identity`;
-    alignmentBadge.textContent = `${matches} matches`;
+    if (detailBadge) detailBadge.textContent = `${similarity}% identity`;
+    if (alignmentBadge) alignmentBadge.textContent = `${matches} matches`;
     
     // Build alignment view
     const alignLines = [];
@@ -338,39 +362,43 @@ async function loadSequenceDetails(finding, index) {
         alignLines.push(`        ${chunk2}\n`);
     }
     
-    alignmentViewer.innerHTML = `<pre style="margin: 0; color: var(--text-primary);">${alignLines.join('\n')}</pre>`;
+    if (alignmentViewer) {
+        alignmentViewer.innerHTML = `<pre style="margin: 0; color: var(--text-primary);">${alignLines.join('\n')}</pre>`;
+    }
     
     // Build detail view
-    detailViewer.innerHTML = `
-        <div class="stats-bar">
-            <div class="stat-item">
-                <div class="stat-label">Match Score</div>
-                <div class="stat-value">${finding.header.match(/s\((\d+)\)/)[1]}</div>
+    if (detailViewer) {
+        detailViewer.innerHTML = `
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-label">Match Score</div>
+                    <div class="stat-value">${finding.header.match(/s\((\d+)\)/)[1]}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Identity</div>
+                    <div class="stat-value">${similarity}%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Length 1</div>
+                    <div class="stat-value">${len1}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Length 2</div>
+                    <div class="stat-value">${len2}</div>
+                </div>
             </div>
-            <div class="stat-item">
-                <div class="stat-label">Identity</div>
-                <div class="stat-value">${similarity}%</div>
+
+            <div class="sequence-section">
+                <div class="sequence-label">Sequence 1 (ID: ${id1})</div>
+                <div class="sequence-text">${seq1Details}</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-label">Length 1</div>
-                <div class="stat-value">${len1}</div>
+
+            <div class="sequence-section">
+                <div class="sequence-label">Sequence 2 (ID: ${id2})</div>
+                <div class="sequence-text">${seq2Details}</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-label">Length 2</div>
-                <div class="stat-value">${len2}</div>
-            </div>
-        </div>
-        
-        <div class="sequence-section">
-            <div class="sequence-label">Sequence 1 (ID: ${id1})</div>
-            <div class="sequence-text">${seq1Details}</div>
-        </div>
-        
-        <div class="sequence-section">
-            <div class="sequence-label">Sequence 2 (ID: ${id2})</div>
-            <div class="sequence-text">${seq2Details}</div>
-        </div>
-    `;
+        `;
+    }
     
     // Mark this entry as loaded and clear loading flag
     lastLoadedEntry = index;
@@ -381,6 +409,7 @@ async function loadSequenceDetails(finding, index) {
 function copyAlignment() {
     const alignmentViewer = document.getElementById('alignmentViewer');
     const copyBtn = document.getElementById('copyAlignmentBtn');
+    if (!alignmentViewer || !copyBtn) return;
     
     // Get the text content from the pre element
     const preElement = alignmentViewer.querySelector('pre');
@@ -408,3 +437,7 @@ function copyAlignment() {
     });
 }
 
+// If loaded directly, init
+if (document.querySelector('.explorer-layout')) {
+    window.addEventListener('DOMContentLoaded', window.initializeApp);
+}
