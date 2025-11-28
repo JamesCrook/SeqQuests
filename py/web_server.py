@@ -63,6 +63,22 @@ async def get_job_types():
 
     return [{"id": job["id"], "display_name": job["display_name"]} for job in JOB_TYPES]
 
+
+@app.get("/api/docs")
+async def list_docs():
+    """List available documentation files."""
+    docs_path = PROJECT_ROOT / "static/docs"
+    if not docs_path.exists():
+        return []
+
+    docs = []
+    for file in docs_path.glob("*.md"):
+        docs.append({
+            "name": file.stem.replace("_", " ").title(),
+            "filename": file.name
+        })
+    return sorted(docs, key=lambda x: x['name'])
+
 @app.get("/api/jobs")
 async def list_jobs():
     """List all jobs and their statuses."""
