@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Building Blocks Demo</title>
+    <link rel="icon" href="./wheel.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+    <script src="./lcars.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: black;
+            font-family: 'Oswald', sans-serif;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Panel with sidebars */
+        .panel {
+            display: flex;
+            width: 100%;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 190px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px;
+            color:black;
+        }
+
+        .sidebar.left {
+            order: -1;
+            padding-left: 10px;
+        }
+
+        .sidebar.right {
+            order: 1;
+            padding-right: 10px;
+        }
+
+        .block {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .sssblock {
+            flex: 0.1;
+        }
+        .ssblock {
+            flex: 0.21;
+        }
+        .sblock {
+            flex: 0.43;
+        }
+        .mblock {
+            flex: 1;
+        }
+
+        .lblock {
+            flex: 2;
+        }
+
+        .sidebar.block {
+            width: 170px;
+        }
+
+        .shim{
+            height:6px;
+        }
+        /* Sidebar blocks */
+        .bl {
+            border-bottom-left-radius: 60px; 
+            margin-bottom: -10px;
+        }
+        .br {
+            border-bottom-right-radius: 60px; 
+            margin-bottom: -10px;
+        }
+        .tl {
+            border-top-left-radius: 60px; 
+            margin-top: -10px;
+        }
+        .tr {
+            border-top-right-radius: 60px; 
+            margin-top: -10px;
+        }
+
+        .blp, .blpo {
+            border-bottom-left-radius: 30px; 
+            margin-left: -30px;
+            padding-left: 30px;
+        }
+        .brp, .brpo {
+            border-bottom-right-radius: 30px; 
+            margin-right: -30px;
+        }
+        .tlp, .tlpo {
+            border-top-left-radius: 30px; 
+            margin-left: -30px;
+            padding-left: 60px;
+        }
+        .trp, .trpo {
+            border-top-right-radius: 30px; 
+            margin-right:-30px;
+        }
+
+        .central {
+            display:flex;
+            flex-direction:column;
+            flex:1;
+            padding: 0px;
+            z-index: 3;
+            margin-left:-10px;
+            margin-right:-10px;
+
+        }
+        /* Panel content area */
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            background-color : black;
+        }
+
+        /* Bottom bar */
+        .bar {
+            flex: 0;
+            flex-direction: row;
+
+            height: 60px;
+            width: 100%;
+            background-color: transparent;
+            display: flex;
+            gap: 6px;
+            padding: 0px;
+            position: relative;
+            z-index: 10;
+            color:black;
+        }
+
+        .barbot {
+            display:flex;
+            align-items: flex-end;
+        }
+
+        .bartop {
+            display:flex;
+            align-items: flex-start;
+        }
+
+        /* Bar blocks */
+        .bar.block {
+        }
+
+
+        /* Color classes */
+        .purple { background-color: #9999cc; }
+        .tan { background-color: #ffcc99; }
+        .rust { background-color: #cc6666; }
+        .orange { background-color: #f39c12; }
+        .beige { background-color: #be9a86 }
+
+
+
+        .red { background-color: #e74c3c; }
+        .blue { background-color: #8fc0e0 }
+        .green { background-color: #2ecc71; }
+        .yellow { background-color: #eed071; }
+        .cyan { background-color: #46c6ad }
+        .pink { background-color: #e398bd }
+
+@media (min-width: 1200px) and (min-aspect-ratio: 16/9) {
+    body {
+        flex-direction: row;
+    }
+}
+
+@media (max-width: 680px) {
+  .optional {
+    display: none;
+  }
+}  
+
+@media (max-width: 600px) or (max-aspect-ratio: 2/3) {
+  .optional2 {
+    display: none;
+  }
+    .blpo {
+        border-bottom-left-radius: 0px; 
+        margin-left: 0px;
+        padding-left: 30px;
+    }
+    .brpo {
+        border-bottom-right-radius: 0px; 
+        margin-right: 0px;
+        padding-right: 30px;
+    }
+    .tlpo {
+        border-top-left-radius: 0px; 
+        margin-left: 0px;
+        padding-left: 30px;
+    }
+    .trpo {
+        border-top-right-radius: 0px; 
+        margin-right: 0px;
+        padding-right: 30px;
+    }
+
+} 
+
+@media (max-width: 400px) {
+  .optional4 {
+    display: none;
+  }
+}        
+    </style>
+</head>
+<body>
+    <!-- First Panel -->
+    <div class="panel" style="flex:1.3">
+        <div class="sidebar left optional4">
+            <div class="block tan" data-group="Protein 1">-</div>
+            <div class="block rust" data-group="Map 1">-</div>
+            <div class="block sblock orange bl" data-group="Features">-</div>
+        </div>
+        
+        <div class="central"> 
+            <div class="panel-content blp brpo" id='MainPanel'>
+                <h2>Primary Display Area</h2>
+                <p>This is the main content area of the panel.</p>
+            </div>
+            <div class="bar barbot">
+                <div class="block sblock orange stub" data-group="Features">&nbsp;</div>
+                <div class="block tan" data-group="Alignment">-</div>
+                <div class="block orange" data-group="Protein 2">-</div>
+                <div class="block pink optional" data-group="Dotplot">-</div>
+                <div class="block ssblock purple stub" data-group="Copy">&nbsp;</div>
+            </div>
+        </div>
+        
+        <div class="sidebar right optional2">
+            <div class="block sblock tan" data-group="Alignment">-</div>
+            <div class="block yellow" data-group="Map 2">-</div>
+            <div class="block orange" data-group="Protein 2">-</div>
+            <div class="block purple br" data-group="Copy">-</div>
+        </div>
+    </div>
+    <div class="shim"></div>
+
+    <div class="panel">
+        <div class="sidebar left optional2">
+            <div class="block green tl" data-group="Search Stats">-</div>
+            <div class="block cyan" data-group="Job Queue">-</div>
+            <div class="block purple" data-group="40274c">-</div>
+        </div>
+        
+        <div class="central"> 
+            <div class="bar bartop">
+                <div class="block sssblock green stub" data-group="Search Stats">&nbsp;</div>
+                <div class="block yellow" data-group="Configure">-</div>
+                <div class="block tan optional" data-group="40274b">-</div>
+                <div class="block yellow" data-group="40274d">-</div>
+                <div class="block sblock beige stub" data-group="Help">&nbsp;</div>
+            </div>
+            <div class="panel-content tlpo trp" id='SubPanel'>
+                <h2>Display Configuration Panel</h2>
+                <p>Another panel with sidebars demonstrating the layout system.</p>
+            </div>
+        </div>
+        
+        <div class="sidebar right optional4">
+            <div class="block sblock beige tr" data-group="Help">-</div>
+            <div class="block blue" data-group="Search Results">-</div>
+            <div class="block mblock green" data-group="Credits">-</div>
+        </div>
+    </div>
+
+    <script>
+        const lighten = (hex, amt = 40) => {
+            const num = parseInt(hex.slice(1), 16);
+            const r = Math.min(255, (num >> 16) + amt);
+            const g = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+            const b = Math.min(255, (num & 0x0000FF) + amt);
+            return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+        };
+
+        const blocks = new Map();
+        document.querySelectorAll('.block[data-group]').forEach(el => {
+            const group = el.dataset.group;
+
+            // We could highlight all blocks of the same group (i.e. command) together, 
+            // However it is a cooler look if we highlight all blcoks of the same colour
+            const rgbArray = getComputedStyle(el).backgroundColor.match(/\d+/g).map(Number);
+            const colorKey = rgbArray.join(','); 
+
+            if (!blocks.has(colorKey)) blocks.set(colorKey, []);
+            
+            blocks.get(colorKey).push({
+                el,
+                orig: rgbArray 
+            });
+            el.onclick = Lcars.doCommand;
+            if( group ){
+                if (!el.classList.contains('stub'))
+                    el.innerText = group;
+            }
+        });
+
+        blocks.forEach(group => {
+            const hex = `#${group[0].orig.map(x => x.toString(16).padStart(2, '0')).join('')}`;
+            const hover = lighten(hex);
+            group.forEach(({el, orig}) => {
+                el.addEventListener('mouseenter', () => 
+                    group.forEach(({el}) => el.style.backgroundColor = hover));
+                el.addEventListener('mouseleave', () => 
+                    group.forEach(({el, orig}) => el.style.backgroundColor = ''));
+            });
+        });
+    </script>
+</body>
+</html>

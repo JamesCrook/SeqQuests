@@ -4,15 +4,15 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 
 
 ## Script and UI
-* The code is designed to be used both as scripts with a purely textual UI, and also via web UI interfaces. Web UI is optional, but it is generally useful when browsing results or monitoring progress.
-  * Wrappers over text UI can give give better more interactive progress indicators than the raw text scripts, for example tracking 'best so far' from a stream of results.
-  * An HTML wrappers over search results can cross reference sequence IDs to sequence metadata and dynamically present alignments corresponding to a particular find.
+* The code is designed to be used both as scripts with a purely textual input and output, and also via web UI interfaces. Web UI is optional, but it is generally useful when browsing results or monitoring progress.
+  * Wrappers over text UI can give give interactive progress indicators, for example tracking 'best so far' from a stream of results.
+  * The underlying search engine works in terms of sequence numbers. The Web UI can cross reference sequence IDs to sequence metadata and dynamically present alignments corresponding to a particular find.
 
 ## Python, C++ and Metal
 * Most of the algorithms exist in a python version with sometimes C++ direct equivalents where speed is required.
-  * LLMs can generate and debug python more rapidly than C++ and can easily call on the vast range of pre built python modules.
-  * C++ versions, including arg parsing, can be direct translations of custom algorithms that need to run fast. Often these will take pre-prepared binary data as their database input, rather than read from text files.
-  * Metal versions (which LLMs that don't have metal won't run/debug) exist for the long-running code that needs the greatest speed.
+  * LLMs can generate and debug python more rapidly than C++. In python I can easily call on the vast range of pre built python modules.
+  * C++ versions, including arg parsing, can be direct translations of core algorithms that need to run fast. These take pre-prepared indexed data as their database input, rather than read from text files.
+  * Metal versions exist for the long-running code that needs the greatest speed.
 
 ## 1. Core Applications
 
@@ -20,7 +20,7 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 **Entry Point:** `python py/web_server.py` (Run from project root)
 **URL:** `http://localhost:8000` (Default)
 **Status:** Mature
-**Description:** A FastAPI-based web server wrapper that provides a dashboard for managing analysis jobs. It allows you to configure and run Data Munging (conversions of file formats for speed or making subsets), Computation (Tree Building from search results), and Sequence Search jobs (long running all-on-all sequence comparisons).
+**Description:** A FastAPI-based web server that provides a dashboard for managing analysis jobs. It allows you to configure and run Data Munging (conversions of file formats for speed or making subsets), Computation (Tree Building from search results), and Sequence Search jobs (long running all-on-all sequence comparisons).
 
 The UI allows multiple simultaneous jobs to be run, paused, resumed. Users can connect to the running jobs display from a remote machine and view the configuration parameters that were used for a job.
 
@@ -76,17 +76,7 @@ Contains the frontend code (HTML/JS) for the dashboard.
 *   `monitor.css`: Styles specific to the job monitor interface.
 *   `stream.js`: Handles streaming output from jobs.
 
-## 5. System Architecture
-
-1.  **User** interacts with **Web Dashboard**.
-2.  **Web Server** creates a **Job** via **Job Manager**.
-3.  **Job** runs a specific script or executable:
-    *   *Search Job* -> Wraps `bin/sw_search_metal`.
-    *   *Computation Job* -> Runs `py/tree_builder.py`.
-    *   *Data Job* -> Runs `py/data_munger.py`.
-4.  **Results** are monitored via the Dashboard.
-
-## 6. Setup & Compilation
+## 5. Setup & Compilation
 
 *   **Compile Native Code:** Run `./compile.sh` to build `bin/sw_search_metal` and `bin/tree_builder_cpp`.
 *   **Python Path:** Ensure `PYTHONPATH` includes the `py/` directory (e.g., `PYTHONPATH=py python py/web_server.py`).
