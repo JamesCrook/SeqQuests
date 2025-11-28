@@ -63,6 +63,7 @@ typedef struct {
     int reporting_threshold;
     int start_at;
     int num_seqs;
+    bool all_recs;
     bool machine_output;
     bool slow_output;
     const char* pam_data_file;
@@ -147,6 +148,7 @@ void parse_arguments(int argc, char* argv[], AppSettings* settings) {
     settings->reporting_threshold = 110;
     settings->start_at = 0;
     settings->num_seqs = 1;
+    settings->all_recs = false;
     settings->machine_output = true;
     settings->slow_output = false;
     settings->pam_data_file = "c_src/pam250.bin";
@@ -161,6 +163,8 @@ void parse_arguments(int argc, char* argv[], AppSettings* settings) {
             settings->start_at = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--num_seqs") == 0 && i + 1 < argc) {
             settings->num_seqs = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--all_recs") == 0) {
+            settings->all_recs = true;
         } else if (strcmp(argv[i], "--slow_output") == 0) {
             settings->slow_output = true;
         } else if (strcmp(argv[i], "--machine_output") == 0) {
@@ -243,6 +247,17 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     return true;
 }
 
+// True if we should skip this sequence
+bool skip_sequence( const DataManager* data_manager, int query, int seq, const AppSettings* settings ){
+    if( seq >= data_manager->num_fasta_records)
+        return false;
+    if( data_manager->fasta_records[seq].sequence_len < (UNROLL+4))
+        return true;
+    if( settings->all_recs)
+        return false;
+    return seq < query;
+}
+
 void run_search(int query, MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows) {
     printf("\nRunning Smith-Waterman steps...\n");
     auto start = std::chrono::high_resolution_clock::now();
@@ -257,6 +272,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     for(int i=0; i<THREADS; ++i) seqno[i] = seqno_to_report[i] = first_hit[i] = last_hit[i] = -1;
 
     int seq = -1;
+    if( !settings->all_recs)
+        seq = query-1;
     bool more_data = true;
     bool do_search = true;
     int step = -1;
@@ -276,7 +293,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                     bool seqDone = (seqno[i] == -1 || pos[i] >= data_manager->fasta_records[seqno[i]].sequence_len);
                     if(seqDone) {
                         seq++;
-                        while (seq < data_manager->num_fasta_records && data_manager->fasta_records[seq].sequence_len < (UNROLL+4)) {
+                        while (skip_sequence( data_manager, query, seq, settings )) {
                             seq++;
                         }
                         if (seq < data_manager->num_fasta_records) {
