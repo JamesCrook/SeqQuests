@@ -9,6 +9,7 @@ from pathlib import Path
 import time
 from collections import OrderedDict
 from types import SimpleNamespace
+import threading
 
 """
 Utilities for efficient access to sequence data.
@@ -280,6 +281,48 @@ def get_data_path(original_filename):
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(project_root, 'data', original_filename)
 
+
+class DataManager:
+    """
+    Singleton-like class to manage sequence caches.
+    This replaces global variables with a centralized manager.
+    """
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(DataManager, cls).__new__(cls)
+                    cls._instance._fasta_cache = None
+                    cls._instance._swissprot_cache = None
+        return cls._instance
+
+    def reset(self):
+        """Reset caches - useful for testing"""
+        self._fasta_cache = None
+        self._swissprot_cache = None
+
+    def get_fasta_cache(self):
+        if self._fasta_cache is None:
+            filepath = get_data_path('swissprot.fasta.txt')
+            self._fasta_cache = PickledSequenceCache(filepath).load_with_cache('fasta')
+        return self._fasta_cache
+
+    def get_swissprot_cache(self, file_format='swiss_index'):
+        if self._swissprot_cache is None:
+            filepath = get_data_path('swissprot.dat.txt')
+            if file_format == 'swiss_index':
+                self._swissprot_cache = SwissIndexCache(filepath).load_with_cache(file_format)
+            else:
+                self._swissprot_cache = PickledSequenceCache(filepath).load_with_cache(file_format)
+        return self._swissprot_cache
+
+
+# Convenience wrapper functions to maintain backward compatibility
+# but use the DataManager instance.
+
 def read_fasta_sequences_direct():
     """
     Reads sequences from the swissprot.fasta.txt file, yielding them one by one.
@@ -292,37 +335,20 @@ def read_fasta_sequences_direct():
     except FileNotFoundError:
         print(f"Error: {filepath} not found.")
 
-_fasta_cache = None
-_swissprot_cache = None
 
 def read_fasta_sequences():
     """
     Cached version - loads once, then yields from cache.
     Returns tuples of (seq_id, sequence_string) instead of SeqIO.Record objects.
     """
-    global _fasta_cache
-    
-    if _fasta_cache is None:
-        filepath = get_data_path('swissprot.fasta.txt')
-        _fasta_cache = PickledSequenceCache(filepath).load_with_cache('fasta')
-    
-    return _fasta_cache.iter_records()
+    return DataManager().get_fasta_cache().iter_records()
 
 def read_swissprot_sequences(file_format='swiss_index'):
     """
     Cached version - loads once, then yields from cache.
     Returns tuples of (seq_id, sequence_string) instead of SeqIO.Record objects.
     """
-    global _swissprot_cache
-
-    if _swissprot_cache is None:
-        filepath = get_data_path('swissprot.dat.txt')
-        if file_format == 'swiss_index':
-            _swissprot_cache = SwissIndexCache(filepath).load_with_cache(file_format)
-        else:
-            _swissprot_cache = PickledSequenceCache(filepath).load_with_cache(file_format)
-
-    return _swissprot_cache
+    return DataManager().get_swissprot_cache(file_format)
 
 def get_sequence_by_identifier(identifier, db_name='swissprot'):
     """
@@ -354,11 +380,7 @@ def benchmark():
     print(f"Execution time: {elapsed:.4f} seconds")
 
 def get_protein( number ):
-    global _swissprot_cache
-    if _swissprot_cache == None:
-        cache = read_swissprot_sequences(file_format='swiss_index')
-        _swissprot_cache = cache
-    cache = _swissprot_cache
+    cache = DataManager().get_swissprot_cache(file_format='swiss_index')
     record = cache.get_record_by_index(number)
 
     pattern = r"RecName:\s*Full=([^;]+)"
@@ -383,8 +405,7 @@ def test_swiss_index_access():
     """
     Tests the SwissIndexCache by accessing records by index and ID.
     """
-    global _swissprot_cache
-    _swissprot_cache = None
+    DataManager().reset()
     print("Testing SwissIndexCache access...")
     cache = read_swissprot_sequences(file_format='swiss_index')
 

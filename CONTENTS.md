@@ -76,7 +76,7 @@ Typically this program is run iterating over all sequences in a database, to get
 
 *   **`c_src/sw_search_metal.mm`**: The production C++/Metal implementation of the search algorithm.
 *   **`c_src/sw.metal`**: The Metal shader kernel code.
-*   **`metal/sw_search_metal.py`**: **Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
+*   **`dev/dev_sw_search_metal.py`**: **Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
 
 ## 4. Web Interface (`static/`)
 
@@ -100,4 +100,3 @@ User facing documentation
 ## 7.  Setup & Compilation
 
 *   **Compile Native Code:** Run `./compile.sh` to build `bin/sw_search_metal` and `bin/tree_builder_cpp`.
-*   **Python Path:** Ensure `PYTHONPATH` includes the `py/` directory (e.g., `PYTHONPATH=py python py/web_server.py`).

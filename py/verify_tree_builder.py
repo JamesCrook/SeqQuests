@@ -3,6 +3,7 @@ import os
 import csv
 from types import SimpleNamespace
 import difflib
+import sequences
 
 # Mock sequences module
 class MockSequences:
@@ -15,7 +16,11 @@ class MockSequences:
         return ns
 
 # Inject mock into sys.modules so tree_builder imports it
-sys.modules['sequences'] = MockSequences()
+# sys.modules['sequences'] = MockSequences()
+
+# Monkey patch sequences.get_protein which is imported by tree_builder
+sequences.get_protein = MockSequences().get_protein
+
 
 import tree_builder
 
@@ -23,11 +28,10 @@ import tree_builder
 """
 Tree Builder Implementation Validator - Cross-validates MST construction algorithms.
 
-This tool compares three implementations of the Minimum Spanning Tree builder
+This tool compares implementations of the Minimum Spanning Tree builder
 to ensure they produce identical results:
-1. Legacy Python implementation (original algorithm)
-2. Array-based Python implementation (optimized for performance)
-3. C++ implementation (compiled for speed)
+1. Python implementation (optimized for performance)
+2. C++ implementation (compiled for speed)
 
 Test cases include:
 - Graphs with cycles (ensures cycle-breaking logic is correct)
@@ -35,7 +39,7 @@ Test cases include:
 - Sparse graphs (verifies optimization for unused node IDs)
 
 Usage:
-    python validation/verify_tree_builder.py
+    python py/verify_tree_builder.py
 
 When to run:
 - After modifying tree building logic in tree_builder.py or tree_builder.cpp
@@ -49,7 +53,6 @@ Validation approach:
 - Checks twilight node reports match across implementations
 
 Why multiple implementations?
-- Python (legacy): Reference implementation, easiest to reason about
 - Python (array): Optimized but still verifiable
 - C++: Production speed, verified against Python versions
 
@@ -97,7 +100,6 @@ def create_sparse_links(filename):
 
 def run_test():
     input_file = "test_links_temp.csv"
-    output_file_orig = "test_tree_orig.txt"
     output_file_py = "test_tree_py.txt"
     output_file_cpp = "test_tree_cpp.txt"
     report_py = "test_report_py.txt"
@@ -107,11 +109,7 @@ def run_test():
     print("--- Test 1: Verification of Tree Logic ---")
     create_test_links(input_file)
 
-    print("Running legacy process_links_file_legacy...")
-    tree_orig = tree_builder.process_links_file_legacy(input_file, 6)
-    tree_orig.write_ascii_tree(output_file_orig)
-
-    print("\nRunning Python array-based process_links_file...")
+    print("Running Python array-based process_links_file...")
     tree_py = tree_builder.process_links_file(input_file, 6)
     tree_py.write_ascii_tree(output_file_py)
     with open(report_py, 'w') as f:
@@ -130,20 +128,6 @@ def run_test():
 
     # Compare output files
     success = True
-
-    # Check Python Array vs Original
-    with open(output_file_orig, 'r') as f1, open(output_file_py, 'r') as f2:
-        content_orig = f1.readlines()
-        content_py = f2.readlines()
-
-    diff = list(difflib.unified_diff(content_orig, content_py, fromfile='Original', tofile='PythonArray'))
-    if diff:
-        print("\nFAILURE: Python Array vs Legacy ASCII Tree files differ:")
-        for line in diff:
-            print(line, end='')
-        success = False
-    else:
-        print("Python Array vs Legacy match.")
 
     # Check C++ vs Python Array
     if cpp_ran:
@@ -208,6 +192,14 @@ def run_test():
     # Clean up
     if os.path.exists(input_file):
         os.remove(input_file)
+    if os.path.exists(output_file_py):
+        os.remove(output_file_py)
+    if os.path.exists(output_file_cpp):
+        os.remove(output_file_cpp)
+    if os.path.exists(report_py):
+        os.remove(report_py)
+    if os.path.exists(report_cpp):
+        os.remove(report_cpp)
 
 if __name__ == "__main__":
     run_test()
