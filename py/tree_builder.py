@@ -548,13 +548,10 @@ Examples:
     args = parser.parse_args()
 
     if args.test:
-        print("No arguments provided. Running test with test_links2.txt...\n")
-        # Since we don't have test_links2.txt here, we can't really run this test unless we create dummy data.
-        # But the instruction is just to wire up --test.
-        # I'll simulate what happens in the 'if len(sys.argv) == 1' block from before,
-        # but robustly.
+        """This is expected not to find the links file, and report test skipped"""
+        print("No arguments provided. Running test with test_links.txt...\n")
         try:
-             tree = process_links_file("test_links2.txt", num_nodes=6)
+             tree = process_links_file("test_links.txt", num_nodes=6)
              print(f"Statistics:")
              print(f"  Links processed: {tree.links_processed}")
              print(f"  Links added: {tree.links_added}")
@@ -563,7 +560,7 @@ Examples:
              tree.write_ascii_tree("test_tree.txt")
              print("Done! Check test_tree.txt")
         except FileNotFoundError:
-            print("Test file test_links2.txt not found. Test stub passed.")
+            print("Test file test_links.txt not found. Testing skipped.")
         return
     
     if args.cpp:

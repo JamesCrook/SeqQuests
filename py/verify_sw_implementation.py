@@ -11,6 +11,41 @@ from sw_align import align_local_swissprot
 import pam_converter
 from sw_search_metal import sw_step
 
+
+"""
+Smith-Waterman Implementation Validator - Cross-validates multiple SW implementations.
+
+This tool runs the same protein alignment using four different implementations
+to verify numerical correctness, particularly around the PAM250 matrix conversion
+to 32×32 integer format used by the Metal kernel.
+
+Implementations compared:
+1. Pure Python with Biopython's standard PAM250 matrix
+2. Pure Python with BLOSUM62 (demonstrates flexibility)
+3. Pure Python with custom rounded PAM250 (matches Metal kernel format)
+4. Metal proxy (Python code that mimics Metal kernel logic)
+
+Usage:
+    python validation/verify_sw_implementations.py
+
+When to run:
+- After modifying PAM matrix conversion logic (pam_converter.py)
+- After changing Metal kernel alignment code (sw.metal)
+- When investigating score discrepancies
+- Before committing changes to core alignment algorithms
+
+Scientific ground truth:
+Uses real protein sequences with known alignment scores. Score discrepancies
+are preserved as comments for investigation (e.g., "only scores 41, not 118").
+
+This is numerical verification across implementations, not pass/fail testing.
+Discrepancies indicate bugs in conversion logic or algorithm implementation.
+
+Key validation: Ensures the integer rounding and 32×32 matrix transformation
+doesn't introduce significant scoring errors compared to standard implementations.
+"""
+
+
 comment = '42840-32796 s(299) Q9JLV1-P37278 Length: 577/926 [...skipped 1 uncharacterized and 4 similar names] 42840: BAG family molecular chaperone regulator 3; Mus musculus (Mouse). 32796: Calcium-transporting ATPase; Synechococcus elongatus (strain ATCC 33912 / PCC 7942 / FACHB-805) (Anacystis nidulans R2).'
 
 seq1 = 'MSAATQSPMMQMASGNGASDRDPLPPGWEIKIDPQTGWPFFVDHNSRTTTWNDPRVPPEGPKDTASSANGPSRDGSRLLPIREGHPIYPQLRPGYIPIPVLHEGSENRQPHLFHAYSQPGVQRFRTEAAAATPQRSQSPLRGGMTEAAQTDKQCGQMPATATTAAAQPPTAHGPERSQSPAASDCSSSSSSASLPSSGRSSLGSHQLPRGYIPIPVIHEQNITRPAAQPSFHQAQKTHYPAQQGEYQPQQPVYHKIQGDDWEPRPLRAASPFRSPVRGASSREGSPARSGTPVHCPSPIRVHTVVDRPQPMTHREPPPVTQPENKPESKPGPAGPDLPPGHIPIQVIRREADSKPVSQKSPPPAEKVEVKVSSAPIPCPSPSPAPSAVPSPPKNVAAEQKAAPSPAPAEPAAPKSGEAETPPKHPGVLKVEAILEKVQGLEQAVDSFEGKKTDKKYLMIEEYLTKELLALDSVDPEGRADVRQARRDGVRKVQTILEKLEQKAIDVPGQVQVYELQPSNLEAEQPLQEIMGAVVADKDKKGPENKDPQTESQQLEAKAATPPNPSNPADSAGNLVAP'

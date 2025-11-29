@@ -122,13 +122,6 @@ class SequenceCache:
             for rec in self.seq_list
         ]
 
-    def iter_sequences(self):
-        """Iterate over (seq_id, sequence) tuples - DEPRECATED, use iter_records()"""
-        for record in self.seq_list:
-            seq_id = record.accessions[0] if hasattr(record, 'accessions') and record.accessions else record.id
-            seq_data = record.sequence if hasattr(record, 'sequence') else record.seq
-            yield (seq_id, bytes(seq_data))
-
     def iter_records(self):
         """Iterate over record objects"""
         yield from self.seq_list

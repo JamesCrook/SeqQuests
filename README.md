@@ -17,14 +17,17 @@ SeqQuests provides:
 /
 ├── c_src/       # C and Metal source code for accelerated computations.
 ├── data/        # Small sample data files for development (not full data files)
-├── metal/       # Python version of metal code, now superseded by the /c-src versions
 ├── py/          # Python source code for the application logic and web server.
-├── specs/       # Project specification (for robots and AI to read).
-├── static/      # Static assets for the web interface (HTML, CSS, JavaScript).
-│   └── docs/    # End user documentation
-└── test/        # Test scripts and resources.
+├── specs/       # Project specification (for AI assistants to read).
+└── static/      # Static assets for the web interface (HTML, CSS, JavaScript).
+    └── docs/    # End user documentation
 ```
 
 C++/Objective-C provides accelerated versions of code that needs to be fast.
 
 The web UI uses API-endpoints provided by a FastAPI web server. The web UI falls back to using static files and sample data if the API endpoint is not available.
+
+
+## For AI Assistants
+See `/specs/test_strategy.md` for testing philosophy.
+See `/specs/specs.md` for general coding approach.

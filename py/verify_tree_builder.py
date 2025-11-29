@@ -19,6 +19,44 @@ sys.modules['sequences'] = MockSequences()
 
 import tree_builder
 
+
+"""
+Tree Builder Implementation Validator - Cross-validates MST construction algorithms.
+
+This tool compares three implementations of the Minimum Spanning Tree builder
+to ensure they produce identical results:
+1. Legacy Python implementation (original algorithm)
+2. Array-based Python implementation (optimized for performance)
+3. C++ implementation (compiled for speed)
+
+Test cases include:
+- Graphs with cycles (ensures cycle-breaking logic is correct)
+- Graphs with weak links (tests edge replacement strategy)
+- Sparse graphs (verifies optimization for unused node IDs)
+
+Usage:
+    python validation/verify_tree_builder.py
+
+When to run:
+- After modifying tree building logic in tree_builder.py or tree_builder.cpp
+- After changing edge replacement strategy
+- Before processing large link files (verify algorithm correctness)
+
+Validation approach:
+- Uses crafted test graphs with known challenging cases (cycles, sparse nodes)
+- Compares ASCII tree output using difflib (shows exact divergences)
+- Verifies C++ implementation returns precomputed data structures
+- Checks twilight node reports match across implementations
+
+Why multiple implementations?
+- Python (legacy): Reference implementation, easiest to reason about
+- Python (array): Optimized but still verifiable
+- C++: Production speed, verified against Python versions
+
+This catches bugs where optimizations change behavior, or where C++ translation
+doesn't match Python logic.
+"""
+
 def create_test_links(filename):
     # Create a set of links that form cycles and require replacement
     # Nodes: 0, 1, 2, 3, 4, 5

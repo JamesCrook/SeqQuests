@@ -18,6 +18,31 @@ if str(script_dir) not in sys.path:
 import sequences
 
 """
+Data Integrity Validator - Cross-references Swiss-Prot and FASTA data sources.
+
+This tool streams through both the Swiss-Prot database and the derived FASTA files
+to verify that the data preparation pipeline has correctly extracted and formatted
+protein sequences. It compares:
+- Accession numbers (ensuring sequence IDs match)
+- Actual sequences (ensuring no corruption during conversion)
+
+Usage:
+    python validation/check_fasta_integrity.py
+    python validation/check_fasta_integrity.py --test
+
+When to run:
+- After regenerating FASTA files from new Swiss-Prot data
+- When investigating potential data mismatch or corruption (an integrity error
+could cause that)
+
+This is not a pass/fail test but a data quality assurance tool. It reports
+mismatches with context so you can investigate discrepancies.
+
+Performance note: Uses streaming iterators to handle 570K+ sequences without
+loading everything into memory.
+"""
+
+"""
 The 'integrity' we are checking here is that the reduced FastA formatted version of the 
 protein database matches the SwissProt data base on accession numbers and sequences.
 """
