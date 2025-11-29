@@ -10,11 +10,14 @@ import sys
 import os
 import struct
 
-# Add the ../py directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'py'))
-
-import pam_converter as pam
-import sequences
+# Correctly import modules from the same directory
+try:
+    import pam_converter as pam
+    import sequences
+except ImportError:
+    # If running from another directory, ensure PYTHONPATH is correct or use relative imports
+    import py.pam_converter as pam
+    import py.sequences as sequences
 
 def create_pam_binary():
     """Generates pam250.bin"""
@@ -51,7 +54,8 @@ def create_fasta_binary():
             if isinstance(record.seq, bytes):
                 sequence = record.seq + b'@'
             else:
-                sequence = (record.seq + '@').encode('latin-1')
+                # biopython Seq objects are not strings, convert to str first
+                sequence = (str(record.seq) + '@').encode('latin-1')
 
             # Write description length and data
             f.write(struct.pack('<I', len(description)))
