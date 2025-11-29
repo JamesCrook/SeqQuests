@@ -203,7 +203,7 @@ async def get_sequence(identifier: str):
 @app.get("/")
 async def read_root():
     """Serve the main index page."""
-    return FileResponse(PROJECT_ROOT / 'static/job_management.html')
+    return FileResponse(PROJECT_ROOT / 'static/lcars.html')
 
 @app.get("/favicon.ico")
 async def read_favicon():

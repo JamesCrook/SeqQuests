@@ -1,16 +1,20 @@
 # Project Contents and User Guide
 
-This suite of tools is designed for protein sequence analysis, specifically focusing on high-performance local similarity comparisons (Smith-Waterman) and phylogenetic tree construction using Swiss-Prot data.
-
+This suite of tools is designed for protein sequence analysis, specifically focusing on a pipeline for all-on-all Swiss-Prot sequence comparison. It has a high-performance local similarity comparisons (Smith-Waterman), reduction of the results using a maximum scoring tree, and then interactive exploratory analysis of those reduced results.
 
 ## Script and UI
-* The code is designed to be used both as scripts with a purely textual input and output, and also via web UI interfaces. Web UI is optional, but it is generally useful when browsing results or monitoring progress.
+* The code is designed to be used both as scripts with a purely textual input and output, and also via web UI interfaces. Web UI is optional, but it is generally useful when browsing results or monitoring progress of search.
   * Wrappers over text UI can give give interactive progress indicators, for example tracking 'best so far' from a stream of results.
-  * The underlying search engine works in terms of sequence numbers. The Web UI can cross reference sequence IDs to sequence metadata and dynamically present alignments corresponding to a particular find.
+  * The underlying search engine works in terms of sequence numbers. The Web UI cross references sequence IDs to sequence metadata and dynamically present alignments corresponding to a particular find.
+
+## AI Relevance
+* The code has been written with some LLM assistance, and is designed to factorise into independently analysable components. 
+* LLMs have been instrumental in transforming code between different formats, python, C++, metal, Javascript.
+* The search console reformats finds as queries to an LLM, "Please provide more background on these two proteins. Why would these be similar? Is their similarity unexpected?" that can be pasted into the LLM for comment.
 
 ## Python, C++ and Metal
 * Most of the algorithms exist in a python version with sometimes C++ direct equivalents where speed is required.
-  * LLMs can generate and debug python more rapidly than C++. In python I can easily call on the vast range of pre built python modules.
+  * LLMs can generate and debug python more rapidly than C++. In python I can easily call on the vast range of pre built python modules. I keep the C++ more bare bones.
   * C++ versions, including arg parsing, can be direct translations of core algorithms that need to run fast. These take pre-prepared indexed data as their database input, rather than read from text files.
   * Metal versions exist for the long-running code that needs the greatest speed.
 
@@ -20,9 +24,20 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 **Entry Point:** `python py/web_server.py` (Run from project root)
 **URL:** `http://localhost:8000` (Default)
 **Status:** Mature
-**Description:** A FastAPI-based web server that provides a dashboard for managing analysis jobs. It allows you to configure and run Data Munging (conversions of file formats for speed or making subsets), Computation (Tree Building from search results), and Sequence Search jobs (long running all-on-all sequence comparisons).
+**Description:** A FastAPI-based web server that provides an API for protein analysis work. 
 
-The UI allows multiple simultaneous jobs to be run, paused, resumed. Users can connect to the running jobs display from a remote machine and view the configuration parameters that were used for a job.
+### Web UI
+**Entry Point:** `static/lcars.html`
+**Entry Point:** `static/job_management.html`
+**Entry Point:** `static/match_explorer.html`
+**Status:** Mature
+**Description:** These provide front ends to the sequence analysis software. 
+
+job_management maintains an active jobs list. It allows you to configure and run Data Munging (conversions of file formats for speed or making subsets), Computation (Tree Building from search results), and Sequence Search jobs (long running all-on-all sequence comparisons). This UI allows multiple simultaneous jobs to be run, paused, resumed. Users can connect to the running jobs display from a remote machine and view the configuration parameters that were used for a job.
+
+match_explorer is for active exploring results of the all-on-all reduced results. It displays finds, showing more information about pairs of proteins, including alignments and dotplots.
+
+lcars is an overall management console which integrates and reuses the panels of job_management and match_explorer. It also provides help information.
 
 ### Sequence Search (SW)
 **Executable:** `bin/sw_search_metal` (Compiled from `c_src/sw_search_metal.mm`)
@@ -76,7 +91,13 @@ Contains the frontend code (HTML/JS) for the dashboard.
 *   `monitor.css`: Styles specific to the job monitor interface.
 *   `stream.js`: Handles streaming output from jobs.
 
-## 5. Setup & Compilation
+## 5. Web Interface Panels (`static/partials`)
+Chunks of HTML that typically provide panels for use within the dashboards.
+
+## 6. Web Interface (`static/docs`)
+User facing documentation
+
+## 7.  Setup & Compilation
 
 *   **Compile Native Code:** Run `./compile.sh` to build `bin/sw_search_metal` and `bin/tree_builder_cpp`.
 *   **Python Path:** Ensure `PYTHONPATH` includes the `py/` directory (e.g., `PYTHONPATH=py python py/web_server.py`).
