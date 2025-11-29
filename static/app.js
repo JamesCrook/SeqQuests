@@ -40,7 +40,12 @@ async function apiCall(url, method = 'GET', body = null) {
 
 // --- Job Management ---
 async function addJob() {
-  window.location.href = '/jobs';
+  const configContainer = document.getElementById('config-container');
+  if (!configContainer) return;
+
+  Lcars.loadPartial('config-container', './partials/jobs.html', () => {
+    document.getElementById('config-modal').style.display = 'block';
+  });
 }
 
 async function startJob() {
@@ -107,6 +112,7 @@ function configureJob(show = true) {
 
           // Re-execute scripts logic is handled by Lcars.loadPartial.
           document.getElementById('config-modal').style.display = 'block';
+          pollJobStatus();
       });
   } else {
       // Just update visibility if we were just toggling or something, but usually show=true when clicking configure

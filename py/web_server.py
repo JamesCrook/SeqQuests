@@ -210,10 +210,6 @@ async def read_favicon():
     """Serve the job selection page."""
     return FileResponse(PROJECT_ROOT / 'static/wheel.ico')
 
-@app.get("/jobs")
-async def read_jobs():
-    """Serve the job selection page."""
-    return FileResponse(PROJECT_ROOT / 'static/jobs.html')
 
 @app.get("/partials/{file}")
 async def read_partials( file ):
