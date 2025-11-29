@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSS Building Blocks Demo</title>
+    <title>SeqQuest Management Console</title>
     <link rel="icon" href="./wheel.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -286,7 +286,7 @@
             </div>
             <div class="panel-content tlpo trp" id='SubPanel'>
                 <h2>Display Configuration Panel</h2>
-                <p>Another panel with sidebars demonstrating the layout system.</p>
+                <p>Another panel with sidebars.</p>
             </div>
         </div>
         
@@ -296,6 +296,15 @@
             <div class="block mblock green" data-group="Credits">-</div>
         </div>
     </div>
+    <div id="config-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; background: var(--bg-secondary); padding: 20px; border: 1px solid var(--accent-primary); width: 80%; max-width: 800px; max-height: 80vh;">
+        <div id="modal-content">
+          <div id="config-container" style="min-height:0px;">
+          </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 20px;">
+            <button onclick="closeModal()">Close</button>
+        </div>
+    </div>    
 
     <script>
         const lighten = (hex, amt = 40) => {

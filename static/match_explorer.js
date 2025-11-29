@@ -183,6 +183,7 @@ function parseFindings(data) {
 let statusDot = null;
 let statusText = null;
 let findings = null;
+let isInitializing = false;
 
 
 // Initialize the application
@@ -202,34 +203,42 @@ window.initializeApp = async function() {
     }
     isInitializing = true;
 
-    // Connection status management
-    statusDot = document.getElementById('statusDot');
-    statusText = document.getElementById('statusText');
+    try{
+        // Connection status management
+        statusDot = document.getElementById('statusDot');
+        statusText = document.getElementById('statusText');
 
-    findings = parseFindings(findingsData);
+        findings = parseFindings(findingsData);
 
 
-    // Try to fetch findings from server (includes health check)
-    const serverFindings = await fetchFindingsList();
-    const bFound = serverFindings ? true:false;
+        // Try to fetch findings from server (includes health check)
+        const serverFindings = await fetchFindingsList();
+        const bFound = serverFindings ? true:false;
 
-    isServerConnected = bFound;
-    usingRealFindings = bFound;
-    setConnectionStatus(bFound);
-    
-    const dataToUse = serverFindings || findingsData;
-    const parsedFindings = parseFindings(dataToUse);
+        isServerConnected = bFound;
+        usingRealFindings = bFound;
+        setConnectionStatus(bFound);
+        
+        const dataToUse = serverFindings || findingsData;
+        const parsedFindings = parseFindings(dataToUse);
 
-    // Update entry count
-    const entriesCount = document.getElementById('entriesCount');
-    if (entriesCount) {
-        entriesCount.textContent = `${parsedFindings.length} entries`;
-    }
+        // Update entry count
+        const entriesCount = document.getElementById('entriesCount');
+        if (entriesCount) {
+            entriesCount.textContent = `${parsedFindings.length} entries`;
+        }
 
-    // Populate findings list
-    populateFindingsList(parsedFindings);
-    
-    isInitializing = false;
+        // Populate findings list
+        populateFindingsList(parsedFindings);
+    } catch (error) {
+        console.error('Error during app initialization:', error);
+        // Optionally set connection status to disconnected on error
+        if (typeof setConnectionStatus === 'function') {
+            setConnectionStatus(false);
+        }
+    } finally {
+        isInitializing = false;
+    }    
 };
 
 // Populate findings list

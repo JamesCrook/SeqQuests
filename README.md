@@ -4,7 +4,9 @@ SeqQuests is a sequence analysis package with a server and client interface.
 
 A FastAPI web server presents an interface to python and binary workers, which appear as jobs in the user interface. You can create, configure, start, stop and delete jobs, and monitor their progress.
 
-It provides:
+The code can be run via CLI/bash without using the web UI. However, the web UI makes exploring results easier, by dynamically making dotplots and alignments.
+
+SeqQuests provides:
 * A very fast metal-accelerated Smith-Waterman local similarity search
 * Tooling for making and reducing an all-on-all Swissprot protein sequence comparison (20 days for 570,000 sequences all-on-all on Mac M2 Pro)
 * LCARs (Star Trek TNG) inspired user interface for browsing the hits.
@@ -23,6 +25,6 @@ It provides:
 └── test/        # Test scripts and resources.
 ```
 
-The code can all be run as python scripts without using the web UI. C++/Objective-C provides accelerated versions of code that needs to be fast.
+C++/Objective-C provides accelerated versions of code that needs to be fast.
 
-The web UI uses API-endpoints provided by a FastAPI web server. 
+The web UI uses API-endpoints provided by a FastAPI web server. The web UI falls back to using static files and sample data if the API endpoint is not available.
