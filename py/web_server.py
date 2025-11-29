@@ -215,6 +215,16 @@ async def read_jobs():
     """Serve the job selection page."""
     return FileResponse(PROJECT_ROOT / 'static/jobs.html')
 
+@app.get("/partials/{file}")
+async def read_partials( file ):
+    """Serve the job selection page."""
+    return FileResponse(PROJECT_ROOT / f'static/partials/{file}')
+
+@app.get("/docs/{file}")
+async def read_partials( file ):
+    """Serve the job selection page."""
+    return FileResponse(PROJECT_ROOT / f'static/docs/{file}')
+
 @app.get("/config_{job_type}")
 async def get_config_page(job_type: str):
     """Serve the configuration page for a given job type."""

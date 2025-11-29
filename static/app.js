@@ -291,5 +291,5 @@ window.initJobManagement = async function() {
 
 // If loaded directly (legacy support or if script tag is just present), we can try to init if elements exist
 if (document.getElementById('jobs')) {
-    window.addEventListener('load', window.initJobManagement);
+    //window.addEventListener('load', window.initJobManagement);
 }

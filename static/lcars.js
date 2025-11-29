@@ -76,7 +76,7 @@ class LcarsUI {
         // TODO: Server should be updated so that it detects the request for dcolist,
         // and updates doclist if it isn't up to date.
         try {
-            const response = await fetch(`./static/doclist.js`);
+            const response = await fetch(`./doclist.js`);
             const docs = await response.json();
             /*
             const response = await fetch('/api/docs');
@@ -99,7 +99,7 @@ class LcarsUI {
 
     async showDoc(filename) {
         try {
-            const response = await fetch(`./static/docs/${filename}`);
+            const response = await fetch(`./docs/${filename}`);
             if (!response.ok) throw new Error('Network response was not ok');
             const text = await response.text();
             this.setMainPanel(text);
