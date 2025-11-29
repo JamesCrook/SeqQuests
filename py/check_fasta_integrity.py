@@ -6,15 +6,6 @@ import argparse
 
 from pathlib import Path
 
-script_dir = Path(__file__).parent.absolute()
-project_root = script_dir.parent
-
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-if str(script_dir) not in sys.path:
-    sys.path.insert(0, str(script_dir))
-
-
 import sequences
 
 """

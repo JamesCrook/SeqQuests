@@ -1,0 +1,31 @@
+# pyproject.toml - Single source of truth for SeqQuests configuration
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seqquests"
+version = "0.1.0"
+description = "Metal-accelerated protein sequence analysis"
+requires-python = ">=3.8"
+dependencies = [
+    # Core dependencies (all platforms)
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "biopython",
+    "numpy>=1.20.0",
+    
+    # Metal dependencies (macOS only - auto-detected)
+    "pyobjc-core>=8.0; sys_platform == 'darwin'",
+    "pyobjc-framework-Cocoa>=8.0; sys_platform == 'darwin'",
+    "pyobjc-framework-Metal>=8.0; sys_platform == 'darwin'",
+    "pyobjc-framework-MetalPerformanceShaders>=8.0; sys_platform == 'darwin'",
+]
+
+[tool.setuptools.packages.find]
+where = ["py"]
+
+[tool.setuptools.package-dir]
+"" = "py"

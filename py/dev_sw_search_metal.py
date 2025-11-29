@@ -20,8 +20,6 @@ import ctypes
 import sys
 import os
 import time
-# Add the ../py directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'py'))
 
 import pam_converter as pam
 import sequences

@@ -3,13 +3,9 @@ import sys
 import os
 import numpy as np
 
-# Add py and metal directories to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'py'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'metal'))
-
 from sw_align import align_local_swissprot
 import pam_converter
-from sw_search_metal import sw_step
+from dev_sw_search_metal import sw_step
 
 
 """

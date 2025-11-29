@@ -10,14 +10,8 @@ import sys
 import os
 import struct
 
-# Correctly import modules from the same directory
-try:
-    import pam_converter as pam
-    import sequences
-except ImportError:
-    # If running from another directory, ensure PYTHONPATH is correct or use relative imports
-    import py.pam_converter as pam
-    import py.sequences as sequences
+import pam_converter as pam
+import sequences
 
 def create_pam_binary():
     """Generates pam250.bin"""
