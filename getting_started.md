@@ -11,7 +11,7 @@ SeqQuests is a sequence analysis package offering high-performance local similar
     pip install -r REQUIREMENTS.txt
     ```
 
-### 2. Apple Metal (Optional but Recommended)
+### 2. Apple Metal (Required for speed)
 For accelerated Smith-Waterman searches, you need a macOS device with Apple Silicon (M1/M2/M3/M4) or a compatible GPU.
 *   **Xcode Command Line Tools:** Ensure `clang` and `xcrun` are available.
 *   **metal-cpp:** The project expects the `metal-cpp` headers to be located at `$HOME/metal-cpp`. You can download them from the [Apple Developer website](https://developer.apple.com/metal/cpp/).
@@ -75,18 +75,4 @@ You can run individual components directly.
 *   **Data Integrity Check:**
     ```bash
     PYTHONPATH=py python py/check_fasta_integrity.py
-    ```
-
-## Testing
-
-The project uses bespoke verification scripts rather than a standard test runner.
-
-*   **Run Integrity Checks:**
-    ```bash
-    PYTHONPATH=py python py/check_fasta_integrity.py --test
-    ```
-
-*   **Verify Data Filters:**
-    ```bash
-    PYTHONPATH=py python py/verify_data_filters.py
     ```
