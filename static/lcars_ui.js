@@ -1,5 +1,6 @@
 // static/lcars_ui.js
 
+
 const lighten = (hex, amt = 40) => {
     const num = parseInt(hex.slice(1), 16);
     const r = Math.min(255, (num >> 16) + amt);
@@ -8,8 +9,7 @@ const lighten = (hex, amt = 40) => {
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 };
 
-// Initialize blocks when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+function activateBlocks(){
     const blocks = new Map();
     document.querySelectorAll('.block[data-group]').forEach(el => {
         const group = el.dataset.group;
@@ -42,4 +42,4 @@ document.addEventListener('DOMContentLoaded', () => {
                 group.forEach(({el, orig}) => el.style.backgroundColor = ''));
         });
     });
-});
+};

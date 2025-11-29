@@ -1,5 +1,14 @@
 /* LCARS UI Specific Styles */
 
+body {
+    background-color: black;
+    font-family: 'Oswald', sans-serif;
+    color: white;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Panel with sidebars */
 .lcar-panel {
     display: flex;
