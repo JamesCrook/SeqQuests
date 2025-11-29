@@ -6,6 +6,7 @@
 class LcarsUI {
     constructor() {
         this.doCommand = this.doCommand.bind(this);
+        this.panelCounter = 0;
     }
 
     doCommand(event) {
@@ -43,7 +44,9 @@ class LcarsUI {
             if (script.src) {
                 newScript.src = script.src;
             } else {
-                newScript.textContent = script.textContent;
+                newScript.textContent = script.textContent + 
+                `\n//# sourceURL=panel-${this.panelCounter}.js`;
+                this.panelCounter++;
             }
             document.body.appendChild(newScript); // Execute by appending to body
             // document.body.removeChild(newScript); // Optional cleanup
@@ -64,6 +67,22 @@ class LcarsUI {
             if (!response.ok) throw new Error(`Failed to load ${url}`);
             const html = await response.text();
             this.setPanel(panelId, html);
+            
+            // Add sourceURL based on the actual URL loaded
+            const container = document.getElementById(panelId);
+            const scripts = container.getElementsByTagName('script');
+            for (let i = 0; i < scripts.length; i++) {
+                const script = scripts[i];
+                const newScript = document.createElement('script');
+                if (script.src) {
+                    newScript.src = script.src;
+                } else {
+                    newScript.textContent = script.textContent + 
+                        `\n//# sourceURL=${url}-script-${i}.js`;
+                }
+                document.body.appendChild(newScript);
+            }
+            
             if (callback) callback();
         } catch (e) {
             console.error(e);

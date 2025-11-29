@@ -267,4 +267,4 @@ if __name__ == "__main__":
     else:
         import uvicorn
         logger.info("Starting REST server on http://localhost:8000")
-        uvicorn.run("web_server:app", host="127.0.0.1", port=8000)
+        uvicorn.run("web_server:app", host="127.0.0.1", port=8002)

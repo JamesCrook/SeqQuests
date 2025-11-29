@@ -2,6 +2,8 @@
 """
 Local similarity SW search, using metal
 Uses zero-copy buffers for output.
+This is a version for ease of development
+In production the code compiled from /c_src/ is used instead.
 
 We prepare a pam look up table, pam_lut for one probe sequence,
 Then we search it against 1024 proteins in parallel.

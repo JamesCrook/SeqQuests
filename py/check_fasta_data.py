@@ -17,6 +17,11 @@ if str(script_dir) not in sys.path:
 
 import sequences
 
+"""
+The 'integrity' we are checking here is that the reduced FastA formatted version of the 
+protein database matches the SwissProt data base on accession numbers and sequences.
+"""
+
 def test_data_integrity():
     print("Starting Data Integrity Test (Streaming Mode)...")
 
