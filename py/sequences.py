@@ -454,14 +454,17 @@ def verify_sequences():
 
 def main():
     parser = argparse.ArgumentParser(description="Sequence access utilities")
-    parser.add_argument("--test", action="store_true", help="Run self-test")
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Enable test mode')
     parser.add_argument("--verify", action="store_true", help="Verify sequences")
     parser.add_argument("--benchmark", action="store_true", help="Run benchmark")
     parser.add_argument("--get", type=int, help="Get sequence by index")
 
+    parser.set_defaults(test=False)    
     args = parser.parse_args()
 
     if args.test:
+        print(f"Running in test mode...")
         test_swiss_index_access()
     elif args.verify:
         verify_sequences()
@@ -470,8 +473,7 @@ def main():
     elif args.get is not None:
         print(get_sequence_by_identifier(args.get))
     else:
-        # Default action for backward compatibility or simple check
-        print("No action specified. Use --test, --verify, --benchmark, or --get <id>.")
+        parser.print_help()
 
 if __name__ == "__main__":
     main()

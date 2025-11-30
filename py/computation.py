@@ -28,7 +28,7 @@ def run_computation(job: "Job", config: Dict[str, Any] = None):
         )
 
         # Simulate computation
-        for i in range(100):
+        for i in range(min(100,n_proteins)):
             while job.get_state()['status'] == 'paused':
                 time.sleep(1)
             # Check if cancelled
@@ -73,8 +73,27 @@ def run_computation(job: "Job", config: Dict[str, Any] = None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computation module")
-    parser.add_argument("--test", action="store_true", help="Run test stub")
+    parser.add_argument('--no-test', action='store_false', dest='test',
+                        help='Disable test mode')
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Enable test mode (default)')
+    # Use from command line currently only for testing, so is the default
+    parser.set_defaults(test=True)    
     args = parser.parse_args()
 
-    if args.test:
-        print("Computation module test stub")
+    if not args.test:
+        parser.print_help()
+        exit(0)
+
+    """ Smoke test - will CommandRunner run? """
+    print(f"Running in test mode...")
+    # Create a mock Job object for testing
+    from job_manager import MockJob
+    test_job = MockJob()
+    # Run the computation with a smaller protein count for quick testing
+    test_config = {"n_proteins": 21}
+    
+    print("Starting computation test...")
+    run_computation(test_job, test_config)
+    print(f"Test completed with status: {test_job.get_state()['status']}")
+

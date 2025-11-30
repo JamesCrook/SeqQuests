@@ -91,6 +91,20 @@ class Job:
     def run(self):
         raise NotImplementedError("Subclasses must implement the run method")
 
+class MockJob:
+    def __init__(self):
+        self.state = {"status": "running", "errors": []}
+    
+    def update(self, **kwargs):
+        self.state.update(kwargs)
+        # Print key updates for visibility
+        if "current_step" in kwargs:
+            print(f"  {kwargs['current_step']}")
+        if "status" in kwargs and kwargs["status"] in ["completed", "error", "cancelled"]:
+            print(f"  Final status: {kwargs['status']}")
+    
+    def get_state(self):
+        return self.state
 
 class ComputationJob(Job):
     def __init__(self, job_id: str, manager: 'JobManager'):
@@ -260,8 +274,19 @@ class JobManager:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Job Manager module")
-    parser.add_argument("--test", action="store_true", help="Run test stub")
+    parser.add_argument('--no-test', action='store_false', dest='test',
+                        help='Disable test mode')
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Enable test mode (default)')
+    # Use from command line currently only for testing, so is the default
+    parser.set_defaults(test=True)    
     args = parser.parse_args()
 
-    if args.test:
-        print("Job Manager module test stub")
+    if not args.test:
+        parser.print_help()
+        exit(0)
+
+    """ Smoke test - will CommandRunner run? """
+    print(f"Running in test mode...")
+    # TODO: Make a CommandRunner and execute ls with it, ensuring it runs/terminates
+

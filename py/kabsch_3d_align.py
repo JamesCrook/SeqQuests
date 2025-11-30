@@ -36,8 +36,19 @@ def calculate_superposition(pdb_file_a, pdb_file_b, align_a_indices, align_b_ind
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Kabsch 3D Alignment module")
-    parser.add_argument("--test", action="store_true", help="Run test stub")
+    parser.add_argument('--no-test', action='store_false', dest='test',
+                        help='Disable test mode')
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Enable test mode (default)')
+    # Use from command line currently only for testing, so is the default
+    parser.set_defaults(test=True)    
     args = parser.parse_args()
 
-    if args.test:
-        print("Kabsch 3D Align module test stub")
+    if not args.test:
+        parser.print_help()
+        exit(0)
+
+    """ Smoke test - will it run? """
+    print(f"Running in test mode...")
+    # TODO: (Optional) test some examples
+    print(f"Smoke test (imports are OK) passed...")

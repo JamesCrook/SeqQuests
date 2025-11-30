@@ -9,6 +9,7 @@ import pty
 import select
 import re
 import sys
+import argparse
 from datetime import datetime
 from pathlib import Path
 
@@ -342,5 +343,4 @@ def main():
     batch_logged()
 
 if __name__ == "__main__":
-    import argparse
     main()

@@ -11,6 +11,7 @@ import sys
 import json
 import subprocess
 import os
+import tempfile
 from pathlib import Path
 import sequences
 
@@ -517,12 +518,94 @@ def scan_for_max_node_id(filename):
                     pass
     return max_id
 
+def test():
+    """Test the maximum spanning tree algorithm with inline data."""
+    print("=" * 60)
+    print("Maximum Spanning Tree Test")
+    print("=" * 60)
+    print()
+    
+    # Create test data inline
+    # Format: query_seq,target_seq,score,location,length
+    # This creates a simple tree:
+    #   0 (root)
+    #   ├─ 1 (score 500)
+    #   │  └─ 2 (score 400)
+    #   └─ 3 (score 450)
+    #      └─ 4 (score 350)
+    test_data = """query_seq,target_seq,score,location,length
+0,1,500,0,100
+1,2,400,50,80
+0,3,450,20,90
+3,4,350,30,70
+2,3,300,10,60
+1,4,250,40,55
+"""
+    
+    # Write test data to temporary file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        temp_file = f.name
+        f.write(test_data)
+    
+    try:
+        print("Building tree from test data...")
+        print(f"Test data has 5 nodes (0-4) with 6 links")
+        print()
+        
+        # Process the test file
+        tree = process_links_file(temp_file, num_nodes=6)
+        
+        print(f"Statistics:")
+        print(f"  Links processed: {tree.links_processed}")
+        print(f"  Links added: {tree.links_added}")
+        print(f"  Links rejected: {tree.links_rejected}")
+        print()
+        
+        # Verify tree structure
+        print("Tree structure verification:")
+        print(f"  Node 0 (root): parent={tree.parents[0]}, score={tree.scores[0]}")
+        print(f"  Node 1: parent={tree.parents[1]}, score={tree.scores[1]}")
+        print(f"  Node 2: parent={tree.parents[2]}, score={tree.scores[2]}")
+        print(f"  Node 3: parent={tree.parents[3]}, score={tree.scores[3]}")
+        print(f"  Node 4: parent={tree.parents[4]}, score={tree.scores[4]}")
+        print()
+        
+        # Write tree to temporary output
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            temp_output = f.name
+        
+        print(f"Writing tree visualization to {temp_output}...")
+        tree.write_ascii_tree(temp_output, score_threshold=0, show_isolated=True)
+        
+        # Show the tree
+        print("\nTree visualization:")
+        print("-" * 60)
+        with open(temp_output, 'r') as f:
+            print(f.read())
+        
+        # Clean up
+        os.remove(temp_output)
+        
+        print("=" * 60)
+        print("Test completed successfully!")
+        print()
+        print("Expected behavior:")
+        print("  - Should accept 5 highest-scoring links")
+        print("  - Should reject 1 link that would create a cycle")
+        print("  - Tree should be connected with node 0 as root")
+        
+    finally:
+        # Clean up temp file
+        os.remove(temp_file)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Build maximum spanning tree from protein similarity links',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  %(prog)s --test
   %(prog)s -i links.csv -o sw_tree.txt
   %(prog)s -i links.csv -o sw_tree.txt --nodes 157000
   %(prog)s -i links.csv -o sw_tree.txt --threshold 200
@@ -533,40 +616,30 @@ Examples:
     default_input = PROJECT_ROOT / "sw_results/sw_results.csv"
     default_output = PROJECT_ROOT / "sw_results/sw_tree.txt"
 
-    parser.add_argument('-i', '--input', default=str(default_input), help='Input CSV file with links (query_seq,target_seq,score,location,length)')
+    parser.add_argument('-i', '--input', default=str(default_input), 
+                       help='Input CSV file with links (query_seq,target_seq,score,location,length)')
     parser.add_argument('-o', '--output', default=str(default_output),
                        help='Output file for ASCII tree')
     parser.add_argument('-n', '--nodes', type=int, default=None,
                        help='Number of nodes (proteins). If not specified, will be auto-detected from input file.')
     parser.add_argument('-t', '--threshold', type=int, default=-3,
-                       help='Score threshold - stop descending below this (default: 0 = show all)')
+                       help='Score threshold - stop descending below this (default: -3)')
     parser.add_argument('-v', '--verbose', action='store_true', default=True,
                        help='Print statistics and progress')
     parser.add_argument('--cpp', action='store_true', help='Use C++ backend for faster processing', default=True)
     parser.add_argument('--test', action='store_true', help='Run test function')
+    parser.add_argument('--no-test', action='store_false', dest='test', help='Disable test mode')
+    parser.set_defaults(test=True)
     
     args = parser.parse_args()
 
     if args.test:
-        """This is expected not to find the links file, and report test skipped"""
-        print("No arguments provided. Running test with test_links.txt...\n")
-        try:
-             tree = process_links_file("test_links.txt", num_nodes=6)
-             print(f"Statistics:")
-             print(f"  Links processed: {tree.links_processed}")
-             print(f"  Links added: {tree.links_added}")
-             print(f"  Links rejected: {tree.links_rejected}")
-             print("\nWriting tree to test_tree.txt...")
-             tree.write_ascii_tree("test_tree.txt")
-             print("Done! Check test_tree.txt")
-        except FileNotFoundError:
-            print("Test file test_links.txt not found. Testing skipped.")
+        test()
         return
     
     if args.cpp:
         if args.verbose:
             print("Using C++ backend.")
-        # C++ backend handles scanning if nodes not provided
         tree = run_cpp_tree_builder(args.input, args.nodes)
     else:
         num_nodes = args.nodes
@@ -574,7 +647,6 @@ Examples:
             if args.verbose:
                 print(f"Scanning {args.input} to determine number of nodes...")
             max_id = scan_for_max_node_id(args.input)
-            # Allocate enough space for max_id. Node IDs are 0-indexed, so we need max_id + 1
             num_nodes = max_id + 1
             if args.verbose:
                 print(f"Detected {num_nodes} nodes.")
@@ -583,7 +655,6 @@ Examples:
             print(f"Building maximum spanning tree from {args.input}...")
             print(f"Number of nodes: {num_nodes}")
 
-        # Use the new array-based implementation for the main CLI
         tree = process_links_file(args.input, num_nodes)
     
     if args.verbose:

@@ -92,7 +92,7 @@ class LcarsUI {
 
     async doHelp() {
         this.setSubPanel("Loading topics...");
-        // TODO: Server should be updated so that it detects the request for dcolist,
+        // TODO: Server should be updated so that it detects the request for doclist,
         // and updates doclist if it isn't up to date.
         try {
             const response = await fetch(`./doclist.js`);

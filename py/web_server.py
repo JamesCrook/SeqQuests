@@ -254,11 +254,25 @@ async def get_part_for_html_page( file ):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web Server module")
-    parser.add_argument("--test", action="store_true", help="Run test stub")
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Command Runner module")
+    parser.add_argument('--no-test', action='store_false', dest='test',
+                        help='Disable test mode')
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Enable test mode (default)')
+    # Use from command line currently only for testing, so is the default
+    parser.set_defaults(test=True)    
     args = parser.parse_args()
 
-    if args.test:
-        print("Web Server module test stub")
+    if not args.test:
+        parser.print_help()
+        exit(0)
+
+    """ Smoke test - will CommandRunner run? """
+    print(f"Running in test mode...")
+    # TODO: Make a CommandRunner and execute ls with it, ensuring it runs/terminates
+
     else:
         import uvicorn
         logger.info("Starting REST server on http://localhost:8000")
