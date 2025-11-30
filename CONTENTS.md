@@ -8,7 +8,7 @@ This suite of tools is designed for protein sequence analysis, specifically focu
   * The underlying search engine works in terms of sequence numbers. The Web UI cross references sequence IDs to sequence metadata and dynamically present alignments corresponding to a particular find.
 
 ## AI Relevance
-* The code has been written with some LLM assistance, and is designed to factorise into independently analysable components. 
+* The code has been written with some LLM assistance, and is designed to factorise into independently analysable components.
 * LLMs have been instrumental in transforming code between different formats, python, C++, metal, Javascript.
 * The search console reformats finds as queries to an LLM, "Please provide more background on these two proteins. Why would these be similar? Is their similarity unexpected?" that can be pasted into the LLM for comment.
 
@@ -24,14 +24,14 @@ This suite of tools is designed for protein sequence analysis, specifically focu
 **Entry Point:** `python py/web_server.py` (Run from project root)
 **URL:** `http://localhost:8000` (Default)
 **Status:** Mature
-**Description:** A FastAPI-based web server that provides an API for protein analysis work. 
+**Description:** A FastAPI-based web server that provides an API for protein analysis work.
 
 ### Web UI
 **Entry Point:** `static/lcars.html`
 **Entry Point:** `static/job_management.html`
 **Entry Point:** `static/match_explorer.html`
 **Status:** Mature
-**Description:** These provide front ends to the sequence analysis software. 
+**Description:** These provide front ends to the sequence analysis software.
 
 job_management maintains an active jobs list. It allows you to configure and run Data Munging (conversions of file formats for speed or making subsets), Computation (Tree Building from search results), and Sequence Search jobs (long running all-on-all sequence comparisons). This UI allows multiple simultaneous jobs to be run, paused, resumed. Users can connect to the running jobs display from a remote machine and view the configuration parameters that were used for a job.
 
@@ -71,25 +71,31 @@ Typically this program is run iterating over all sequences in a database, to get
 *   **`taxa_lca.py`**: Utilities for determining the Lowest Common Ancestor (LCA) in taxonomy trees.
 *   **`swiss_to_pdb.py`**: Tools for mapping Swiss-Prot entries to Protein Data Bank (PDB) structures.
 *   **`kabsch_3d_align.py`**: Implementation of the Kabsch algorithm for aligning 3D protein structures.
+*   **`web_server.py`**: The main FastAPI application serving the API and static files.
+*   **`command_runner.py`**: Helper to run shell commands.
+*   **`prepare_binary_data.py`**: Compiles FASTA and PAM data into binary formats for Metal SW.
+*   **`config.py`**: Configuration settings (paths, etc).
 
-## 3. Metal & C++ Source (`c_src/`, `metal/`)
+## 3. Metal & C++ Source (`c_src/`)
 
 *   **`c_src/sw_search_metal.mm`**: The production C++/Metal implementation of the search algorithm.
 *   **`c_src/sw.metal`**: The Metal shader kernel code.
+*   **`c_src/tree_builder.cpp`**: C++ implementation of the tree builder logic (MST).
 *   **`dev/dev_sw_search_metal.py`**: **Prototype.** A Python implementation that mimics the Metal kernel logic. Useful for debugging the algorithm logic without a GPU.
 
 ## 4. Web Interface (`static/`)
 
 Contains the frontend code (HTML/JS) for the dashboard.
-*   `index.html`: Main layout.
-*   `jobs.html`: Job list and creation.
-*   `config_*.html`: Configuration forms for specific job types.
-*   `app.js`: Main application logic, handling global polling and UI updates.
-*   `job_monitor.js`: Shared JavaScript logic for configuration iframes and job status monitoring.
+*   `lcars.html`: The main LCARS interface container.
+*   `job_management.html`: Standalone job management page.
+*   `match_explorer.html`: Standalone match explorer page.
+*   `lcars.js`, `lcars.css`: Main UI logic and styling for the LCARS interface.
+*   `app.js`: Main application logic for job management.
+*   `job_monitor.js`: Shared JavaScript logic for configuration and job status monitoring.
 *   `monitor.js`: Specific monitoring logic.
-*   `style.css`: Global stylesheets.
-*   `monitor.css`: Styles specific to the job monitor interface.
 *   `stream.js`: Handles streaming output from jobs.
+*   `style.css`: Global stylesheets.
+*   `doclist.js`: List of documentation files.
 
 ## 5. Web Interface Panels (`static/partials`)
 Chunks of HTML that typically provide panels for use within the dashboards.

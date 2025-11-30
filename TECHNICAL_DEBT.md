@@ -9,7 +9,7 @@ This document outlines the technical debt identified in the SeqQuests project. T
     - `py/sequences.py` and `py/taxa_lca.py` contain hardcoded paths like `~/BigData/bio_sequence_data`.
     - *Action:* Check that this is now fixed
 
-- [ ] **Documentation Drift (CONTENTS.md):**
+- [x] **Documentation Drift (CONTENTS.md):**
     - `CONTENTS.md` refers to `c_src/prepare_data.py` but the file is located at `py/prepare_binary_data.py`.
     - `CONTENTS.md` structure section is slightly out of sync with the actual file layout.
     - *Action:* Update `CONTENTS.md` to reflect the current file structure and paths.
@@ -20,11 +20,11 @@ This document outlines the technical debt identified in the SeqQuests project. T
 
 ## Priority 2: Medium (Code Quality & Maintainability)
 
-- [ ] **Code Duplication (Tree Builder):**
+- [x] **Code Duplication (Tree Builder):**
     - `py/tree_builder.py` and `c_src/tree_builder.cpp` implement the same logic (MST, cycle breaking).
     - *Action:* Validate that the C++ version is fully equivalent (using `py/verify_tree_builder.py`). Document the python version's role better - as a wrapper and as a python reference implementation. 
 
-- [ ] **Hardcoded Metal Compiler Logic:**
+- [x] **Hardcoded Metal Compiler Logic:**
     - `compile.sh` has logic to detect M1/M2/M3 chips. This is brittle (e.g., M5, Ultra variants).
     - *Action:* Refactor to allow passing `THREADS` and `UNROLL` as environment variables or arguments, using the detection only as a hint/default.
 
