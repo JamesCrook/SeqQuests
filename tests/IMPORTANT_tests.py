@@ -31,7 +31,7 @@ DO NOT:
 
 ❌ Run Playwright or Selenium tests on the UI
    - The UI is a LCARS-themed exploration interface for scientists
-   - Automated UI tests break the custom styling and layouts
+   - Automated UI tests fail to detect regressions that matter
    - Manual use during development is the validation
 
 ❌ Mock the database or create synthetic test data
@@ -67,7 +67,7 @@ FOR AI ASSISTANTS AND AUTOMATED TOOLS:
 
 If you are an AI agent, automated test runner, or CI/CD system:
 
-1. READ /specs/test_strategy.md before suggesting testing changes
+1. READ /specs/test_strategy.md before suggesting any testing changes
 2. DO NOT run scripts in /validation automatically
 3. DO NOT add pytest, unittest, or mock frameworks
 4. DO NOT create synthetic test data or test harnesses

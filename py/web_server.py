@@ -56,6 +56,9 @@ class JobConfigRequest(BaseModel):
     config: Dict[str, Any]
 
 # --- REST Endpoints ---
+""" The order in which these functions appear determines the order in 
+the API /docs, so take some care to group and order the items logically.
+"""
 
 @app.get("/api/job_types")
 async def get_job_types():
@@ -64,33 +67,10 @@ async def get_job_types():
     return [{"id": job["id"], "display_name": job["display_name"]} for job in JOB_TYPES]
 
 
-@app.get("/api/docs")
-async def list_docs():
-    """List available documentation files."""
-    docs_path = PROJECT_ROOT / "static/docs"
-    if not docs_path.exists():
-        return []
-
-    docs = []
-    for file in docs_path.glob("*.md"):
-        docs.append({
-            "name": file.stem.replace("_", " ").title(),
-            "filename": file.name
-        })
-    return sorted(docs, key=lambda x: x['name'])
-
 @app.get("/api/jobs")
 async def list_jobs():
     """List all jobs and their statuses."""
     return job_manager.list_jobs()
-
-@app.post("/api/job")
-async def create_job_endpoint(request: JobCreationRequest):
-    """Create a new job of a specific type."""
-    job_id = job_manager.create_job(request.job_type)
-    if not job_id:
-        raise HTTPException(status_code=400, detail=f"Invalid job type: {request.job_type}")
-    return {"job_id": job_id, "status": "created"}
 
 @app.get("/api/job/{job_id}/status")
 async def get_job_status(job_id: str):
@@ -99,6 +79,14 @@ async def get_job_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job.get_state()
+
+@app.post("/api/job")
+async def create_job_endpoint(request: JobCreationRequest):
+    """Create a new job of a specific type."""
+    job_id = job_manager.create_job(request.job_type)
+    if not job_id:
+        raise HTTPException(status_code=400, detail=f"Invalid job type: {request.job_type}")
+    return {"job_id": job_id, "status": "created"}
 
 @app.post("/api/job/{job_id}/start")
 async def start_job(job_id: str):
@@ -127,15 +115,6 @@ async def resume_job(job_id: str):
     job.resume()
     return {"job_id": job_id, "status": "resuming"}
 
-@app.delete("/api/job/{job_id}")
-async def delete_job(job_id: str):
-    """Delete a specific job."""
-    job = job_manager.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    job.delete()
-    return {"job_id": job_id, "status": "deleting"}
-
 @app.post("/api/job/{job_id}/configure")
 async def configure_job(job_id: str, request: JobConfigRequest):
     """Configure a specific job."""
@@ -145,18 +124,14 @@ async def configure_job(job_id: str, request: JobConfigRequest):
     job.configure(request.config)
     return {"job_id": job_id, "status": "configured"}
 
-@app.get("/api/proteins")
-async def get_proteins():
-    """Return the first 20 proteins from the FASTA file."""
-    protein_iterator = sequences.read_fasta_sequences()
-    proteins = []
-    for _ in range(20):
-        try:
-            record = next(protein_iterator)
-            proteins.append((record.description, str(record.seq)))
-        except StopIteration:
-            break
-    return proteins
+@app.delete("/api/job/{job_id}")
+async def delete_job(job_id: str):
+    """Delete a specific job."""
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    job.delete()
+    return {"job_id": job_id, "status": "deleting"}
 
 @app.get("/api/findings", response_class=PlainTextResponse)
 async def get_findings():
@@ -168,6 +143,26 @@ async def get_findings():
         return FINDINGS_FILE.read_text()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading findings: {str(e)}")
+
+async def stream_file(filepath: str, chunk_size: int = 8192):
+    """Stream file in chunks"""
+    with open(filepath, 'r') as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+            # Optional: allow other tasks to run
+            await asyncio.sleep(0)
+
+# Provides an API to the links data as a stream of data  
+@app.get("/stream-data")
+async def stream_link_data():
+    filepath = PROJECT_ROOT / 'sw_results' / 'sw_results.csv'
+    return StreamingResponse(
+        stream_file(str(filepath)),
+        media_type="text/plain"
+    )
 
 @app.get("/api/comparison/{id1}/{id2}")
 async def get_sequence_alignment(id1: str, id2: str):
@@ -185,77 +180,77 @@ async def get_sequence_alignment(id1: str, id2: str):
         "matches": parts[1],
     }
 
+@app.get("/api/proteins")
+async def get_sequences():
+    """Return the first 20 proteins from the FASTA file."""
+    protein_iterator = sequences.read_fasta_sequences()
+    proteins = []
+    for _ in range(20):
+        try:
+            record = next(protein_iterator)
+            proteins.append((record.description, str(record.seq)))
+        except StopIteration:
+            break
+    return proteins
+
 @app.get("/api/sequence/{identifier}")
 async def get_sequence(identifier: str):
     """Get a single protein sequence by accession number or index."""
-    sequence_iterator = sequences.read_fasta_sequences()
     if identifier.isdigit():
-        sequence_data = sequences.get_sequence_by_identifier(int(identifier), sequence_iterator)
+        sequence_data = sequences.get_protein(int(identifier))
+        if not sequence_data:
+            raise HTTPException(status_code=404, detail="Sequence not found")
+        return {"header": sequence_data.name, "sequence": sequence_data.full.sequence}
     else:
+        sequence_iterator = sequences.read_fasta_sequences()
         sequence_data = sequences.get_sequence_by_identifier(identifier, sequence_iterator)
 
     if not sequence_data:
         raise HTTPException(status_code=404, detail="Sequence not found")
-    return {"header": sequence_data[0], "sequence": sequence_data[1]}
+    return {"header": sequence_data.description, "sequence": str( sequence_data.seq )}
 
 # --- Web UI Routes ---
+
+
+@app.get("/api/docs")
+async def list_docs():
+    """List available documentation files."""
+    docs_path = PROJECT_ROOT / "static/docs"
+    if not docs_path.exists():
+        return []
+
+    docs = []
+    for file in docs_path.glob("*.md"):
+        docs.append({
+            "name": file.stem.replace("_", " ").title(),
+            "filename": file.name
+        })
+    return sorted(docs, key=lambda x: x['name'])
+
+@app.get("/docs/{file}")
+async def get_document( file ):
+    """Serve the job selection page."""
+    return FileResponse(PROJECT_ROOT / f'static/docs/{file}')
 
 @app.get("/")
 async def read_root():
     """Serve the main index page."""
     return FileResponse(PROJECT_ROOT / 'static/lcars.html')
 
-@app.get("/favicon.ico")
-async def read_favicon():
-    """Serve the job selection page."""
-    return FileResponse(PROJECT_ROOT / 'static/wheel.ico')
-
-
-@app.get("/partials/{file}")
-async def read_partials( file ):
-    """Serve the job selection page."""
-    return FileResponse(PROJECT_ROOT / f'static/partials/{file}')
-
-@app.get("/docs/{file}")
-async def read_partials( file ):
-    """Serve the job selection page."""
-    return FileResponse(PROJECT_ROOT / f'static/docs/{file}')
-
-@app.get("/config_{job_type}")
-async def get_config_page(job_type: str):
-    """Serve the configuration page for a given job type."""
-    page_path = PROJECT_ROOT / f'static/config_{job_type}.html'
-    try:
-        return FileResponse(page_path)
-    except RuntimeError:
-        # This will happen if the file does not exist.
-        raise HTTPException(status_code=404, detail="Configuration page not found")
-
-async def stream_file(filepath: str, chunk_size: int = 8192):
-    """Stream file in chunks"""
-    with open(filepath, 'r') as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            yield chunk
-            # Optional: allow other tasks to run
-            await asyncio.sleep(0)
-
-# Provides an API to the links data as a stream of data  
-@app.get("/stream-data")
-async def stream_data():
-    filepath = PROJECT_ROOT / 'sw_results' / 'sw_results.csv'
-    return StreamingResponse(
-        stream_file(str(filepath)),
-        media_type="text/plain"
-    )
-
 @app.get("/{page}")
 async def read_page(page: str):
     """Serve the main index page."""
     return FileResponse(PROJECT_ROOT / f'static/{page}')
 
+@app.get("/favicon.ico")
+async def get_favicon():
+    """Serve the job selection page."""
+    return FileResponse(PROJECT_ROOT / 'static/wheel.ico')
+
+@app.get("/partials/{file}")
+async def get_part_for_html_page( file ):
+    """Serve the job selection page."""
+    return FileResponse(PROJECT_ROOT / f'static/partials/{file}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web Server module")

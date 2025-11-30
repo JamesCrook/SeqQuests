@@ -9,4 +9,4 @@
 * job_manager.py should not know what job specific parameters there are, only the generic ones like start and end time. Instead different types of job should handle their own state data.
 
 * do not introduce new third party js dependencies
-* when new python modules are added, update REQUIREMENTS.txt
+* when new python modules are added, update pyproject.toml
