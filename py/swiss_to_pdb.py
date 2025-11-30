@@ -5,14 +5,7 @@ from pathlib import Path
 from Bio.PDB import PDBParser, Superimposer
 import argparse
 import json
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-# Cache directory to avoid re-downloading 150k structures
-PDB_CACHE_DIR = PROJECT_ROOT / "pdb_cache"
-PDB_CACHE_DIR.mkdir(exist_ok=True)
-
+from config import PDB_CACHE_DIR, PROJECT_ROOT
 
 def get_alphafold_atoms(uniprot_id, aligned_indices):
     """
@@ -28,28 +21,40 @@ def get_alphafold_atoms(uniprot_id, aligned_indices):
     # For programmatic access, they recommend using the API to get the latest version
     alphafold_id = f"AF-{uniprot_id}-F1"
     
-    # The URL format changed - now uses the alphafold_id directly
-    # Latest version is v6, but for backwards compatibility, try v4 first, then v6
-    pdb_filename = f"{alphafold_id}-model_v4.pdb"
-    local_path = PDB_CACHE_DIR / pdb_filename
+    # Define paths for both versions
+    pdb_filename_v4 = f"{alphafold_id}-model_v4.pdb"
+    pdb_filename_v6 = f"{alphafold_id}-model_v6.pdb"
+    local_path_v4 = PDB_CACHE_DIR / pdb_filename_v4
+    local_path_v6 = PDB_CACHE_DIR / pdb_filename_v6
     
-    # Try v4 URL first (most common)
-    url_v4 = f"https://alphafold.ebi.ac.uk/files/{alphafold_id}-model_v4.pdb"
-    # Fallback to v6 if v4 doesn't exist
-    url_v6 = f"https://alphafold.ebi.ac.uk/files/{alphafold_id}-model_v6.pdb"
-    
-    # Fetch if missing
-    if not local_path.exists():
+    # Check cache for both versions
+    if local_path_v4.exists():
+        print(f"Using cached {pdb_filename_v4}")
+        local_path = local_path_v4
+        pdb_filename = pdb_filename_v4
+    elif local_path_v6.exists():
+        print(f"Using cached {pdb_filename_v6}")
+        local_path = local_path_v6
+        pdb_filename = pdb_filename_v6
+    else:
+        # Neither version in cache, need to download
         print(f"Fetching {uniprot_id} (AlphaFold ID: {alphafold_id})...")
+        
+        # Try v4 URL first (most common)
+        url_v4 = f"https://alphafold.ebi.ac.uk/files/{alphafold_id}-model_v4.pdb"
+        url_v6 = f"https://alphafold.ebi.ac.uk/files/{alphafold_id}-model_v6.pdb"
         
         # Try v4 first
         response = requests.get(url_v4)
-        if response.status_code != 200:
+        if response.status_code == 200:
+            local_path = local_path_v4
+            pdb_filename = pdb_filename_v4
+        else:
             # Try v6
             print(f"  v4 not found, trying v6...")
             response = requests.get(url_v6)
-            pdb_filename = f"{alphafold_id}-model_v6.pdb"
-            local_path = PDB_CACHE_DIR / pdb_filename
+            local_path = local_path_v6
+            pdb_filename = pdb_filename_v6
         
         if response.status_code == 200:
             with open(local_path, 'wb') as f:
@@ -61,8 +66,6 @@ def get_alphafold_atoms(uniprot_id, aligned_indices):
             print(f"  Tried: {url_v4}")
             print(f"  Tried: {url_v6}")
             return None
-    else:
-        print(f"Using cached {pdb_filename}")
     
     # Parse PDB
     parser = PDBParser(QUIET=True)

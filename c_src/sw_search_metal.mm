@@ -20,7 +20,7 @@
 #endif
 
 #ifndef UNROLL
-#define UNROLL (32)
+#define UNROLL (40)
 #endif
 
 /*

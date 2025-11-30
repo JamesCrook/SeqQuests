@@ -227,20 +227,7 @@ class SWRunner:
         sys.exit(0)
 
 
-def batch_logged():
-    parser = argparse.ArgumentParser(description="SW Runner - Long-running protein search harness")
-    parser.add_argument("--output_dir", default="sw_results", help="Output directory")
-    parser.add_argument("--flush_interval", type=int, default=60, help="Seconds between disk flushes")
-    parser.add_argument("--num_sequences", type=int, default=570000, help="Total sequences in database")
-    parser.add_argument("--start_at", type=int, help="Override starting sequence (default: auto-detect from last line)")
-    parser.add_argument("--test", action="store_true", help="Run test stub")
-    
-    args = parser.parse_args()
-    
-    if args.test:
-        print("SW Search test stub")
-        return
-
+def batch_logged(args):
     runner = SWRunner(
         output_dir=args.output_dir,
         flush_interval=args.flush_interval
@@ -333,6 +320,13 @@ def run_sw_search(
     #    job.update(status="failed", errors=[f"Process exited with code {return_code}"])
 
 def main():
+    parser = argparse.ArgumentParser(description="SW Runner - Long-running protein search harness")
+    parser.add_argument("--output_dir", default="sw_results", help="Output directory")
+    parser.add_argument("--flush_interval", type=int, default=60, help="Seconds between disk flushes")
+    parser.add_argument("--num_sequences", type=int, default=570000, help="Total sequences in database")
+    parser.add_argument("--start_at", type=int, help="Override starting sequence (default: auto-detect from last line)")
+    args = parser.parse_args()
+
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
@@ -340,7 +334,7 @@ def main():
     )
     
     #run_sw_search(None)
-    batch_logged()
+    batch_logged(args)
 
 if __name__ == "__main__":
     main()

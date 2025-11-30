@@ -12,6 +12,10 @@ SeqQuests uses operational validation:
 - Core routines collect memory/speed benchmark data, more actionable than pass/fail
 - Python and C versions of core routines; Python easier to reason about and debug
 
+Modules
+- Python modules are additionally argparse functionality, so that they can be used from command line
+- Python modules under development may have a --test option, possibly as the default, serving as a quick 'smoke test', i.e checks imports work and 
+
 Do not create separate test harnesses or frameworks.
 Focus on making examples and tools that have independent value.
 

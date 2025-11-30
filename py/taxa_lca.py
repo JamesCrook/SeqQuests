@@ -2,11 +2,7 @@ from ete3 import NCBITaxa
 import argparse
 import os
 from pathlib import Path
-
-# Default database location
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-#DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "ncbi_taxonomy.db"
-DEFAULT_DB_PATH = Path.home() / 'BigData' / 'bio_sequence_data' / 'ncbi_taxonomy.db'
+from config import NCBI_TAXONOMY_DB, PROJECT_ROOT
 
 # Initialize once (downloads database on first run)
 # We'll initialize this in main() or when first needed
@@ -32,8 +28,8 @@ def initialize_ncbi(db_path=None):
             ncbi = NCBITaxa(dbfile=str(db_path))
         else:
             # Use default location
-            DEFAULT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-            ncbi = NCBITaxa(dbfile=str(DEFAULT_DB_PATH))
+            NCBI_TAXONOMY_DB.parent.mkdir(parents=True, exist_ok=True)
+            ncbi = NCBITaxa(dbfile=str(NCBI_TAXONOMY_DB))
         print(f"NCBI taxonomy database initialized at: {ncbi.dbfile}")
     return ncbi
 
@@ -188,7 +184,7 @@ if __name__ == "__main__":
     
     # Database location
     parser.add_argument('--db-path', type=Path, default=None,
-                        help=f'Path to NCBI taxonomy database (default: {DEFAULT_DB_PATH})')
+                        help=f'Path to NCBI taxonomy database (default: {NCBI_TAXONOMY_DB})')
     
     # Test mode
     parser.add_argument('--no-test', action='store_false', dest='test',

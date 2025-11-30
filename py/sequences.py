@@ -11,6 +11,9 @@ from collections import OrderedDict
 from types import SimpleNamespace
 import threading
 
+from config import DATA_DIR, PROJECT_ROOT
+
+
 """
 Utilities for efficient access to sequence data.
 It's main role is for fasta data, where it can make and use a pickle cache (much faster than 
@@ -264,7 +267,7 @@ def get_data_path(original_filename):
     Checks for data files in a user-specified path first, falling back
     to the default './data' directory if not found.
     """
-    user_path = os.path.expanduser( '~/BigData/bio_sequence_data' )
+    user_path = DATA_DIR
     filename_map = {
         'swissprot.fasta.txt': 'uniprot_sprot.fasta',
         'swissprot.dat.txt': 'uniprot_sprot.dat',
@@ -369,16 +372,6 @@ def get_sequence_by_identifier(identifier, db_name='swissprot'):
                 return record
     return None
 
-def benchmark():
-    start = time.time()
-    proteins = read_fasta_sequences()
-    for p in proteins:
-        protein_id = p.id if hasattr(p, 'id') else p.accessions[0]
-        if protein_id == 'foo' :
-            print("found foo")
-    elapsed = time.time() - start
-    print(f"Execution time: {elapsed:.4f} seconds")
-
 def get_protein( number ):
     cache = DataManager().get_swissprot_cache(file_format='swiss_index')
     record = cache.get_record_by_index(number)
@@ -400,6 +393,16 @@ def get_protein( number ):
     result.full = record
 
     return result
+
+def benchmark():
+    start = time.time()
+    proteins = read_fasta_sequences()
+    for p in proteins:
+        protein_id = p.id if hasattr(p, 'id') else p.accessions[0]
+        if protein_id == 'foo' :
+            print("found foo")
+    elapsed = time.time() - start
+    print(f"Execution time: {elapsed:.4f} seconds")
 
 def test_swiss_index_access():
     """
@@ -425,38 +428,10 @@ def test_swiss_index_access():
 
     # Verify some data
 
-def verify_sequences():
-    """
-    Compares sequences from FASTA and Swiss-Prot caches to find mismatches.
-    """
-    fasta_sequences = list(read_fasta_sequences())
-    swissprot_sequences = list(read_swissprot_sequences())
-
-    mismatches = 0
-    missing_in_swissprot = 0
-
-    start = time.time()
-    for i, fasta_record in enumerate(fasta_sequences):
-        if i < len(swissprot_sequences):
-            swissprot_record = swissprot_sequences[i]
-            if fasta_record.seq != swissprot_record.sequence:
-                mismatches += 1
-        else:
-            missing_in_swissprot += 1
-        if i%1000 == 0:
-            print( f"Sequence:{i}")
-
-    print(f"Sequence Verification Report:")
-    print(f"Mismatches: {mismatches}")
-    print(f"Missing in Swiss-Prot: {missing_in_swissprot}")
-    elapsed = time.time() - start
-    print(f"Execution time: {elapsed:.4f} seconds")
-
 def main():
     parser = argparse.ArgumentParser(description="Sequence access utilities")
     parser.add_argument('--test', action='store_true', dest='test',
                         help='Enable test mode')
-    parser.add_argument("--verify", action="store_true", help="Verify sequences")
     parser.add_argument("--benchmark", action="store_true", help="Run benchmark")
     parser.add_argument("--get", type=int, help="Get sequence by index")
 
@@ -466,8 +441,6 @@ def main():
     if args.test:
         print(f"Running in test mode...")
         test_swiss_index_access()
-    elif args.verify:
-        verify_sequences()
     elif args.benchmark:
         benchmark()
     elif args.get is not None:

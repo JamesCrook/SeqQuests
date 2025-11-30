@@ -18,7 +18,10 @@ For accelerated Smith-Waterman searches on Apple Silicon (M1/M2/M3/M4):
     ```
     (Dependencies are managed via `pyproject.toml`)
 
-3.  Compile the C++/Metal components:
+3.  Copy .env.example to .env and customise it for where you want/expect files
+    See the comments in the file for what the paths are for.
+
+4.  Compile the C++/Metal components:
     ```bash
     ./compile.sh
     ```

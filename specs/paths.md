@@ -6,16 +6,16 @@ This document outlines how file paths are handled in the SeqQuests project, spec
 
 The project is designed to be portable while supporting large external datasets.
 - **Code and Small Data:** Contained within the repository.
-- **Large Data:** Stored externally (e.g., in `$HOME/BigData/bio_sequence_data`), avoiding repository bloat.
+- **Large Data:** Stored externally, avoiding repository bloat.
 
 ## Data Directory Strategy
 
 The project uses a fallback mechanism for locating data files.
 
 1.  **User Data Directory:** The system first checks for a user-specific data directory.
-    - **Path:** `~/BigData/bio_sequence_data` (default override)
-    - **Usage:** This path is hardcoded as a preference in `py/sequences.py` and `py/taxa_lca.py`. This allows developers to keep massive Swiss-Prot files outside the source tree.
-    - **Note:** The expansion of `~` to the user's home directory is handled via `os.path.expanduser`.
+    It uses env variables, which can be set in .env (and are not stored in git)
+    - **Path:** SEQQUESTS_DATA_DIR=~/data/seqquests by default
+    - **Usage:** This allows developers to keep Swiss-Prot files outside the source tree.
 
 2.  **Default Data Directory:** If the file is not found in the user directory, the system falls back to the local repository data.
     - **Path:** `./data/` (relative to the project root)
@@ -23,7 +23,7 @@ The project uses a fallback mechanism for locating data files.
 
 ### Implementation Details
 *   **Python (`py/sequences.py`):** The `get_data_path()` function implements this logic. It maps internal filenames (e.g., `swissprot.fasta.txt`) to external filenames (e.g., `uniprot_sprot.fasta`) if found in the external path.
-*   **Python (`py/taxa_lca.py`):** Uses `Path.home() / 'BigData' / ...` as a default for the NCBI taxonomy database, falling back only if not specified via arguments.
+*   **Python (`py/taxa_lca.py`):** Uses NCBI_TAXONOMY_DB for the taxonomy database, falling back only if not specified via arguments.
 
 ## Compiler and Toolchain Paths
 

@@ -14,8 +14,16 @@ import os
 import tempfile
 from pathlib import Path
 import sequences
+from config import DATA_DIR, PROJECT_ROOT
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+"""
+Most of the same functionality is now performed faster in the cpp version. 
+This is both a wrapper for the fast version and also a reference implementation, 
+in python, which we may later elaborate. 
+
+We may also use the python version in educational code that explains the algorithm.
+"""
 
 class MaxSpanningTree:
     def __init__(self, num_nodes):
@@ -450,7 +458,11 @@ def run_cpp_tree_builder(input_file, num_nodes=None):
     temp_json = "temp_tree_output.json"
 
     executable = PROJECT_ROOT / "bin/tree_builder_cpp"
-    cmd = [str(executable), "-i", input_file, "-o", temp_json]
+    cmd = [
+        str(executable), 
+        "--data-dir", str(DATA_DIR), 
+        "-i", input_file, 
+        "-o", temp_json]
     if num_nodes is not None:
         cmd.extend(["-n", str(num_nodes)])
 
