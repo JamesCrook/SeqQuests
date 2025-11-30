@@ -5,30 +5,46 @@ This document outlines the technical debt identified in the SeqQuests project. T
 
 ## Priority 1: High (Critical/Blocking)
 
-- [x] **Dependency Management (Metal):** `compile.sh` hardcodes the path to `metal-cpp` as `$HOME/metal-cpp`. This breaks the build for any user who doesn't have this exact directory structure.
-    - *Action:* Make the path configurable via environment variable or include `metal-cpp` as a submodule/vendor directory.
-- [x] **Python Package Structure:** The project used to rely on manually setting `PYTHONPATH=py`. This is fragile and non-standard. Now it has a .toml file.
-    - *Action:* Check this is implemented correctly and that there aren't unneeded remnants of the old system.
+- [ ] **Documentation Drift (CONTENTS.md):**
+    - `CONTENTS.md` refers to `c_src/prepare_data.py` but the file is located at `py/prepare_binary_data.py`.
+    - `CONTENTS.md` structure section is slightly out of sync with the actual file layout.
+    - *Action:* Update `CONTENTS.md` to reflect the current file structure and paths.
+
+- [ ] **Broken Test Code (swiss_to_pdb.py):**
+    - `py/swiss_to_pdb.py` contains pseudo-code in its `test()` function (`indices_A = [10, 11, 12, ...]`) which will cause a syntax error or runtime error if executed.
+    - *Action:* Fix or remove the broken `test()` function.
 
 ## Priority 2: Medium (Code Quality & Maintainability)
 
-- [x] **Project Organization (c_src):** `c_src/prepare_binary_data.py` is a Python script located in the C source directory. It imports from the parent directory using `sys.path` manipulation.
-    - *Action:* Move this script to `py/` directory and use proper relative imports.
-- [x] **Frontend Separation of Concerns:** `static/lcars.html` contains a large block of inline CSS and JavaScript. This violates the project's own guidelines.
-    - *Action:* Extract CSS to `static/lcars.css` and JS to `static/lcars_ui.js`.
-- [x] **Code Duplication (Tree Builder):** There are parallel implementations of the Tree Builder in Python (`py/tree_builder.py`) and C++ (`c_src/tree_builder.cpp`).
-    - *Action:* Establish a strict verification test that runs both on the same data and asserts identical output to prevent logic drift. verify_tree_builder.py may be a useful starting point.
-- [x] **Global State:** `py/sequences.py` uses a global variable `_swissprot_cache` which persists state. This makes unit testing difficult and prone to side effects.
-    - *Action:* Refactor to use a class-based approach or dependency injection for the cache.
+- [ ] **Empty Test Stubs:**
+    - Many Python modules have a `--test` argument that merely prints a message ("test stub") and performs no validation. This gives a false sense of security.
+    - Affected modules: `py/command_runner.py`, `py/sw_align.py`, `py/computation.py`, `py/pam_converter.py`, `py/web_server.py`, `py/sw_search.py`.
+    - *Action:* Implement meaningful smoke tests (checking imports, basic function calls) or remove the `--test` argument if `tests/IMPORTANT_tests.py` policy prohibits them.
+
+- [ ] **Tree Builder Test Dependencies:**
+    - `py/tree_builder.py` test function relies on `test_links.txt` which may not be present, leading to skipped tests.
+    - *Action:* Generate test data programmatically within the test function or ensure test files are versioned.
 
 ## Priority 3: Low (Cleanup & Documentation)
 
-- [x] **Unused Code:** `py/dev_sw_search_metal.py` is a development artifact, yet still useful for development.
-    - *Action:* Move to a `dev/` directory and update the tree in README.txt
-- [x] **Hardcoded Paths in Compile Script:** `compile.sh` has logic for specific Apple Silicon chips but defaults to M1. It lacks flexibility for other architectures or manual overrides.
-    - *Action:* Allow command-line arguments to override `THREADS` and `UNROLL`.
+- [ ] **Frontend TODOs:**
+    - `static/lcars.js` contains a `TODO` regarding server updates for `dcolist`.
+    - *Action:* Resolve the server-side requirement or remove the TODO if obsolete.
 
-## Priority 4: Documentation
+- [ ] **Frontend Markdown Handling:**
+    - `static/lcars.js` uses a custom `asHtml` method which is a hacky implementation of Markdown rendering.
+    - *Action:* Evaluate if a lightweight Markdown library is needed or if the current solution is sufficient (and document it).
 
-- [x] **Missing API Docs:** While `fastapi` provides auto-docs, there is no explicit documentation for the internal Python API (e.g., `job_manager` classes).
-    - *Action:* Created `static/docs/api_reference.md` covering key modules.
+- [ ] **Compile Script Defaults:**
+    - `compile.sh` defaults `METAL_CPP_PATH` to `$HOME/metal-cpp`. While overridable, this assumes a specific environment.
+    - *Action:* Document this prerequisite clearly or include `metal-cpp` as a submodule.
+
+## Completed Items (Archived)
+
+The following items were previously identified as technical debt and have been addressed:
+
+- [x] **Project Organization (c_src):** `c_src/prepare_binary_data.py` was moved to `py/prepare_binary_data.py`.
+- [x] **Python Package Structure:** `pyproject.toml` has been introduced to manage dependencies and package structure, replacing `PYTHONPATH` hacks.
+- [x] **Global State:** `py/sequences.py` refactored to use `DataManager` class instead of global variables.
+- [x] **Unused Code:** `dev_sw_search_metal.py` moved to `dev/` directory.
+- [x] **Tree Builder Verification:** `validation/verify_tree_builder.py` exists to compare Python and C++ implementations.
