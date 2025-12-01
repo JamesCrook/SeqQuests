@@ -3,32 +3,7 @@
 ## Overview
 This document outlines the technical debt identified in the SeqQuests project. The debt is categorized by type and prioritized.
 
-## Priority 1: High (Critical/Blocking)
-
-- [x] **Data Path Hardcoding:**
-    - `py/sequences.py` and `py/taxa_lca.py` contain hardcoded paths like `~/BigData/bio_sequence_data`.
-    - *Action:* Check that this is now fixed
-
-- [x] **Documentation Drift (CONTENTS.md):**
-    - `CONTENTS.md` refers to `c_src/prepare_data.py` but the file is located at `py/prepare_binary_data.py`.
-    - `CONTENTS.md` structure section is slightly out of sync with the actual file layout.
-    - *Action:* Update `CONTENTS.md` to reflect the current file structure and paths.
-
-- [x] **Test Code:**
-    - `py/sequences.py` contains `test_swiss_index_access` and `benchmark` functions mixed with core logic.
-    - *Action:* This is OK per policy.
-
-## Priority 2: Medium (Code Quality & Maintainability)
-
-- [x] **Code Duplication (Tree Builder):**
-    - `py/tree_builder.py` and `c_src/tree_builder.cpp` implement the same logic (MST, cycle breaking).
-    - *Action:* Validate that the C++ version is fully equivalent (using `py/verify_tree_builder.py`). Document the python version's role better - as a wrapper and as a python reference implementation. 
-
-- [x] **Hardcoded Metal Compiler Logic:**
-    - `compile.sh` has logic to detect M1/M2/M3 chips. This is brittle (e.g., M5, Ultra variants).
-    - *Action:* Refactor to allow passing `THREADS` and `UNROLL` as environment variables or arguments, using the detection only as a hint/default.
-
-## Priority 3: Low (Cleanup & Documentation)
+## Priority 2: Medium (Cleanup & Documentation)
 
 - [ ] **Frontend TODOs:**
     - `static/lcars.js` contains a `TODO` regarding server updates for doclist.

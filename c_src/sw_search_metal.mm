@@ -122,9 +122,11 @@ void release_fasta_records(FastaRecord* records, int num_records);
 bool skip_sequence(const DataManager* data_manager, int query, int seq, const AppSettings* settings);
 void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager, const AppSettings* settings);
 void format_time(double seconds, char* buffer, size_t buffer_size);
+void format_number_with_commas(int64_t number, char* buffer, size_t buffer_size);
 
 // --- Main ---
 int main(int argc, char * argv[]) {
+    printf( "compiled with THREADS:%i UNROLL:%i\n", THREADS, UNROLL);
     @autoreleasepool {
         AppSettings settings;
         parse_arguments(argc, argv, &settings);
@@ -276,7 +278,9 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
 bool skip_sequence( const DataManager* data_manager, int query, int seq, const AppSettings* settings ){
     if( seq >= data_manager->num_fasta_records)
         return false;
-    //if( data_manager->fasta_records[seq].sequence_len > (UNROLL+4))
+    if( data_manager->fasta_records[seq].sequence_len > 8000)
+        return true;
+    //if( data_manager->fasta_records[seq].sequence_len < (UNROLL+4))
     //    return true;
     if( settings->all_recs)
         return false;
@@ -328,6 +332,35 @@ void format_time(double seconds, char* buffer, size_t buffer_size) {
     
     snprintf(buffer, buffer_size, "%dd %dh %dm %.0fs", days, hours, mins, seconds);
 }
+
+void format_number_with_commas(int64_t number, char* buffer, size_t buffer_size) {
+    char temp[64];
+    snprintf(temp, sizeof(temp), "%ld", (long)number);
+    
+    int len = strlen(temp);
+    int comma_count = (len - 1) / 3;
+    int total_len = len + comma_count;
+    
+    if (total_len >= (int)buffer_size) {
+        snprintf(buffer, buffer_size, "%ld", (long)number);
+        return;
+    }
+    
+    int src_pos = len - 1;
+    int dst_pos = total_len - 1;
+    buffer[dst_pos + 1] = '\0';
+    
+    int digit_count = 0;
+    while (src_pos >= 0) {
+        buffer[dst_pos--] = temp[src_pos--];
+        digit_count++;
+        if (digit_count == 3 && src_pos >= 0) {
+            buffer[dst_pos--] = ',';
+            digit_count = 0;
+        }
+    }
+}
+
 
 void run_search(int query, MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows, BenchmarkState* bench) {
     printf("\nRunning Smith-Waterman steps...\n");
@@ -497,9 +530,9 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     
     // Update benchmark totals
     bench->total_protein_comparisons += comparisons_this_search;
-    pmes_this_search = (int64_t)step * THREADS * UNROLL;
+    pmes_this_search = (int64_t)step * rows * THREADS * UNROLL;
     bench->total_pmes_computed += pmes_this_search;
-    
+
     report_results(rows, step, finds, search_end - search_start, query, settings, data_manager, bench);
 }
 
@@ -555,9 +588,16 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     char time_buffer[128];
     format_time(all_on_all_time_by_proteins, time_buffer, sizeof(time_buffer));
     printf("Estimated all-on-all search time: %s\n", time_buffer);
+    format_time(all_on_all_time_by_pmes, time_buffer, sizeof(time_buffer));
+    printf("Estimated all-on-all search time: %s (based on PMEs)\n", time_buffer);
+    
+    char pps_formatted[64];
+    format_number_with_commas((int64_t)proteins_per_sec, pps_formatted,sizeof(pps_formatted));
+    char pmes_formatted[64];
+    format_number_with_commas((int64_t)pmes_per_sec, pmes_formatted,sizeof(pmes_formatted));
     
     // Performance metrics
-    printf("Performance: %.1f proteins/sec, %.0f PMEs/sec\n", proteins_per_sec, pmes_per_sec);
+    printf("Performance: %s protein-pairs/sec, %s PMEs/sec\n", pps_formatted, pmes_formatted);
     
     // Time breakdown
     printf("CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs)\n",
