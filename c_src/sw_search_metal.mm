@@ -178,8 +178,8 @@ void parse_arguments(int argc, char* argv[], AppSettings* settings) {
     settings->all_recs = false;
     settings->machine_output = true;
     settings->slow_output = false;
-    settings->pam_data_file = "c_src/pam250.bin";
-    settings->fasta_data_file = "c_src/fasta.bin";
+    settings->pam_data_file = "data/pam250.bin";
+    settings->fasta_data_file = "data/fasta.bin";
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--debug_slot") == 0 && i + 1 < argc) {

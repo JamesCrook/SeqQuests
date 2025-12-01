@@ -13,6 +13,7 @@ import subprocess
 import os
 import tempfile
 from pathlib import Path
+import numpy as np
 import sequences
 from config import DATA_DIR, PROJECT_ROOT
 
@@ -26,6 +27,10 @@ We may also use the python version in educational code that explains the algorit
 """
 
 class MaxSpanningTree:
+    # Class-level variable to store the inverse index (shared across instances)
+    _inverse_index = None
+    _inverse_index_path = None
+    
     def __init__(self, num_nodes):
         self.num_nodes = num_nodes
         self.max_seen_id = 0 # Track the maximum node ID encountered
@@ -52,6 +57,55 @@ class MaxSpanningTree:
         self.visited_a_search_ids = [0] * num_nodes
         self.visited_b_search_ids = [0] * num_nodes
         self.search_id = 0
+    
+    @classmethod
+    def load_inverse_index(cls, inv_index_path):
+        """
+        Load the inverse index from binary file.
+        This is called once and cached at the class level.
+        
+        Args:
+            inv_index_path: Path to the fasta_inv_index.bin file
+        """
+        inv_index_path = Path(inv_index_path)
+        
+        # Only load if not already loaded or if path has changed
+        if cls._inverse_index is None or cls._inverse_index_path != inv_index_path:
+            if not inv_index_path.exists():
+                print(f"Warning: Inverse index file not found at {inv_index_path}")
+                print(f"Assuming sequences are not sorted (using ID as-is)")
+                cls._inverse_index = None
+                cls._inverse_index_path = None
+                return
+            
+            print(f"Loading inverse index from {inv_index_path}...")
+            with open(inv_index_path, "rb") as f:
+                data = f.read()
+            
+            cls._inverse_index = np.frombuffer(data, dtype=np.int32)
+            cls._inverse_index_path = inv_index_path
+            print(f"Loaded inverse index with {len(cls._inverse_index):,} entries")
+    
+    @classmethod
+    def get_original_id(cls, sorted_id):
+        """
+        Map from sorted sequence ID back to original sequence ID.
+        
+        Args:
+            sorted_id: The ID in the sorted sequence file
+            
+        Returns:
+            The original sequence ID before sorting
+        """
+        if cls._inverse_index is None:
+            # No inverse index loaded, assume sequences are not sorted
+            return sorted_id
+        
+        if sorted_id < 0 or sorted_id >= len(cls._inverse_index):
+            print(f"Warning: ID {sorted_id} out of range for inverse index")
+            return sorted_id
+        
+        return int(cls._inverse_index[sorted_id])
 
     def load_from_json(self, json_file):
         with open(json_file, 'r') as f:
@@ -275,6 +329,13 @@ class MaxSpanningTree:
 
         return best_root
 
+    # The search worked with renumbered proteins.
+    # We must get the true number before doing the look up.
+    def get_renumbered_protein( id ):
+        # Map from sorted ID back to original ID using inverse index
+        original_id = MaxSpanningTree.get_original_id(id)
+        return sequences.get_protein( original_id )
+
     def report_twilight(self, f):
 
         def should_skip(r1, r2):
@@ -313,8 +374,8 @@ class MaxSpanningTree:
 
         for node_id in sorted_twilight_indices:
             parent_id = parents[node_id]
-            r1 = sequences.get_protein(node_id)
-            r2 = sequences.get_protein(parent_id)
+            r1 = get_renumbered_protein(node_id)
+            r2 = get_renumbered_protein(parent_id)
 
             skip_reason = should_skip(r1, r2)
             if skip_reason:
@@ -375,7 +436,7 @@ class MaxSpanningTree:
                 start_index = adjusted_len - (adjusted_len % 40)
                 short_prefix = f"{start_index}:{prefix[start_index:]}"
 
-                record = sequences.get_protein(node_id)
+                record = get_renumbered_protein(node_id)
                 if node_id%1000 == 0:
                     print(f"tree: {node_id}")
 
@@ -423,7 +484,7 @@ class MaxSpanningTree:
                         f.write(f"ISOLATED NODES (no connections): {len(isolated)}\n")
                         f.write("-" * 80 + "\n")
                         for node_id in isolated:
-                            record = sequences.get_protein(node_id)
+                            record = get_renumbered_protein(node_id)
                             f.write(f"Node {node_id}: {record.name}\n")
 
 def process_links_file(filename, num_nodes):
@@ -622,11 +683,13 @@ Examples:
   %(prog)s -i links.csv -o sw_tree.txt --nodes 157000
   %(prog)s -i links.csv -o sw_tree.txt --threshold 200
   %(prog)s -i links.csv -o sw_tree.txt --threshold 200 --verbose
+  %(prog)s -i links.csv -o sw_tree.txt --inv-index-file ../data/fasta_inv_index.bin
         """
     )
     
     default_input = PROJECT_ROOT / "sw_results/sw_results.csv"
     default_output = PROJECT_ROOT / "sw_results/sw_tree.txt"
+    default_inv_index = PROJECT_ROOT / "data/fasta_inv_index.bin"
 
     parser.add_argument('-i', '--input', default=str(default_input), 
                        help='Input CSV file with links (query_seq,target_seq,score,location,length)')
@@ -641,6 +704,9 @@ Examples:
     parser.add_argument('--cpp', action='store_true', help='Use C++ backend for faster processing', default=True)
     parser.add_argument('--test', action='store_true', help='Run test function')
     parser.add_argument('--no-test', action='store_false', dest='test', help='Disable test mode')
+    parser.add_argument('--inv-index-file', type=str, default=str(default_inv_index),
+                       help=f'Path to inverse index binary file (default: {default_inv_index}). '
+                            'Used to map sorted sequence IDs back to original IDs.')
     parser.set_defaults(test=True)
     
     args = parser.parse_args()
@@ -648,6 +714,10 @@ Examples:
     if args.test:
         test()
         return
+    
+    # Load the inverse index if provided
+    if args.inv_index_file:
+        MaxSpanningTree.load_inverse_index(args.inv_index_file)
     
     if args.cpp:
         if args.verbose:
