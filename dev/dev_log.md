@@ -19,6 +19,12 @@ M2 is a Mac M2 Pro with 16GB of RAM.
 
 @114,330 on 30 Nov at 00:39
 @131,189 on 01 Dec at 01:30
+@142,363 on 01 Dec at 16:00 4.7 seconds/protein. est 15 day search.
+
+* 01 Dec: M2 - New run with Titin optimisation; expected 2x faster.
+
+@000,007 on 01 Dec at 16:27 estimating 5 days 7hrs (based on PMEs). 
+
 
 ### Additional Dev History
 
@@ -30,4 +36,4 @@ e7d73cbbd452b1babd91a4dab12d78f6d2a992f1 introduced the all-recs parameter, defa
 
 35033228b84145572f0c0361ea73d050d13dcc93 added proper queues for proteins under analysis so that the unrolled block can handle multiple short proteins. The filter to proteins > 44 aa's long has been removed. The main beneficiaries are short neuro toxins which were previously excluded. Not yet being used in the long running search.
 
-1st Dec 2025: Added better benchmarking speed diagnostics. Titins take many steps to complete, leaving all but 40 threads idle. By excluding proteins above 8,000aa estimated search time drops on M4 Pro from about 9 days to about 3. 2/3 of time previously was wasted on M4, estimated 1/3 of time was wasted on M2 which has half the threads.
+1st Dec 2025: Added better benchmarking speed diagnostics. Titins take many steps to complete, leaving all but 40 threads idle. By excluding proteins above 8,000aa estimated search time drops on M4 Pro from about 9 days to about 3. 2/3 of time previously was wasted on M4, estimated 1/3 of time was wasted on M2 which has half the threads. Now further enhanced by sorting the proteins, largest first, so I don't have to exclude the Titins (Mouse and Human)
