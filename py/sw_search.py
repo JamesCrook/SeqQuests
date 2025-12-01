@@ -250,8 +250,8 @@ def run_sw_search(
     start_at: int = 0,
     num_seqs: int = 1,
     slow_output: bool = False,
-    pam_data: str = "./c_src/pam250.bin",
-    fasta_data: str = "./c_src/fasta.bin",
+    pam_data: str = "./data/pam250.bin",
+    fasta_data: str = "./data/fasta.bin",
 ):
     """
     This function wraps the sw_search_metal.mm executable and monitor its output.

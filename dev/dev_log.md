@@ -30,4 +30,4 @@ e7d73cbbd452b1babd91a4dab12d78f6d2a992f1 introduced the all-recs parameter, defa
 
 35033228b84145572f0c0361ea73d050d13dcc93 added proper queues for proteins under analysis so that the unrolled block can handle multiple short proteins. The filter to proteins > 44 aa's long has been removed. The main beneficiaries are short neuro toxins which were previously excluded. Not yet being used in the long running search.
 
-1st Dec 2025: Added better benchmarking speed diagnostics. Titins take many steps to complete, leaving all but 40 threads idle. By excluding proteins above 8,000aa estimated search time drops on M4 Pro from about 9 days to about 3. 2/3 of time previously was wasted on M4, estimated 1/3 on M2 which has half the threads.
+1st Dec 2025: Added better benchmarking speed diagnostics. Titins take many steps to complete, leaving all but 40 threads idle. By excluding proteins above 8,000aa estimated search time drops on M4 Pro from about 9 days to about 3. 2/3 of time previously was wasted on M4, estimated 1/3 of time was wasted on M2 which has half the threads.
