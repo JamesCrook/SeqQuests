@@ -59,9 +59,9 @@
             // Chain the loads or use Promise.all if loadPartial returned a promise (it does).
 
             Promise.all([
-                Lcars.loadPartial('TopPanel', './partials/alignment_view.html'),
-                Lcars.loadPartial('LeftPanel', './partials/findings_list.html'),
-                Lcars.loadPartial('RightPanel', './partials/detail_view.html')
+                Lcars.loadPartial('TopPanel', './panels/alignment_view.html'),
+                Lcars.loadPartial('LeftPanel', './panels/findings_list.html'),
+                Lcars.loadPartial('RightPanel', './panels/detail_view.html')
             ]).then(() => {
                 if (typeof window.initializeApp === 'function') {
                     window.initializeApp();

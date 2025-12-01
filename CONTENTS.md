@@ -97,8 +97,8 @@ Contains the frontend code (HTML/JS) for the dashboard.
 *   `style.css`: Global stylesheets.
 *   `doclist.js`: List of documentation files.
 
-## 5. Web Interface Panels (`static/partials`)
-Chunks of HTML that typically provide panels for use within the dashboards.
+## 5. Web Interface Panels (`static/panels`)
+Full HTML documents that typically provide panels for use within the dashboards.
 
 ## 6. Web Interface (`static/docs`)
 User facing documentation

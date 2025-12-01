@@ -43,7 +43,7 @@ async function addJob() {
   const configContainer = document.getElementById('config-container');
   if (!configContainer) return;
 
-  Lcars.loadPartial('config-container', './partials/jobs.html', () => {
+  Lcars.loadPartial('config-container', './panels/jobs.html', () => {
     document.getElementById('config-modal').style.display = 'block';
   });
 }
@@ -104,7 +104,7 @@ function configureJob(show = true) {
 
   if (show) {
       // Load the partial
-      Lcars.loadPartial('config-container', `./partials/config_${currentJobType}.html`, () => {
+      Lcars.loadPartial('config-container', `./panels/config_${currentJobType}.html`, () => {
           // After loading, we might need to populate values if the partial has inputs
           // But loadJobConfig is called by the partial's script (if we execute scripts).
           // However, we are passing job_id via URL params in the iframe approach.

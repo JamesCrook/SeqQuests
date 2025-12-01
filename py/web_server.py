@@ -284,10 +284,10 @@ async def get_favicon():
     """Serve the job selection page."""
     return FileResponse(PROJECT_ROOT / 'static/wheel.ico')
 
-@app.get("/partials/{file}")
+@app.get("/panels/{file}")
 async def get_part_for_html_page( file ):
     """Serve the job selection page."""
-    return FileResponse(PROJECT_ROOT / f'static/partials/{file}')
+    return FileResponse(PROJECT_ROOT / f'static/panels/{file}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FastAPI Web Server")

@@ -7,6 +7,7 @@ class LcarsUI {
     constructor() {
         this.doCommand = this.doCommand.bind(this);
         this.panelCounter = 0;
+        this.loadedScripts = new Set();
     }
 
     doCommand(event) {
@@ -38,19 +39,50 @@ class LcarsUI {
 
     executeScripts(container) {
         const scripts = container.getElementsByTagName('script');
-        for (let i = 0; i < scripts.length; i++) {
-            const script = scripts[i];
+        // scripts collection is live, so we iterate backwards or use a static list
+        // However, we need to preserve order.
+        const scriptArray = Array.from(scripts);
+
+        scriptArray.forEach((script) => {
             const newScript = document.createElement('script');
             if (script.src) {
-                newScript.src = script.src;
+                // Resolve relative paths if necessary?
+                // The browser resolves `src` relative to the current page URL, which is correct
+                // if the script is in `static/` and referenced as `./foo.js`.
+                // However, if we load content from `static/panels/`, relative paths in that content
+                // might be relative to the panel file location if we used an iframe,
+                // but here we are injecting HTML into the main page.
+                // So `./foo.js` in injected HTML resolves to `static/foo.js` (relative to `static/lcars.html`).
+                // This implies scripts in `static/panels/` must be referenced as `./panels/foo.js`
+                // OR we adjust the paths during injection.
+
+                // The prompt says: "with any js being in a js file in partials/" (now panels/).
+                // So if `panels/jobs.html` has `<script src="jobs.js">`,
+                // when injected into `lcars.html`, it will try to load `static/jobs.js`.
+                // We likely need to fix the path if it's relative.
+
+                let src = script.getAttribute('src');
+                if (src && !src.startsWith('/') && !src.startsWith('http')) {
+                     // Assume it is relative to the panel location if it doesn't look absolute/root-relative
+                     // Wait, if I write `<script src="jobs.js">` in `panels/jobs.html`,
+                     // and I load `panels/jobs.html`, the URL context of that file is `panels/`.
+                     // But when I inject `innerHTML`, the context is `static/`.
+                     // So I should rewrite `jobs.js` to `panels/jobs.js`.
+                     // But how do I know the base? I know it from `loadPartial` URL.
+                }
+
+                if (script.src && !this.loadedScripts.has(script.src)) {
+                     newScript.src = script.src;
+                     this.loadedScripts.add(script.src);
+                     document.body.appendChild(newScript);
+                }
             } else {
                 newScript.textContent = script.textContent + 
                 `\n//# sourceURL=panel-${this.panelCounter}.js`;
                 this.panelCounter++;
+                document.body.appendChild(newScript);
             }
-            document.body.appendChild(newScript); // Execute by appending to body
-            // document.body.removeChild(newScript); // Optional cleanup
-        }
+        });
     }
 
     setMainPanel(text) {
@@ -65,22 +97,64 @@ class LcarsUI {
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to load ${url}`);
-            const html = await response.text();
-            this.setPanel(panelId, html);
+            const htmlText = await response.text();
+
+            // Parse the HTML
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
             
-            // Add sourceURL based on the actual URL loaded
-            const container = document.getElementById(panelId);
-            const scripts = container.getElementsByTagName('script');
+            // Extract the body content
+            const bodyContent = doc.body.innerHTML;
+
+            let div = document.getElementById(panelId);
+            if (!div) {
+                console.warn(`Panel ${panelId} not found.`);
+                return;
+            }
+            div.innerHTML = this.asHtml(bodyContent);
+
+            // Handle Scripts
+            // We need to look at scripts in the parsed doc, not the injected innerHTML,
+            // because innerHTML scripts don't run automatically, but we are about to run them manually.
+            // Also, we need to handle path resolution for scripts relative to the partial.
+
+            const scripts = doc.getElementsByTagName('script');
+            // Helper to resolve relative paths
+            const resolvePath = (scriptSrc) => {
+                 // If the script src is relative (e.g. "jobs.js"), and the url is "./panels/jobs.html"
+                 // we want "./panels/jobs.js".
+                 // Using URL constructor to resolve.
+                 // We need an absolute base URL for the partial.
+                 // URL(url, window.location.href) gives the absolute URL of the partial.
+                 const partialUrl = new URL(url, window.location.href);
+                 const scriptUrl = new URL(scriptSrc, partialUrl);
+                 return scriptUrl.href;
+            };
+
             for (let i = 0; i < scripts.length; i++) {
                 const script = scripts[i];
                 const newScript = document.createElement('script');
+
                 if (script.src) {
-                    newScript.src = script.src;
+                    // Get the absolute URL to check against loadedScripts
+                    // script.src property is already absolute if parsed by DOMParser?
+                    // Let's verify. DOMParser might not resolve relative URLs if it doesn't have a base URI context?
+                    // Actually, doc.baseURI defaults to window.location.href.
+                    // So script.src will be resolved relative to the main page, NOT the partial file location.
+                    // Use getAttribute('src') to get the raw value.
+                    const rawSrc = script.getAttribute('src');
+                    const resolvedSrc = resolvePath(rawSrc);
+
+                    if (!this.loadedScripts.has(resolvedSrc)) {
+                        newScript.src = resolvedSrc;
+                        this.loadedScripts.add(resolvedSrc);
+                        document.body.appendChild(newScript);
+                    }
                 } else {
                     newScript.textContent = script.textContent + 
                         `\n//# sourceURL=${url}-script-${i}.js`;
+                    document.body.appendChild(newScript);
                 }
-                document.body.appendChild(newScript);
             }
             
             if (callback) callback();
@@ -128,7 +202,7 @@ class LcarsUI {
     }
 
     doAlignment() {
-        this.loadPartial('MainPanel', './partials/alignment_view.html', () => {
+        this.loadPartial('MainPanel', './panels/alignment_view.html', () => {
              // Re-initialize match explorer logic if needed, or it might rely on global event handlers
              // Since we just loaded the structure, if match_explorer.js is loaded, it might need a trigger
              if (typeof initializeApp === 'function') initializeApp();
@@ -136,14 +210,14 @@ class LcarsUI {
     }
 
     doSearchResults() {
-         this.loadPartial('SubPanel', './partials/findings_list.html', () => {
+         this.loadPartial('SubPanel', './panels/findings_list.html', () => {
              // For Findings List, we also rely on match_explorer.js
              if (typeof initializeApp === 'function') initializeApp();
          });
     }
 
     doJobQueue() {
-        this.loadPartial('MainPanel', './partials/job_management_content.html', async () => {
+        this.loadPartial('MainPanel', './panels/job_management_content.html', async () => {
              // Init job management
              if (typeof refreshJobs === 'function') {
                  // Re-attach event listeners or state if needed.
