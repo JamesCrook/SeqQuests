@@ -27,5 +27,9 @@ python py/web_server.py
 * `GET /api/findings`: Get results file.
 * `GET /stream-data`: Stream Smith Waterman results CSV.
 
+This is a FastAPI server and /docs serves an up to date list of API endpoints
+
 ## Static Files
 Served from `/static`.
+`/static/docs` has .md files with user documentation
+`/static/docs/doclist.js` is an index of the docs, and is auto regenerated on request

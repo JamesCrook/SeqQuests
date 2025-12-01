@@ -9,6 +9,7 @@ from typing import Dict, Any
 import logging
 from pydantic import BaseModel
 import argparse
+import json
 
 from job_manager import JobManager, JOB_TYPES
 import sequences
@@ -212,13 +213,11 @@ async def get_sequence(identifier: str):
 # --- Web UI Routes ---
 
 
-@app.get("/api/docs")
-async def list_docs():
-    """List available documentation files."""
+def _get_doc_list() -> list:
+    """Get list of available documentation files."""
     docs_path = PROJECT_ROOT / "static/docs"
     if not docs_path.exists():
         return []
-
     docs = []
     for file in docs_path.glob("*.md"):
         docs.append({
@@ -227,10 +226,48 @@ async def list_docs():
         })
     return sorted(docs, key=lambda x: x['name'])
 
+@app.get("/api/docs")
+async def list_docs():
+    """List available documentation files."""
+    return _get_doc_list()
+
+@app.get("/docs/doclist.js")
+async def get_document_list():
+    """Serve the document list, updating the file only if it has changed."""
+    docs_path = PROJECT_ROOT / "static/docs"
+    doclist_path = docs_path / "doclist.js"
+    
+    # Get current docs and generate JS content
+    docs = _get_doc_list()
+    docs_json = json.dumps(docs, indent=2)
+    new_content = f'{docs_json}'
+    
+    # Read existing file if it exists
+    existing_content = ""
+    if doclist_path.exists():
+        existing_content = doclist_path.read_text()
+    
+    # Update file only if content has changed
+    if new_content != existing_content:
+        doclist_path.parent.mkdir(parents=True, exist_ok=True)
+        doclist_path.write_text(new_content)
+        logger.info("Updated doclist.js")
+    
+    return FileResponse(doclist_path, media_type="application/javascript")
+
 @app.get("/docs/{file}")
-async def get_document( file ):
-    """Serve the job selection page."""
-    return FileResponse(PROJECT_ROOT / f'static/docs/{file}')
+async def get_document(file: str):
+    """Serve documentation files."""
+    # Security: prevent directory traversal
+    if ".." in file:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    file_path = PROJECT_ROOT / "static/docs" / file
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(file_path)
 
 @app.get("/")
 async def read_root():
@@ -253,27 +290,29 @@ async def get_part_for_html_page( file ):
     return FileResponse(PROJECT_ROOT / f'static/partials/{file}')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Web Server module")
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Command Runner module")
-    parser.add_argument('--no-test', action='store_false', dest='test',
-                        help='Disable test mode')
-    parser.add_argument('--test', action='store_true', dest='test',
-                        help='Enable test mode (default)')
-    # Use from command line currently only for testing, so is the default
-    parser.set_defaults(test=True)    
+    parser = argparse.ArgumentParser(description="FastAPI Web Server")
+    parser.add_argument('--host', type=str, default='127.0.0.1',
+                        help='Host to bind the server to (default: 127.0.0.1)')
+    parser.add_argument('--port', type=int, default=8002,
+                        help='Port to bind the server to (default: 8002)')
+    parser.add_argument('--reload', action='store_true',
+                        help='Enable auto-reload for development')
+    parser.add_argument('--workers', type=int, default=1,
+                        help='Number of worker processes (default: 1)')
+    parser.add_argument('--log-level', type=str, 
+                        choices=['critical', 'error', 'warning', 'info', 'debug'],
+                        default='info',
+                        help='Logging level (default: info)')
+    
     args = parser.parse_args()
-
-    if not args.test:
-        parser.print_help()
-        exit(0)
-
-    """ Smoke test - will CommandRunner run? """
-    print(f"Running in test mode...")
-    # TODO: Make a CommandRunner and execute ls with it, ensuring it runs/terminates
-
-    else:
-        import uvicorn
-        logger.info("Starting REST server on http://localhost:8000")
-        uvicorn.run("web_server:app", host="127.0.0.1", port=8002)
+    
+    import uvicorn
+    logger.info(f"Starting REST server on http://{args.host}:{args.port}")
+    uvicorn.run(
+        "web_server:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        workers=args.workers if not args.reload else 1,  # reload only works with 1 worker
+        log_level=args.log_level
+    )

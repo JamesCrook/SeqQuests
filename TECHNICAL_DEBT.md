@@ -5,10 +5,6 @@ This document outlines the technical debt identified in the SeqQuests project. T
 
 ## Priority 2: Medium (Cleanup & Documentation)
 
-- [ ] **Frontend TODOs:**
-    - `static/lcars.js` contains a `TODO` regarding server updates for doclist.
-    - *Action:* The is actually in web_server.py. Fix the disconnect between doclist.js and the dynamically created py/web_server.py /Api/docs endpoint. That endpoint should update doclist.js, if it has changed. lcars.js should ask for ./docs/doclist.js and web_server.py should intercept it. That way the doclist will be used when the API is unavailable.
-
 - [ ] **Compile Script Defaults:**
     - `compile.sh` defaults `METAL_CPP_PATH` to `$HOME/metal-cpp`. While overridable, this assumes a specific environment.
     - *Action:* This may have been addressed. Check the instructions in getting_started.md. 

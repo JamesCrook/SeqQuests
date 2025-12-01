@@ -95,7 +95,7 @@ class LcarsUI {
         // TODO: Server should be updated so that it detects the request for doclist,
         // and updates doclist if it isn't up to date.
         try {
-            const response = await fetch(`./doclist.js`);
+            const response = await fetch(`./docs/doclist.js`);
             const docs = await response.json();
             /*
             const response = await fetch('/api/docs');

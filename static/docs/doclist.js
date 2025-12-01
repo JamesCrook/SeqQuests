@@ -1,5 +1,9 @@
 [
   {
+    "name": "Api Reference",
+    "filename": "api_reference.md"
+  },
+  {
     "name": "Command Runner",
     "filename": "command_runner.md"
   },
