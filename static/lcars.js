@@ -131,32 +131,34 @@ class LcarsUI {
                  return scriptUrl.href;
             };
 
+            // Load scripts sequentially to maintain order
             for (let i = 0; i < scripts.length; i++) {
                 const script = scripts[i];
-                const newScript = document.createElement('script');
-
+                
                 if (script.src) {
-                    // Get the absolute URL to check against loadedScripts
-                    // script.src property is already absolute if parsed by DOMParser?
-                    // Let's verify. DOMParser might not resolve relative URLs if it doesn't have a base URI context?
-                    // Actually, doc.baseURI defaults to window.location.href.
-                    // So script.src will be resolved relative to the main page, NOT the partial file location.
-                    // Use getAttribute('src') to get the raw value.
                     const rawSrc = script.getAttribute('src');
                     const resolvedSrc = resolvePath(rawSrc);
-
+                    
                     if (!this.loadedScripts.has(resolvedSrc)) {
-                        newScript.src = resolvedSrc;
-                        this.loadedScripts.add(resolvedSrc);
-                        document.body.appendChild(newScript);
+                        // Wait for external script to load
+                        await new Promise((resolve, reject) => {
+                            const newScript = document.createElement('script');
+                            newScript.src = resolvedSrc;
+                            newScript.onload = resolve;
+                            newScript.onerror = reject;
+                            this.loadedScripts.add(resolvedSrc);
+                            document.body.appendChild(newScript);
+                        });
                     }
                 } else {
+                    // Execute inline script immediately
+                    const newScript = document.createElement('script');
                     newScript.textContent = script.textContent + 
                         `\n//# sourceURL=${url}-script-${i}.js`;
                     document.body.appendChild(newScript);
                 }
             }
-            
+        
             if (callback) callback();
         } catch (e) {
             console.error(e);

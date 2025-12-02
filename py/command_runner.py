@@ -16,6 +16,8 @@ import termios
 import tty
 from typing import Optional, Callable, List, Tuple, Dict
 
+from config import PROJECT_ROOT
+
 logger = logging.getLogger(__name__)
 
 class OutputFilter:
@@ -37,7 +39,7 @@ class OutputFilter:
         self.latest = {}  # Store latest line for each category
         
         # Initialize buffers
-        default_size = 30
+        default_size = 8
         for category in prefixes.keys():
             size = buffer_sizes.get(category, default_size) if buffer_sizes else default_size
             self.buffers[category] = deque(maxlen=size)
@@ -240,7 +242,7 @@ class CommandRunner:
             stdout=slave_fd,
             stderr=slave_fd,
             stdin=subprocess.PIPE,
-            cwd=cwd,
+            cwd=str(PROJECT_ROOT),
             close_fds=True
         )
 

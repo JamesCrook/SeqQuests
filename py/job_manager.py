@@ -9,8 +9,10 @@ import argparse
 # Import job functions
 from computation import run_computation
 from data_munger import run_data_munging
-from sw_search import run_sw_search
 from sequences import read_swissprot_sequences
+from command_runner import CommandRunner
+
+from config import PROJECT_ROOT
 
 """
 Classes for job management.
@@ -160,38 +162,10 @@ class DataMungingJob(Job):
         logger.info(f"Data munging job {self.job_id} finished.")
 
 
-class SwSearchJob(Job):
-    def __init__(self, job_id: str, manager: 'JobManager'):
-        super().__init__(job_id, "sw_search", manager)
-        self.state.update({
-            "output_log": [],
-        })
-
-    def run(self):
-        logger.info(f"Running SW search job {self.job_id} with config {self.state['config']}")
-        try:
-            config = self.state['config']
-            run_sw_search(
-                job=self,
-                debug_slot=config.get('debug_slot', -1),
-                reporting_threshold=config.get('reporting_threshold', 110),
-                start_at=config.get('start_at', 0),
-                num_seqs=config.get('num_seqs', 1),
-                slow_output=config.get('slow_output', False),
-                pam_data=config.get('pam_data', "c_src/pam250.bin"),
-                fasta_data=config.get('fasta_data', "c_src/fasta.bin"),
-            )
-            if self.state['status'] != 'cancelled':
-                self.update(status="completed")
-        except Exception as e:
-            logger.error(f"Job {self.job_id} failed: {e}")
-            self.update(status="failed", errors=[str(e)])
-        logger.info(f"SW search job {self.job_id} finished.")
-
 """This is the proposed replacement version with enhnaced code 
 for capturing command outputs.
 """
-class SwSearchJob2(Job):
+class SwSearchJob(Job):
     def __init__(self, job_id: str, manager: 'JobManager'):
         super().__init__(job_id, "sw_search", manager)
         self.state.update({
@@ -209,13 +183,13 @@ class SwSearchJob2(Job):
         executable = PROJECT_ROOT / "bin/sw_search_metal"
         command = [
             str(executable),
-            f"--debug_slot={config.get('debug_slot', -1)}",
-            f"--reporting_threshold={config.get('reporting_threshold', 110)}",
-            f"--start_at={config.get('start_at', 0)}",
-            f"--num_seqs={config.get('num_seqs', 1)}",
-            f"--slow_output={config.get('slow_output', False)}",
-            f"--pam_data={config.get('pam_data', 'c_src/pam250.bin')}",
-            f"--fasta_data={config.get('fasta_data', 'c_src/fasta.bin')}",
+            f"--debug_slot",f"{config.get('debug_slot', -1)}",
+            f"--reporting_threshold",f"{config.get('reporting_threshold', 110)}",
+            f"--start_at",f"{config.get('start_at', 0)}",
+            f"--num_seqs",f"{config.get('num_seqs', 600000)}",
+            f"--pam_data",f"{config.get('pam_data', str(PROJECT_ROOT / 'data/pam250.bin'))}",
+            f"--fasta_data",f"{config.get('fasta_data', str(PROJECT_ROOT / 'data/fasta.bin'))}"
+
         ]
     
         runner = CommandRunner(
@@ -224,7 +198,9 @@ class SwSearchJob2(Job):
             filter_prefixes={
                 'stats': 'STATS:',
                 'hits': 'HIT:',
-                'bench': 'BENCH:'
+                'bench': 'BENCH:',
+                'seq': 'SEQ:',
+                'step': 'STEP:'
             }
         )
         
@@ -232,13 +208,15 @@ class SwSearchJob2(Job):
         
         for category, line in runner.read_output_filtered():
             # Update progress from stats
+            self.update(progress=line)
             if category == 'stats':
-                self.update(progress=line, latest_stats=line)
+                self.update(latest_stats=line)
             
             # Store hits
             elif category == 'hits':
                 self.update(latest_hit=line)
-            
+            print(f"::: {line}")
+      
             # Handle pause/resume
             if self.state['status'] == 'paused':
                 runner.pause()
@@ -254,7 +232,7 @@ class SwSearchJob2(Job):
         buffers = runner.get_buffers()
         self.update(
             stats_buffer=buffers.get('stats', []),
-            hits_buffer=buffers.get('hits', [])
+            output_log=buffers.get('hits', [])
         )
 
 

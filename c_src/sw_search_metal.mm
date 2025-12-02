@@ -251,7 +251,8 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     int rows = data_manager->fasta_records[probe_seq_idx].sequence_len-1;
 
     printf("\nSearching with: %s\n", data_manager->fasta_records[probe_seq_idx].description);
-    printf("Sequence: %6d Sequence length: %6d\n", probe_seq_idx, rows);
+    printf("SEQ: %6d Sequence length: %6d\n", probe_seq_idx, rows);
+    printf("STATS: Sequence: %6d Step: 0\n", probe_seq_idx);
 
     int16_t* pam_lut = (int16_t*)malloc(32 * rows * sizeof(int16_t));
     for (int col = 0; col < 32; ++col) {
@@ -346,16 +347,16 @@ void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager
 
 
     
-    printf("\n=== Database Statistics ===\n");
-    printf("Total proteins: %d\n", data_manager->num_fasta_records);
-    printf("Non-skipped proteins: %d\n", bench->non_skipped_proteins);
-    printf("Total amino acids: %lld\n", bench->non_skipped_amino_acids);
-    printf("Average protein length: %.1f\n", bench->average_protein_length);
+    printf("BENCH: \nBENCH: === Database Statistics ===\n");
+    printf("BENCH: Total proteins: %d\n", data_manager->num_fasta_records);
+    printf("BENCH: Non-skipped proteins: %d\n", bench->non_skipped_proteins);
+    printf("BENCH: Total amino acids: %lld\n", bench->non_skipped_amino_acids);
+    printf("BENCH: Average protein length: %.1f\n", bench->average_protein_length);
     printf("All-on-all comparisons (triangular): %lld\n", bench->total_all_on_all_comparisons);
-    printf("All-on-all PMEs: %lld\n", bench->total_all_on_all_pmes);
-    printf("Task comparisons: %lld\n", bench->task_protein_comparisons);
-    printf("Task PMEs: %lld\n", bench->task_pmes);
-    printf("\n");
+    printf("BENCH: All-on-all PMEs: %lld\n", bench->total_all_on_all_pmes);
+    printf("BENCH: Task comparisons: %lld\n", bench->task_protein_comparisons);
+    printf("BENCH: Task PMEs: %lld\n", bench->task_pmes);
+    printf("BENCH: \n");
 }
 
 void format_time(double seconds, char* buffer, size_t buffer_size) {
@@ -464,7 +465,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
             }
 
             if(!more_data) break;
-            if((step % 1000) == 0) printf("Step:%7d\n", step);
+            if((step % 1000) == 0) printf("STATS: Sequence: %6d Step:%7d\n", query, step);
 
             int in_idx = step % 2;
             int out_idx = (step + 1) % 2;
@@ -578,9 +579,9 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 void report_results(int rows, int steps, int finds, std::chrono::duration<double> elapsed,
                    int query_seq, const AppSettings* settings, const DataManager* data_manager,
                    BenchmarkState* bench) {
-    printf("Step:%7d <-- Finished\n", steps);
-    printf("Searched with %4daa protein vs %8daa database; %4d finds\n", rows, steps * THREADS * UNROLL, finds);
-    printf("Execution time: %.4f seconds\n", elapsed.count());
+    printf("STEP: %7d <-- Finished\n", steps);
+    printf("BENCH: Searched with %4daa protein vs %8daa database; %4d finds\n", rows, steps * THREADS * UNROLL, finds);
+    printf("BENCH: Execution time: %.4f seconds\n", elapsed.count());
     
     // Calculate current position in search
     int current_seq = query_seq + 1; // Next sequence to process
@@ -608,14 +609,15 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     // Calculate CPU percentage
     double cpu_percentage = (total_elapsed > 0) ? (bench->total_cpu_time / total_elapsed) * 100.0 : 0;
     
-    printf("\n=== Benchmark Statistics ===\n");
+    printf("BENCH:\n")
+    printf("BENCH:=== Benchmark Statistics ===\n");
     
     // All-on-all estimates (most important!)
     char time_buffer[128];
     format_time(all_on_all_time_by_proteins, time_buffer, sizeof(time_buffer));
-    printf("Estimated all-on-all search time: %s\n", time_buffer);
+    printf("BENCH: Estimated all-on-all search time: %s\n", time_buffer);
     format_time(all_on_all_time_by_pmes, time_buffer, sizeof(time_buffer));
-    printf("Estimated all-on-all search time: %s (based on PMEs)\n", time_buffer);
+    printf("BENCH: Estimated all-on-all search time: %s (based on PMEs)\n", time_buffer);
     
     char pps_formatted[64];
     format_number_with_commas((int64_t)proteins_per_sec, pps_formatted,sizeof(pps_formatted));
@@ -623,20 +625,20 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     format_number_with_commas((int64_t)pmes_per_sec, pmes_formatted,sizeof(pmes_formatted));
     
     // Performance metrics
-    printf("Performance: %s protein-pairs/sec, %s PMEs/sec Wastage: %.1f%%\n", pps_formatted, pmes_formatted, pme_waste);
+    printf("BENCH: Performance: %s protein-pairs/sec, %s PMEs/sec Wastage: %.1f%%\n", pps_formatted, pmes_formatted, pme_waste);
     
     // Time breakdown
-    printf("CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs)\n",
+    printf("BENCH: CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs)\n",
            cpu_percentage, bench->total_cpu_time,
            100.0 - cpu_percentage, bench->total_gpu_time);
     
-    printf("Pairs To Do: %lld PMEs To Do: %lld\n", pairs_yet_to_compare, pmes_yet_to_do );
+    printf("BENCH: Pairs To Do: %lld PMEs To Do: %lld\n", pairs_yet_to_compare, pmes_yet_to_do );
     // Remaining time for current run
     if (pairs_yet_to_compare > 0) {
         format_time(remaining_time_by_proteins, time_buffer, sizeof(time_buffer));
-        printf("Time remaining (by proteins): %s\n", time_buffer);
+        printf("BENCH: Time remaining (by proteins): %s\n", time_buffer);
         format_time(remaining_time_by_pmes, time_buffer, sizeof(time_buffer));
-        printf("Time remaining (by PMEs): %s\n", time_buffer);
+        printf("BENCH: Time remaining (by PMEs): %s\n", time_buffer);
     }
     
     printf("\n");

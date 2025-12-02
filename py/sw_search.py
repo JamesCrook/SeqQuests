@@ -162,7 +162,11 @@ class SWRunner:
             str(executable_path),
             "--start_at", str(start_seq),
             "--num_seqs", str(num_sequences - start_seq),
-            "--reporting_threshold", "110"
+            "--reporting_threshold", "110",
+
+            #"--debug_slot", str(debug_slot),
+            "--pam_data", str(PROJECT_ROOT / "data/pam250.bin"),
+            "--fasta_data", str(PROJECT_ROOT / "data/fasta.bin"),            
         ]
         
         overall_start = time.time()
@@ -243,88 +247,12 @@ def batch_logged(args):
     runner.run_all_continuous(start_seq=start, num_sequences=args.num_sequences)
 
 
-def run_sw_search(
-    job,
-    debug_slot: int = -10,
-    reporting_threshold: int = 110,
-    start_at: int = 0,
-    num_seqs: int = 1,
-    slow_output: bool = False,
-    pam_data: str = "./data/pam250.bin",
-    fasta_data: str = "./data/fasta.bin",
-):
-    """
-    This function wraps the sw_search_metal.mm executable and monitor its output.
-    """
-    executable_path = PROJECT_ROOT / "bin/sw_search_metal"
-
-    # Resolve data paths relative to project root if they are relative
-    pam_path = Path(pam_data)
-    if not pam_path.is_absolute():
-        pam_path = PROJECT_ROOT / pam_path
-
-    fasta_path = Path(fasta_data)
-    if not fasta_path.is_absolute():
-        fasta_path = PROJECT_ROOT / fasta_path
-
-    args = [
-        str(executable_path),
-        "--debug_slot", str(debug_slot),
-        "--reporting_threshold", str(reporting_threshold),
-        "--start_at", str(start_at),
-        "--num_seqs", str(num_seqs),
-        "--pam_data", str(pam_path),
-        "--fasta_data", str(fasta_path),
-    ]
-    if slow_output:
-        args.append("--slow_output")
-
-    output_log = deque(maxlen=30)
-    runner = CommandRunner(args)
-    runner.start()
-    seq = 0
-    step = 0
-
-    for line in runner.read_output():
-        if not job :
-            print( line )
-            continue 
-
-        if job.get_state()['status'] == 'cancelled':
-            runner.terminate()
-            break
-
-        #line = line.strip()
-        if line:
-            has_progress = False
-            if line.startswith("Sequence:"):
-                match = re.search(r'Sequence:\s+(\d+)', line)
-                if match:
-                    seq = int(match.group(1))
-                    has_progress=True
-            elif line.startswith("Step:"):
-                match = re.search(r'Step:\s+(\d+)', line)
-                if match:
-                    step = int(match.group(1))
-                    has_progress=True
-            output_log.append(line)
-            job.update(output_log=list(output_log))
-            if has_progress :
-                job.update(progress=f"Seq: {seq} Step: {step}")
-
-    print(f"Process finished with return code: {runner.get_return_code()}")
-
-
-    #if return_code != 0:
-    #    logger.error(f"SW search job {job.job_id} failed with return code {return_code}")
-    #    job.update(status="failed", errors=[f"Process exited with code {return_code}"])
-
 def main():
     parser = argparse.ArgumentParser(description="SW Runner - Long-running protein search harness")
     parser.add_argument("--output_dir", default="sw_results", help="Output directory")
     parser.add_argument("--flush_interval", type=int, default=60, help="Seconds between disk flushes")
     parser.add_argument("--num_sequences", type=int, default=570000, help="Total sequences in database")
-    parser.add_argument("--start_at", type=int, help="Override starting sequence (default: auto-detect from last line)")
+    parser.add_argument("--start_at", type=int, help="Override starting sequence (default: auto-detect from last line)", default=10000)
     args = parser.parse_args()
 
     # Configure logging
