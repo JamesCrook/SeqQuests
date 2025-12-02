@@ -4,6 +4,8 @@ from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+
 import asyncio
 from typing import Dict, Any
 import logging
@@ -29,6 +31,16 @@ logger = logging.getLogger(__name__)
 # Determine project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+
 app = FastAPI()
 
 # Add CORS middleware to allow all origins
@@ -39,6 +51,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Remove when debugging is complete.
+app.add_middleware(NoCacheMiddleware)
 
 FINDINGS_FILE = PROJECT_ROOT / "sw_results" / "sw_finds.txt"  # Path to your main results file
 
