@@ -188,6 +188,75 @@ class SwSearchJob(Job):
             self.update(status="failed", errors=[str(e)])
         logger.info(f"SW search job {self.job_id} finished.")
 
+"""This is the proposed replacement version with enhnaced code 
+for capturing command outputs.
+"""
+class SwSearchJob2(Job):
+    def __init__(self, job_id: str, manager: 'JobManager'):
+        super().__init__(job_id, "sw_search", manager)
+        self.state.update({
+            "output_log": [],
+            # Add buffered outputs
+            "stats_buffer": [],
+            "hits_buffer": [],
+            "latest_stats": None,
+            "latest_hit": None,
+        })
+    
+    def run(self):
+        config = self.state['config']
+        
+        executable = PROJECT_ROOT / "bin/sw_search_metal"
+        command = [
+            str(executable),
+            f"--debug_slot={config.get('debug_slot', -1)}",
+            f"--reporting_threshold={config.get('reporting_threshold', 110)}",
+            f"--start_at={config.get('start_at', 0)}",
+            f"--num_seqs={config.get('num_seqs', 1)}",
+            f"--slow_output={config.get('slow_output', False)}",
+            f"--pam_data={config.get('pam_data', 'c_src/pam250.bin')}",
+            f"--fasta_data={config.get('fasta_data', 'c_src/fasta.bin')}",
+        ]
+    
+        runner = CommandRunner(
+            command,
+            log_error_callback=lambda msg: self.update(errors=self.state['errors'] + [msg]),
+            filter_prefixes={
+                'stats': 'STATS:',
+                'hits': 'HIT:',
+                'bench': 'BENCH:'
+            }
+        )
+        
+        runner.start()
+        
+        for category, line in runner.read_output_filtered():
+            # Update progress from stats
+            if category == 'stats':
+                self.update(progress=line, latest_stats=line)
+            
+            # Store hits
+            elif category == 'hits':
+                self.update(latest_hit=line)
+            
+            # Handle pause/resume
+            if self.state['status'] == 'paused':
+                runner.pause()
+                while self.state['status'] == 'paused':
+                    time.sleep(0.5)
+                runner.resume()
+            
+            if self.state['status'] == 'cancelled':
+                runner.terminate()
+                break
+        
+        # Sync final buffers to state
+        buffers = runner.get_buffers()
+        self.update(
+            stats_buffer=buffers.get('stats', []),
+            hits_buffer=buffers.get('hits', [])
+        )
+
 
 JOB_TYPES = [
     {
