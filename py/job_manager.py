@@ -11,6 +11,7 @@ from computation import run_computation
 from data_munger import run_data_munging
 from sequences import read_swissprot_sequences
 from command_runner import CommandRunner
+from sw_search import SWRunner
 
 from config import PROJECT_ROOT
 
@@ -92,6 +93,9 @@ class Job:
 
     def run(self):
         raise NotImplementedError("Subclasses must implement the run method")
+
+    def tracking(self):
+        raise NotImplementedError("Subclasses must implement the tracking method")
 
 class MockJob:
     def __init__(self):
@@ -179,65 +183,32 @@ class SwSearchJob(Job):
         })
     
     def run(self):
-        config = self.state['config']
-        
-        executable = PROJECT_ROOT / "bin/sw_search_metal"
-        command = [
-            str(executable),
-            f"--debug_slot",f"{config.get('debug_slot', -1)}",
-            f"--reporting_threshold",f"{config.get('reporting_threshold', 130)}",
-            f"--start_at",f"{config.get('start_at', 0)}",
-            f"--num_seqs",f"{config.get('num_seqs', 600000)}",
-            f"--pam_data",f"{config.get('pam_data', str(PROJECT_ROOT / 'data/pam250.bin'))}",
-            f"--fasta_data",f"{config.get('fasta_data', str(PROJECT_ROOT / 'data/fasta.bin'))}"
+        sw_runner = SWRunner(  );
+        sw_runner.run(self.state['config'], self)
 
-        ]
-    
-        runner = CommandRunner(
-            command,
-            log_error_callback=lambda msg: self.update(errors=self.state['errors'] + [msg]),
-            filter_prefixes={
-                'stats': 'STATS:',
-                'hits': 'HIT:',
-                'bench': 'BENCH:',
-                'seq': 'SEQ:',
-                'step': 'STEP:'
-            }
-        )
-        
-        runner.start()
-        
-        for category, line in runner.read_output_filtered():
-            # Update progress from stats
-            #self.update(progress=line)
-            if category == 'stats':
-                self.update(progress=line)
+    def tracking( self, runner, category, line ):
+        if category == 'stats':
+            self.update(progress=line)
             
-            # Store hits
-            elif category == 'hits':
-                self.update(latest_hit=line)
-            #print(f"::: {line}")
+        # Store hits
+        if category == 'hits':
+            self.update(latest_hit=line)
       
-            # Handle pause/resume
-            if self.state['status'] == 'paused':
-                runner.pause()
-                while self.state['status'] == 'paused':
-                    time.sleep(0.5)
-                runner.resume()
+        # Handle pause/resume
+        if self.state['status'] == 'paused':
+            runner.pause()
+            while self.state['status'] == 'paused':
+                time.sleep(0.5)
+            runner.resume()
             
-            if self.state['status'] == 'cancelled':
-                runner.terminate()
-                break
+        if self.state['status'] == 'cancelled':
+            runner.terminate()
+            return False
 
-            buffers = runner.get_buffers()
-            self.state['output_log'] = buffers.get('bench', [])
-        
-        # Sync final buffers to state
         buffers = runner.get_buffers()
-        self.update(
-            stats_buffer=buffers.get('stats', []),
-            output_log=buffers.get('hits', [])
-        )
+        self.state['output_log'] = buffers.get('bench', [])
+        return True
+        
 
 
 JOB_TYPES = [

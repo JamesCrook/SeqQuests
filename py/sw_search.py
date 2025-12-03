@@ -13,15 +13,14 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 from command_runner import CommandRunner
+from config import PROJECT_ROOT
 
 """
 
 sw_search is a job for the task runner framework
 
 """
-
 
 class SWRunner:
     def __init__(self, 
@@ -49,8 +48,8 @@ class SWRunner:
         self.total_results = 0
         
         # Setup signal handler for graceful shutdown
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        #signal.signal(signal.SIGINT, self._signal_handler)
+        #signal.signal(signal.SIGTERM, self._signal_handler)
         
         self._initialize_results_file()
     
@@ -142,6 +141,51 @@ class SWRunner:
         #with open(self.error_log, 'a') as f:
         #    f.write(f"{datetime.now().isoformat()} - {message}\n")
     
+    def run( self, args, job=None):
+        executable = PROJECT_ROOT / "bin/sw_search_metal"
+        command = [
+            str(executable),
+
+            "--start_at", "0",
+            "--num_seqs", "600000",
+            "--reporting_threshold", "110",
+
+            #"--debug_slot", str(debug_slot),
+            "--pam_data", str(PROJECT_ROOT / "data/pam250.bin"),
+            "--fasta_data", str(PROJECT_ROOT / "data/fasta.bin"),  
+
+#            f"--debug_slot",f"{config.get('debug_slot', -1)}",
+#            f"--reporting_threshold",f"{config.get('reporting_threshold', 130)}",
+#            f"--start_at",f"{config.get('start_at', 0)}",
+#            f"--num_seqs",f"{config.get('num_seqs', 600000)}",
+#            f"--pam_data",f"{config.get('pam_data', str(PROJECT_ROOT / 'data/pam250.bin'))}",
+#            f"--fasta_data",f"{config.get('fasta_data', str(PROJECT_ROOT / 'data/fasta.bin'))}"
+
+        ]
+    
+        runner = CommandRunner(
+            command,
+            log_error_callback=lambda msg: self.update(errors=self.state['errors'] + [msg]),
+            filter_prefixes={
+                'stats': 'STATS:',
+                'hits': 'HIT:',
+                'bench': 'BENCH:',
+                'seq': 'SEQ:',
+                'step': 'STEP:'
+            }
+        )
+        
+        runner.start()
+        
+        for category, line in runner.read_output_filtered():
+            if job:
+                more = job.tracking( runner, category, line )
+                if not more :
+                    break
+            elif category != 'hits':
+                print(f":::{line}")
+
+
     def run_all_continuous(self, start_seq=None, num_sequences=570000):
         """Run all queries continuously, flushing periodically"""
         if start_seq is None:
@@ -246,6 +290,9 @@ def batch_logged(args):
     
     runner.run_all_continuous(start_seq=start, num_sequences=args.num_sequences)
 
+def run_jobless(args):
+    runner = SWRunner( );
+    runner.run( args )
 
 def main():
     parser = argparse.ArgumentParser(description="SW Runner - Long-running protein search harness")
@@ -261,8 +308,9 @@ def main():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
+    run_jobless(args)
     #run_sw_search(None)
-    batch_logged(args)
+    #batch_logged(args)
 
 if __name__ == "__main__":
     main()

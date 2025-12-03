@@ -403,6 +403,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     printf("\nRunning Smith-Waterman steps...\n");
     auto search_start = std::chrono::high_resolution_clock::now();
     auto cpu_start = search_start;
+    auto latest_report = search_start;
 
     int16_t* aa_data = (int16_t*)metal_state->aa_buffer->contents();
     int16_t* final_max = (int16_t*)metal_state->max_buffer->contents();
@@ -465,7 +466,6 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
             }
 
             if(!more_data) break;
-            if((step % 1000) == 0) printf("STATS: Sequence: %6d Step:%7d\n", query, step);
 
             int in_idx = step % 2;
             int out_idx = (step + 1) % 2;
@@ -474,6 +474,12 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
             auto cpu_end = std::chrono::high_resolution_clock::now();
             double cpu_time_delta = std::chrono::duration<double>(cpu_end - cpu_start).count();
             bench->total_cpu_time += cpu_time_delta;
+            auto current_report = cpu_end;
+            double reporting_interval = std::chrono::duration<double>(current_report - latest_report).count();
+            if( reporting_interval > 1 ){
+                printf("STATS: Seq:%d Step:%d Hits:%d\n", query, step, finds);
+                latest_report = current_report;
+            }
 
             if( do_search ){
                 auto gpu_start = std::chrono::high_resolution_clock::now();
