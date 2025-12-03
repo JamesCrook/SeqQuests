@@ -47,9 +47,6 @@ class SWRunner:
         self.last_flush_time = time.time()
         self.total_results = 0
         
-        # Setup signal handler for graceful shutdown
-        #signal.signal(signal.SIGINT, self._signal_handler)
-        #signal.signal(signal.SIGTERM, self._signal_handler)
         
         self._initialize_results_file()
     
@@ -141,50 +138,88 @@ class SWRunner:
         #with open(self.error_log, 'a') as f:
         #    f.write(f"{datetime.now().isoformat()} - {message}\n")
     
+    """This function can run in the context of the CLI and it also can 
+    run in the context of a job managed by the web_server """
     def run( self, args, job=None):
+
+        # Setup signal handler for graceful shutdown
+        if not job :
+            signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGTERM, self._signal_handler)
+
         executable = PROJECT_ROOT / "bin/sw_search_metal"
         command = [
             str(executable),
 
-            "--start_at", "0",
+            "--start_at", str(self.start_seq),
             "--num_seqs", "600000",
             "--reporting_threshold", "110",
 
             #"--debug_slot", str(debug_slot),
             "--pam_data", str(PROJECT_ROOT / "data/pam250.bin"),
             "--fasta_data", str(PROJECT_ROOT / "data/fasta.bin"),  
-
-#            f"--debug_slot",f"{config.get('debug_slot', -1)}",
-#            f"--reporting_threshold",f"{config.get('reporting_threshold', 130)}",
-#            f"--start_at",f"{config.get('start_at', 0)}",
-#            f"--num_seqs",f"{config.get('num_seqs', 600000)}",
-#            f"--pam_data",f"{config.get('pam_data', str(PROJECT_ROOT / 'data/pam250.bin'))}",
-#            f"--fasta_data",f"{config.get('fasta_data', str(PROJECT_ROOT / 'data/fasta.bin'))}"
-
         ]
-    
-        runner = CommandRunner(
-            command,
-            log_error_callback=lambda msg: self.update(errors=self.state['errors'] + [msg]),
-            filter_prefixes={
-                'stats': 'STATS:',
-                'hits': 'HIT:',
-                'bench': 'BENCH:',
-                'seq': 'SEQ:',
-                'step': 'STEP:'
-            }
-        )
-        
-        runner.start()
-        
-        for category, line in runner.read_output_filtered():
-            if job:
-                more = job.tracking( runner, category, line )
-                if not more :
-                    break
-            elif category != 'hits':
-                print(f":::{line}")
+  
+        if True:
+            runner = CommandRunner(
+                command,
+                log_error_callback = None,
+                #log_error_callback=lambda msg: self.update(errors=self.state['errors'] + [msg]),
+                filter_prefixes={
+                    'stats': 'STATS:',
+                    'hits': 'HIT:',
+                    'bench': 'BENCH:',
+                    'seq': 'SEQ:',
+                    'step': 'STEP:'
+                }
+            )
+            
+            runner.start()
+            
+            for category, line in runner.read_output_filtered():
+                if job:
+                    more = job.tracking( runner, category, line )
+                    if not more :
+                        break
+                elif category != 'hits':
+                    print(f":::{line}")
+                    # Parse and buffer HIT lines
 
+                csv_line = self._parse_result_line(line)
+                if csv_line:
+                    self.result_buffer.append(csv_line)
+                    #result_count += 1
+                    
+                    # Check if it's time to flush (time-based)
+
+                    self._flush_buffer(force=False)
+
+        try:   
+            pass
+        
+        except KeyboardInterrupt:
+            print("\n\nInterrupted by user!")
+            process.terminate()
+            process.wait()
+            self._shutdown()
+            return False
+            
+        except Exception as e:
+            self._log_error(f"Exception during run: {e}")
+            return False
+        
+        # Final flush
+        self._flush_buffer(force=True)
+        
+        elapsed = time.time() - overall_start
+        
+        print(f"\n{'='*70}")
+        print(f"ALL QUERIES COMPLETE!")
+        print(f"Total results: {self.total_results}")
+        print(f"Total time: {elapsed/3600:.2f} hours")
+        print(f"{'='*70}\n")
+        
+        return True
 
     def run_all_continuous(self, start_seq=None, num_sequences=570000):
         """Run all queries continuously, flushing periodically"""
