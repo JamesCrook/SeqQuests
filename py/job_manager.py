@@ -170,6 +170,7 @@ class SwSearchJob(Job):
         super().__init__(job_id, "sw_search", manager)
         self.state.update({
             "output_log": [],
+            "bench":[],
             # Add buffered outputs
             "stats_buffer": [],
             "hits_buffer": [],
@@ -184,7 +185,7 @@ class SwSearchJob(Job):
         command = [
             str(executable),
             f"--debug_slot",f"{config.get('debug_slot', -1)}",
-            f"--reporting_threshold",f"{config.get('reporting_threshold', 110)}",
+            f"--reporting_threshold",f"{config.get('reporting_threshold', 130)}",
             f"--start_at",f"{config.get('start_at', 0)}",
             f"--num_seqs",f"{config.get('num_seqs', 600000)}",
             f"--pam_data",f"{config.get('pam_data', str(PROJECT_ROOT / 'data/pam250.bin'))}",
@@ -208,14 +209,14 @@ class SwSearchJob(Job):
         
         for category, line in runner.read_output_filtered():
             # Update progress from stats
-            self.update(progress=line)
+            #self.update(progress=line)
             if category == 'stats':
-                self.update(latest_stats=line)
+                self.update(progress=line)
             
             # Store hits
             elif category == 'hits':
                 self.update(latest_hit=line)
-            print(f"::: {line}")
+            #print(f"::: {line}")
       
             # Handle pause/resume
             if self.state['status'] == 'paused':
@@ -227,6 +228,9 @@ class SwSearchJob(Job):
             if self.state['status'] == 'cancelled':
                 runner.terminate()
                 break
+
+            buffers = runner.get_buffers()
+            self.state['output_log'] = buffers.get('bench', [])
         
         # Sync final buffers to state
         buffers = runner.get_buffers()

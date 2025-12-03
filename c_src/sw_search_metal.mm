@@ -580,7 +580,11 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
                    int query_seq, const AppSettings* settings, const DataManager* data_manager,
                    BenchmarkState* bench) {
     printf("STEP: %7d <-- Finished\n", steps);
-    printf("BENCH: Searched with %4daa protein vs %8daa database; %4d finds\n", rows, steps * THREADS * UNROLL, finds);
+    char aa1_formatted[64];
+    format_number_with_commas((int64_t)rows, aa1_formatted,sizeof(aa1_formatted));
+    char aa2_formatted[64];
+    format_number_with_commas((int64_t)bench->non_skipped_amino_acids, aa2_formatted,sizeof(aa2_formatted));    
+    printf("BENCH: Searched with %saa protein vs %saa database in %d steps; %4d finds\n", aa1_formatted, aa2_formatted, steps, finds);
     printf("BENCH: Execution time: %.4f seconds\n", elapsed.count());
     
     // Calculate current position in search
@@ -609,8 +613,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     // Calculate CPU percentage
     double cpu_percentage = (total_elapsed > 0) ? (bench->total_cpu_time / total_elapsed) * 100.0 : 0;
     
-    printf("BENCH:\n")
-    printf("BENCH:=== Benchmark Statistics ===\n");
+    printf("BENCH: === Benchmark Statistics ===\n");
     
     // All-on-all estimates (most important!)
     char time_buffer[128];
@@ -631,8 +634,11 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     printf("BENCH: CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs)\n",
            cpu_percentage, bench->total_cpu_time,
            100.0 - cpu_percentage, bench->total_gpu_time);
+
+    format_number_with_commas((int64_t)pairs_yet_to_compare, pps_formatted,sizeof(pps_formatted));
+    format_number_with_commas((int64_t)pmes_yet_to_do, pmes_formatted,sizeof(pmes_formatted));
     
-    printf("BENCH: Pairs To Do: %lld PMEs To Do: %lld\n", pairs_yet_to_compare, pmes_yet_to_do );
+    printf("BENCH: Pairs To Do: %s PMEs To Do: %s\n", pps_formatted, pmes_formatted );
     // Remaining time for current run
     if (pairs_yet_to_compare > 0) {
         format_time(remaining_time_by_proteins, time_buffer, sizeof(time_buffer));

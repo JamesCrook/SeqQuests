@@ -39,7 +39,7 @@ class OutputFilter:
         self.latest = {}  # Store latest line for each category
         
         # Initialize buffers
-        default_size = 8
+        default_size = 10
         for category in prefixes.keys():
             size = buffer_sizes.get(category, default_size) if buffer_sizes else default_size
             self.buffers[category] = deque(maxlen=size)

@@ -26,7 +26,7 @@ M2 is a Mac M2 Pro with 16GB of RAM.
 @000,007 on 01 Dec at 16:27 estimating 5 days  7 hrs (based on PMEs). 
 @002,843 on 02 Dec at 02:00 estimating 4 days 21 hrs (based on PMEs). (41 days on proteins)
 @007,561 on 02 Dec at 13:00 estimating 5 days 15 hrs (based on PMEs). (32 days on proteins)
-
+@012,954 on 03 Dec at 00:06 estimating 6 days  5 hrs (based on PMEs). (29 days on proteins)
 
 ### Additional Dev History
 
