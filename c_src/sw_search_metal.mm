@@ -119,7 +119,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
                    BenchmarkState* bench);
 void cleanup(MetalState* metal_state, DataManager* data_manager);
 long file_size(const char* filename);
-void load_pam_data(const char* filename, int16_t* pam_data);
+void load_match_matrix(const char* filename, int16_t* pam_data);
 FastaRecord* load_fasta_data(const char* filename, int* num_records);
 void release_fasta_records(FastaRecord* records, int num_records);
 bool skip_sequence(const DataManager* data_manager, int query, int seq, const AppSettings* settings);
@@ -240,7 +240,7 @@ bool setup_metal(MetalState* metal_state) {
 }
 
 bool load_all_data(const AppSettings* settings, DataManager* data_manager) {
-    load_pam_data(settings->pam_data_file, data_manager->pam_data);
+    load_match_matrix(settings->pam_data_file, data_manager->pam_data);
     data_manager->fasta_records = load_fasta_data(settings->fasta_data_file, &data_manager->num_fasta_records);
     return data_manager->fasta_records != NULL;
 }
@@ -252,7 +252,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
 
     printf("\nSearching with: %s\n", data_manager->fasta_records[probe_seq_idx].description);
     printf("SEQ: %6d Sequence length: %6d\n", probe_seq_idx, rows);
-    printf("STATS: Sequence: %6d Step: 0\n", probe_seq_idx);
+    printf("STATS: Seq:%d Step:0 Hits::0\n", probe_seq_idx);
 
     int16_t* pam_lut = (int16_t*)malloc(32 * rows * sizeof(int16_t));
     for (int col = 0; col < 32; ++col) {
@@ -346,16 +346,16 @@ void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager
     bench->total_all_on_all_pmes = bench->non_skipped_amino_acids * bench->non_skipped_amino_acids / 2;
 
 
-    
+    // PMEs/GCUPS are just different terminology. GCUPS is standard.
     printf("BENCH: \nBENCH: === Database Statistics ===\n");
     printf("BENCH: Total proteins: %d\n", data_manager->num_fasta_records);
     printf("BENCH: Non-skipped proteins: %d\n", bench->non_skipped_proteins);
     printf("BENCH: Total amino acids: %lld\n", bench->non_skipped_amino_acids);
     printf("BENCH: Average protein length: %.1f\n", bench->average_protein_length);
     printf("All-on-all comparisons (triangular): %lld\n", bench->total_all_on_all_comparisons);
-    printf("BENCH: All-on-all PMEs: %lld\n", bench->total_all_on_all_pmes);
+    printf("BENCH: All-on-all GCUPS: %lld\n", bench->total_all_on_all_pmes);
     printf("BENCH: Task comparisons: %lld\n", bench->task_protein_comparisons);
-    printf("BENCH: Task PMEs: %lld\n", bench->task_pmes);
+    printf("BENCH: Task CUPS: %lld\n", bench->task_pmes);
     printf("BENCH: \n");
 }
 
@@ -438,6 +438,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
             step++;
             more_data = false;
 
+            int in_idx = step % 2;
+            int out_idx = (step + 1) % 2;
 
             for (int i = 0; i < THREADS; ++i) {
                 for (int j = 0; j < UNROLL; j++){
@@ -467,8 +469,6 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
             if(!more_data) break;
 
-            int in_idx = step % 2;
-            int out_idx = (step + 1) % 2;
 
             // Track CPU time up to this point
             auto cpu_end = std::chrono::high_resolution_clock::now();
@@ -626,7 +626,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     format_time(all_on_all_time_by_proteins, time_buffer, sizeof(time_buffer));
     printf("BENCH: Estimated all-on-all search time: %s\n", time_buffer);
     format_time(all_on_all_time_by_pmes, time_buffer, sizeof(time_buffer));
-    printf("BENCH: Estimated all-on-all search time: %s (based on PMEs)\n", time_buffer);
+    printf("BENCH: Estimated all-on-all search time: %s (based on GCUPS)\n", time_buffer);
     
     char pps_formatted[64];
     format_number_with_commas((int64_t)proteins_per_sec, pps_formatted,sizeof(pps_formatted));
@@ -634,7 +634,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     format_number_with_commas((int64_t)pmes_per_sec, pmes_formatted,sizeof(pmes_formatted));
     
     // Performance metrics
-    printf("BENCH: Performance: %s protein-pairs/sec, %s PMEs/sec Wastage: %.1f%%\n", pps_formatted, pmes_formatted, pme_waste);
+    printf("BENCH: Performance: %s protein-pairs/sec, %s CUPS Wastage: %.1f%%\n", pps_formatted, pmes_formatted, pme_waste);
     
     // Time breakdown
     printf("BENCH: CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs)\n",
@@ -644,13 +644,13 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     format_number_with_commas((int64_t)pairs_yet_to_compare, pps_formatted,sizeof(pps_formatted));
     format_number_with_commas((int64_t)pmes_yet_to_do, pmes_formatted,sizeof(pmes_formatted));
     
-    printf("BENCH: Pairs To Do: %s PMEs To Do: %s\n", pps_formatted, pmes_formatted );
+    printf("BENCH: Pairs To Do: %s Cell Updates To Do: %s\n", pps_formatted, pmes_formatted );
     // Remaining time for current run
     if (pairs_yet_to_compare > 0) {
         format_time(remaining_time_by_proteins, time_buffer, sizeof(time_buffer));
         printf("BENCH: Time remaining (by proteins): %s\n", time_buffer);
         format_time(remaining_time_by_pmes, time_buffer, sizeof(time_buffer));
-        printf("BENCH: Time remaining (by PMEs): %s\n", time_buffer);
+        printf("BENCH: Time remaining (by GCUPS): %s\n", time_buffer);
     }
     
     printf("\n");
@@ -675,7 +675,7 @@ long file_size(const char* filename) {
     return -1;
 }
 
-void load_pam_data(const char* filename, int16_t* pam_data) {
+void load_match_matrix(const char* filename, int16_t* pam_data) {
     FILE* f = fopen(filename, "rb");
     if (!f) {
         fprintf(stderr, "Error opening %s\n", filename);
@@ -683,7 +683,7 @@ void load_pam_data(const char* filename, int16_t* pam_data) {
     }
     fread(pam_data, sizeof(int16_t), 32 * 32, f);
     fclose(f);
-    printf("PAM data loaded from %s\n", filename);
+    printf("Match matrix data loaded from %s\n", filename);
 }
 
 FastaRecord* load_fasta_data(const char* filename, int* num_records) {

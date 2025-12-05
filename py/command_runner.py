@@ -18,7 +18,30 @@ from typing import Optional, Callable, List, Tuple, Dict
 
 from config import PROJECT_ROOT
 
+"""The runners are concerned with long running commands which we may want to interrupt and resume, and from which we poll state information. To do this generically/reusably, we wrap and filter console output
+"""
+
+
 logger = logging.getLogger(__name__)
+
+
+""" For the high perfromance code, optional temperature tracking.
+Unfortunately thsi just reports 0 degrees C or with other attempts, 'Nominal'
+There is no actual temperature monitor.
+So if you want temperature monitoring, strap a bluetooth thermometer to the case...
+I decided it was not worth the hassle.
+Leaving commented out code here to document the exploration...
+"""
+#import shutil
+#TEMP_COMMAND = shutil.which('osx-cpu-temp')
+#
+#def get_cpu_temp():
+#    if TEMP_COMMAND:
+#        result = subprocess.run([TEMP_COMMAND], 
+#                              capture_output=True, text=True)
+#        return float(result.stdout.strip().replace('°C', ''))
+#    else:
+#        return None  # Temperature monitoring unavailable
 
 class OutputFilter:
     """

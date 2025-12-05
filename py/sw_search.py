@@ -149,6 +149,7 @@ class SWRunner:
 
         executable = PROJECT_ROOT / "bin/sw_search_metal"
         command = [
+            "caffeinate", "-i", 
             str(executable),
 
             "--start_at", str(self.start_seq),
@@ -159,7 +160,8 @@ class SWRunner:
             "--pam_data", str(PROJECT_ROOT / "data/pam250.bin"),
             "--fasta_data", str(PROJECT_ROOT / "data/fasta.bin"),  
         ]
-  
+        overall_start = time.time()
+
         if True:
             runner = CommandRunner(
                 command,
