@@ -95,31 +95,33 @@ typedef struct {
     double total_gpu_time;
     double total_cpu_time;
     
-    // Per search stats
+    // Per search stats, i.e. for one query against fastA data
     int64_t comparisons_this_search;
-    int64_t pmes_this_search;
-    int64_t wasted_pmes_this_search;
+    int64_t cell_updates_this_search;
+    int64_t wasted_cell_updates_this_search;
 
     // Cumulative counters
     int64_t total_comparisons_computed;
-    int64_t total_pmes_computed;
-    int64_t total_pmes_wasted;
+    int64_t total_cell_updates_computed;
+    int64_t total_cell_updates_wasted;
     int64_t total_amino_acids_done;
 
     // Derived values for reporting
     // TODO add derived values here.
 
+    // The task has a start point and an end point.
     // Task stats, computed once at start of task
+    // Currently we treat the task as if starting from protein zero.
     int64_t task_protein_comparisons;
     int64_t task_amino_acids;
-    int64_t task_pmes;
+    int64_t task_cell_updates;
     
     // Database statistics (computed once at startup)
     int64_t total_all_on_all_comparisons;
-    int64_t total_all_on_all_pmes;
-    int64_t non_skipped_amino_acids;
+    int64_t total_all_on_all_cell_updates;
+    int64_t included_amino_acids;
     double average_protein_length;
-    int non_skipped_proteins;
+    int included_proteins;
 } BenchmarkState;
 
 // --- Function Prototypes ---
@@ -368,26 +370,26 @@ static const char* fmt_time(double seconds) {
 void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager, const AppSettings* settings) {
     bench->global_start_time = std::chrono::high_resolution_clock::now();
     bench->total_comparisons_computed = 0;
-    bench->total_pmes_computed = 0;
-    bench->total_pmes_wasted = 0;
+    bench->total_cell_updates_computed = 0;
+    bench->total_cell_updates_wasted = 0;
     bench->total_amino_acids_done = 0;
     bench->total_gpu_time = 0.0;
     bench->total_cpu_time = 0.0;
     
     // Calculate non-skipped proteins and amino acids
     // Use query==0 so seq < query is always false, getting full database stats
-    bench->non_skipped_proteins = 0;
-    bench->non_skipped_amino_acids = 0;
+    bench->included_proteins = 0;
+    bench->included_amino_acids = 0;
     
     for (int i = 0; i < data_manager->num_fasta_records; i++) {
         if (!skip_sequence(data_manager, 0, i, settings)) {
-            bench->non_skipped_proteins++;
-            bench->non_skipped_amino_acids += data_manager->fasta_records[i].sequence_len;
+            bench->included_proteins++;
+            bench->included_amino_acids += data_manager->fasta_records[i].sequence_len;
         }
     }
 
     bench->task_protein_comparisons = 0;
-    bench->task_pmes = 0;
+    bench->task_cell_updates = 0;
 
     int last_protein = settings->start_at + settings->num_seqs -1;
     if( last_protein >= data_manager->num_fasta_records )
@@ -406,8 +408,8 @@ void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager
     }
 
     // Set as if the task is doing to the end of the database.
-    bench->total_amino_acids_done = bench->non_skipped_amino_acids - amino_acids_left;
-    bench->task_amino_acids = bench->non_skipped_amino_acids;
+    bench->total_amino_acids_done = bench->included_amino_acids - amino_acids_left;
+    bench->task_amino_acids = bench->included_amino_acids;
 
     for (int i = settings->start_at; i <= last_protein ; i++) {
         if (!skip_sequence(data_manager, 0, i, settings)) {
@@ -415,11 +417,11 @@ void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager
             if( isTriangular ){
                 // Diminishing work
                 bench->task_protein_comparisons += proteins_left;
-                bench->task_pmes += this_seq_size * amino_acids_left;
+                bench->task_cell_updates += this_seq_size * amino_acids_left;
             } else { 
                 // Constant work
-                bench->task_protein_comparisons += bench->non_skipped_proteins++;
-                bench->task_pmes += this_seq_size * bench->non_skipped_amino_acids;
+                bench->task_protein_comparisons += bench->included_proteins++;
+                bench->task_cell_updates += this_seq_size * bench->included_amino_acids;
             }
             amino_acids_left -= this_seq_size;
             proteins_left--;
@@ -430,21 +432,21 @@ void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager
     bench->total_amino_acids_done -= amino_acids_left;
     bench->task_amino_acids -= amino_acids_left;
     
-    bench->average_protein_length = (double)bench->non_skipped_amino_acids / bench->non_skipped_proteins;
+    bench->average_protein_length = (double)bench->included_amino_acids / bench->included_proteins;
     // All-on-all estimates (always triangular)
-    bench->total_all_on_all_comparisons = (int64_t)bench->non_skipped_proteins * (bench->non_skipped_proteins - 1) / 2;
-    bench->total_all_on_all_pmes = bench->non_skipped_amino_acids * bench->non_skipped_amino_acids / 2;
+    bench->total_all_on_all_comparisons = (int64_t)bench->included_proteins * (bench->included_proteins - 1) / 2;
+    bench->total_all_on_all_cell_updates = bench->included_amino_acids * bench->included_amino_acids / 2;
 
 
     // PMEs/GCUPS are just different terminology. GCUPS is standard.
     printf("BENCH: \nBENCH: === Database Statistics ===\n");
-    printf("BENCH: Total proteins: %d\n", data_manager->num_fasta_records);
-    printf("BENCH: Non-skipped proteins: %d\n", bench->non_skipped_proteins);
-    printf("BENCH: Total  amino acids: %lld\n", bench->non_skipped_amino_acids);
-    printf("BENCH: Task's amino acids: %lld\n", bench->task_amino_acids);
+    printf("BENCH: Total proteins: %s\n", fmt(data_manager->num_fasta_records));
+    printf("BENCH: Non-skipped proteins: %s\n", fmt(bench->included_proteins));
+    printf("BENCH: Total  amino acids: %s\n", fmt(bench->included_amino_acids));
+    printf("BENCH: Task's amino acids: %s\n", fmt(bench->task_amino_acids));
     printf("BENCH: Average protein length: %.1f\n", bench->average_protein_length);
-    printf("BENCH: All-on-all  CUPS: %lld\n", bench->total_all_on_all_pmes);
-    printf("BENCH: This Task's CUPS: %lld\n", bench->task_pmes);
+    printf("BENCH: All-on-all  CUPS: %s\n", fmt(bench->total_all_on_all_cell_updates));
+    printf("BENCH: This Task's CUPS: %s\n", fmt(bench->task_cell_updates));
     printf("BENCH: \n");
 }
 
@@ -458,51 +460,51 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     
     // Calculate remaining work for current run
     int64_t pairs_yet_to_compare = bench->task_protein_comparisons - bench->total_comparisons_computed;
-    int64_t pmes_yet_to_do = bench->task_pmes - bench->total_pmes_computed;
+    int64_t cell_updates_yet_to_do = bench->task_cell_updates - bench->total_cell_updates_computed;
 
     // Calculate rates
     double total_elapsed = bench->total_cpu_time + bench->total_gpu_time;
     double proteins_per_sec = (total_elapsed > 0) ? bench->total_comparisons_computed / total_elapsed : 0;
-    double pmes_per_sec_total = (total_elapsed > 0) ? bench->total_pmes_computed / total_elapsed : 0;
+    double cell_updates_per_sec_total = (total_elapsed > 0) ? bench->total_cell_updates_computed / total_elapsed : 0;
     
-    double pme_waste = 100.0 * bench->total_pmes_wasted / bench->total_pmes_computed;
+    double pme_waste = 100.0 * bench->total_cell_updates_wasted / bench->total_cell_updates_computed;
     // Estimate all-on-all time based on current performance
     double all_on_all_time_by_proteins = (proteins_per_sec > 0) ? 
                                          bench->total_all_on_all_comparisons / proteins_per_sec : 0;
-    double all_on_all_time_by_pmes = (pmes_per_sec_total > 0) ? 
-                                     bench->total_all_on_all_pmes / pmes_per_sec_total : 0;
+    double all_on_all_time_by_cell_updates = (cell_updates_per_sec_total > 0) ? 
+                                     bench->total_all_on_all_cell_updates / cell_updates_per_sec_total : 0;
     
     // Estimate remaining time for current run
     double remaining_time_by_proteins = (proteins_per_sec > 0) ? pairs_yet_to_compare / proteins_per_sec : 0;
-    double remaining_time_by_pmes = (pmes_per_sec_total > 0) ? pmes_yet_to_do / pmes_per_sec_total : 0;
+    double remaining_time_by_cell_updates = (cell_updates_per_sec_total > 0) ? cell_updates_yet_to_do / cell_updates_per_sec_total : 0;
     
     // Calculate CPU percentage
     double cpu_percentage = (total_elapsed > 0) ? (bench->total_cpu_time / total_elapsed) * 100.0 : 0;
 
     float fraction_done = ((float)bench->total_amino_acids_done)/(float)bench->task_amino_acids;
-    float assumed_pmes = bench->total_all_on_all_pmes - bench->task_pmes;
-    float fraction_pmes_done = ((float)bench->total_pmes_computed + assumed_pmes )/(float)bench->total_all_on_all_pmes;
-    float pmes_per_sec_one_search = (bench->pmes_this_search-bench->wasted_pmes_this_search) / elapsed.count();
+    float assumed_cell_updates = bench->total_all_on_all_cell_updates - bench->task_cell_updates;
+    float fraction_cell_updates_done = ((float)bench->total_cell_updates_computed + assumed_cell_updates )/(float)bench->total_all_on_all_cell_updates;
+    float cell_updates_per_sec_one_search = (bench->cell_updates_this_search-bench->wasted_cell_updates_this_search) / elapsed.count();
     
     printf("BENCH: Searched with %saa protein vs %saa in %d steps; %d finds\n", 
         fmt( rows ), 
-        fmt( ((bench->pmes_this_search-bench->wasted_pmes_this_search)/rows)),
+        fmt( ((bench->cell_updates_this_search-bench->wasted_cell_updates_this_search)/rows)),
         steps, 
         finds);
     printf("BENCH: Execution time: %.4f seconds\n", elapsed.count());
     printf("BENCH: === Benchmark Statistics ===\n");
-    printf("BENCH: Amino acids done: %.1f%%; Task completion: %.1f%%\n", 100.0* fraction_done, 100.0 * fraction_pmes_done);
+    printf("BENCH: Amino acids done: %.1f%%; Task completion: %.1f%%\n", 100.0* fraction_done, 100.0 * fraction_cell_updates_done);
     printf("BENCH: CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs)\n",
         cpu_percentage, 
         bench->total_cpu_time,
         100.0 - cpu_percentage, 
         bench->total_gpu_time);
-    printf("BENCH: Perf: %s CUPS; Wastage: %.1f%%\n", fmt( pmes_per_sec_total ), pme_waste);
-    printf("BENCH: Perf: %s CUPS (this search)\n", fmt(pmes_per_sec_one_search));
-    printf("BENCH: Cell Updates To Do: %s\n", fmt( pmes_yet_to_do ) );
-    printf("BENCH: Estimated all-on-all search time: %s (based on GCUPS)\n", fmt_time(all_on_all_time_by_pmes));
+    printf("BENCH: Perf: %s CUPS; Wastage: %.1f%%\n", fmt( cell_updates_per_sec_total ), pme_waste);
+    printf("BENCH: Perf: %s CUPS (this search)\n", fmt(cell_updates_per_sec_one_search));
+    printf("BENCH: Cell Updates To Do: %s\n", fmt( cell_updates_yet_to_do ) );
+    printf("BENCH: Estimated all-on-all search time: %s (based on GCUPS)\n", fmt_time(all_on_all_time_by_cell_updates));
     if (pairs_yet_to_compare > 0) {
-        printf("BENCH: Time remaining (by GCUPS): %s\n", fmt_time(remaining_time_by_pmes));
+        printf("BENCH: Time remaining (by GCUPS): %s\n", fmt_time(remaining_time_by_cell_updates));
     }
     
     printf("\n");
@@ -511,6 +513,11 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
 // One sequence compared against many sequences...
 void run_search(int query, MetalState* metal_state, const DataManager* data_manager, const AppSettings* settings, int rows, BenchmarkState* bench) {
     printf("\nRunning Smith-Waterman steps...\n");
+
+    MTL::CommandBuffer* command_buffer[2];
+    command_buffer[0] = nullptr;
+    command_buffer[1] = nullptr;
+
     auto search_start = std::chrono::high_resolution_clock::now();
     auto cpu_start = search_start;
     auto latest_report = search_start;
@@ -541,8 +548,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     int finds = 0;
     
     int comparisons_this_search = 0;
-    int64_t pmes_this_search = 0;
-    int64_t wasted_pmes_this_search = 0;
+    int64_t cell_updates_this_search = 0;
+    int64_t wasted_cell_updates_this_search = 0;
     double gpu_time_this_search = 0.0;
 
     int seqChar = 0;
@@ -553,8 +560,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         int in_idx = step % 2;
         int out_idx = (step + 1) % 2;
         // the 0 will change to in_idx when we have the interleaving working.
-        aa_data = (int16_t*)metal_state->aa_buffer[0]->contents();
-        final_max = (int16_t*)metal_state->max_buffer[0]->contents();
+        aa_data = (int16_t*)metal_state->aa_buffer[in_idx]->contents();
+        final_max = (int16_t*)metal_state->max_buffer[in_idx]->contents();
         for (int i = 0; i < THREADS; ++i) {
             for (int j = 0; j < UNROLL; j++){
                 if(seqno[i] == -2) continue;
@@ -598,8 +605,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         if( do_search ){
             auto gpu_start = std::chrono::high_resolution_clock::now();
             
-            MTL::CommandBuffer* command_buffer = metal_state->queue->commandBuffer();
-            MTL::ComputeCommandEncoder* encoder = command_buffer->computeCommandEncoder();
+            command_buffer[out_idx] = metal_state->queue->commandBuffer();
+            MTL::ComputeCommandEncoder* encoder = command_buffer[out_idx]->computeCommandEncoder();
             encoder->setComputePipelineState(metal_state->pipeline);
             encoder->setBuffer(metal_state->data_buffers[in_idx], 0, 0);
             encoder->setBuffer(metal_state->data_buffers[out_idx], 0, 1);
@@ -616,8 +623,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
             encoder->dispatchThreads(grid_size, threadgroup_size);
             encoder->endEncoding();
-            command_buffer->commit();
-            command_buffer->waitUntilCompleted();
+            command_buffer[out_idx]->commit();
+            command_buffer[out_idx]->waitUntilCompleted();
             
             auto gpu_end = std::chrono::high_resolution_clock::now();
             double gpu_time_delta = std::chrono::duration<double>(gpu_end - gpu_start).count();
@@ -632,7 +639,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
             for (int j = 0; j < UNROLL; j++){
                 // Nothing on queue? We rely on the producer to terminate the searching, when no more data has been added. We just skip this thread with nothing to do on it.
                 if(q_head[i] == q_tail[i]){ 
-                    wasted_pmes_this_search += rows * (UNROLL - j);
+                    wasted_cell_updates_this_search += rows * (UNROLL - j);
                     break;  // Exit inner loop
                 }
                 current_report_seq = seq_queue[i][q_head[i]]; // No modulo needed on read
@@ -688,14 +695,14 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     auto search_end = std::chrono::high_resolution_clock::now();
     
     // Update benchmark totals
-    pmes_this_search = (int64_t)step * rows * THREADS * UNROLL;
+    cell_updates_this_search = (int64_t)step * rows * THREADS * UNROLL;
     bench->total_amino_acids_done += rows;
     bench->comparisons_this_search = comparisons_this_search;
-    bench->pmes_this_search = pmes_this_search;
-    bench->wasted_pmes_this_search = wasted_pmes_this_search;
+    bench->cell_updates_this_search = cell_updates_this_search;
+    bench->wasted_cell_updates_this_search = wasted_cell_updates_this_search;
     bench->total_comparisons_computed += comparisons_this_search;
-    bench->total_pmes_computed += pmes_this_search - wasted_pmes_this_search;
-    bench->total_pmes_wasted += wasted_pmes_this_search;
+    bench->total_cell_updates_computed += cell_updates_this_search - wasted_cell_updates_this_search;
+    bench->total_cell_updates_wasted += wasted_cell_updates_this_search;
 
     report_results(rows, step, finds, search_end - search_start, query, settings, data_manager, bench);
 }
