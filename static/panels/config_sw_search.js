@@ -28,7 +28,7 @@ window.setStatus = function(data) {
     }
 
     detailDiv.innerHTML = `
-        <h3>Output Log (last 30 lines):</h3>
+        <h3>Output Log (last 10 lines):</h3>
         <ul id="output-log" class="log-output">
             ${outputLogHtml}
         </ul>
