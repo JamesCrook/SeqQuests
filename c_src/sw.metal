@@ -14,8 +14,10 @@ kernel void sw_step(
     device short* output [[buffer(1)]],
     device short* pam [[buffer(2)]],
     device short* aa [[buffer(3)]],
-    device short* final_max [[buffer(4)]],
-    constant uint& num_rows [[buffer(5)]],
+    device short* carry_forward_in  [[buffer(4)]],
+    device short* carry_forward_out [[buffer(5)]],
+    device short* final_max_out [[buffer(6)]],
+    constant uint& num_rows [[buffer(7)]],
     uint thread_id [[thread_position_in_grid]])
 {
     if (thread_id >= THREADS) return;
@@ -61,15 +63,16 @@ kernel void sw_step(
     // Column maxes at even locations,
     // Cumulative column max for this sequence at odd locations.
     // Collect the max left by a previous run of this kernel
-    short prevMax = final_max[(thread_id*UNROLL+(UNROLL-1))*2 +1];
+    short prevMax = carry_forward_in[thread_id];
     for (uint j = 0; j < UNROLL; j++) {
         uint addr = thread_id*UNROLL + j;
         // update with this column max
         prevMax = max(maxv[j], prevMax );
-        final_max[addr*2] = maxv[j];
-        final_max[addr*2 + 1] = prevMax;
+        final_max_out[addr*2] = maxv[j];
+        final_max_out[addr*2 + 1] = prevMax;
         // Reset max after a sequence boundary
         short residue = aa[addr];
         prevMax = select(prevMax, (short)0, residue == 0 );
     }
+    carry_forward_out[thread_id] = prevMax;
 }
