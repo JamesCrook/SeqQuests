@@ -21,7 +21,7 @@ M2 is a Mac M2 Pro with 16GB of RAM.
 @131,189 on 01 Dec at 01:30
 @142,363 on 01 Dec at 16:00 4.7 seconds/protein. est 15 day search.
 
-* 01 Dec: M2 - New run with Titin optimisation; expected 2x faster.
+* 01 Dec: M2 - New run with Titin optimisation; expected 2x faster. It is.
 
 @000,007 on 01 Dec at 16:27 estimating 5 days  7 hrs (based on PMEs). 
 @002,843 on 02 Dec at 02:00 estimating 4 days 21 hrs (based on PMEs). (41 days on proteins)
@@ -31,6 +31,7 @@ M2 is a Mac M2 Pro with 16GB of RAM.
 @036,893 on 04 Dec at 12:42 estimating 7 days  6 hrs (based on PMEs). (22 days on proteins)
 @046,105 on 04 Dec at 23:50 estimating 7 days 11 hrs (based on PMEs). (21 days on proteins)
 @083,585 on 06 Dec at 10:45 estimating 7 days 22 hrs (based on PMEs). (17 days on proteins)
+@097,280 on 06 Dec at 20:45 estimating 8 days  0 hrs (based on PMEs). (16 days on proteins)
 
 ### Additional Dev History
 
@@ -47,3 +48,5 @@ e7d73cbbd452b1babd91a4dab12d78f6d2a992f1 introduced the all-recs parameter, defa
 4th Dec 2025: Experimenting with M4 Pro whilst the M2 runs, noticed a slow down due to sleep. Added caffeinate -i. 100 GCUPS up from 54 GCUPS on M4. With the M4 now on the 700aa proteins, 50,000 proteins in, CPU time is taking 20% of the total time, and the serial nature of GPU then CPU rather than overlapping them is costing us. We're getting 90 GCUPS, where 110 GCUPS ought to be achieved - so double buffering is becoming an essential. Doing largest protein first makes protein count a poor guide to progress, and I will switch it up to report percentage of amino acids processed and drop the protein count predictions.
 
 5th Dec 2025: Switched to GCUP based time estimation, %aa's done, and dropped protein count estimation. M4 has overtaken M2 (with significantly less run time) and is 128,947 proteins in (73% task complete). 28% of CPU time should be reclaimable by overlapping.
+
+6th Dec 2025: Got the 'coiled' implementation working where CPU/GPU usage overlap. 122 GCUPS with this design. Helped by less data going in in this design. The M4 (running part time) has now massively overtaken the M2 running the older software full time. It's credibly estimating 6hrs to completion, and 4x the speed. 4x is reasonable. The M4 is about twice as fast, and the software by overlapping is on the home stretch going at nearly double the speed it would without overlapping.

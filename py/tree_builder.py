@@ -331,9 +331,10 @@ class MaxSpanningTree:
 
     # The search worked with renumbered proteins.
     # We must get the true number before doing the look up.
-    def get_renumbered_protein( id ):
+    @classmethod
+    def get_renumbered_protein( cls, id ):
         # Map from sorted ID back to original ID using inverse index
-        original_id = MaxSpanningTree.get_original_id(id)
+        original_id = cls.get_original_id(id)
         return sequences.get_protein( original_id )
 
     def report_twilight(self, f):
@@ -374,8 +375,8 @@ class MaxSpanningTree:
 
         for node_id in sorted_twilight_indices:
             parent_id = parents[node_id]
-            r1 = get_renumbered_protein(node_id)
-            r2 = get_renumbered_protein(parent_id)
+            r1 = self.get_renumbered_protein(node_id)
+            r2 = self.get_renumbered_protein(parent_id)
 
             skip_reason = should_skip(r1, r2)
             if skip_reason:
@@ -389,9 +390,9 @@ class MaxSpanningTree:
                 skip_string = f" [...skipped {' and '.join(skip_parts)}]"
                 skip_counts = {key: 0 for key in skip_counts}
 
-            f.write(f"{node_id}-{parent_id} s({scores[node_id]}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
-            f.write(f" {node_id}: {r1.name}\n")
-            f.write(f" {parent_id}: {r2.name}\n")
+            f.write(f"{r1.number}-{r2.number} s({scores[node_id]}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
+            f.write(f" {r1.number}: {r1.name}\n")
+            f.write(f" {r2.number}: {r2.name}\n")
 
         grand_total = sum(total_skip_counts.values())
         if grand_total > 0:
@@ -436,14 +437,14 @@ class MaxSpanningTree:
                 start_index = adjusted_len - (adjusted_len % 40)
                 short_prefix = f"{start_index}:{prefix[start_index:]}"
 
-                record = get_renumbered_protein(node_id)
+                record = self.get_renumbered_protein(node_id)
                 if node_id%1000 == 0:
                     print(f"tree: {node_id}")
 
                 if depth == 0:
-                    f.write(f"{short_prefix}{connector}Node {node_id} {record.id} Length:{record.sequence_length} [ROOT {component}] {record.name} \n")
+                    f.write(f"{short_prefix}{connector}Node {record.number} {record.id} Length:{record.sequence_length} [ROOT {component}] {record.name} \n")
                 else:
-                    f.write(f"{short_prefix}{connector}Node {node_id} {record.id} Length:{record.sequence_length} (s:{self.scores[node_id]}) {record.name}\n")
+                    f.write(f"{short_prefix}{connector}Node {record.number} {record.id} Length:{record.sequence_length} (s:{self.scores[node_id]}) {record.name}\n")
 
                 sorted_children = get_sorted_children(node_id)
 
@@ -484,7 +485,7 @@ class MaxSpanningTree:
                         f.write(f"ISOLATED NODES (no connections): {len(isolated)}\n")
                         f.write("-" * 80 + "\n")
                         for node_id in isolated:
-                            record = get_renumbered_protein(node_id)
+                            record = self.get_renumbered_protein(node_id)
                             f.write(f"Node {node_id}: {record.name}\n")
 
 def process_links_file(filename, num_nodes):
@@ -707,7 +708,7 @@ Examples:
     parser.add_argument('--inv-index-file', type=str, default=str(default_inv_index),
                        help=f'Path to inverse index binary file (default: {default_inv_index}). '
                             'Used to map sorted sequence IDs back to original IDs.')
-    parser.set_defaults(test=True)
+    parser.set_defaults(test=False)
     
     args = parser.parse_args()
 
