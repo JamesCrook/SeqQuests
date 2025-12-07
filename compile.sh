@@ -55,6 +55,10 @@ clang++ -std=c++17 -O2 -o bin/sw_search_metal c_src/sw_search_metal.mm \
     -D THREADS=$THREADS -D UNROLL=$UNROLL \
     -framework Foundation -framework Metal -framework QuartzCore
 
+echo "--- Compiling C Core Shared Library (sw_align) ---"
+# Create shared library for Python ctypes
+clang++ -std=c++17 -O3 -shared -undefined dynamic_lookup -o bin/libsw_align.dylib c_src/sw_align_core.cpp
+
 echo "--- Compiling C++ Tree Builder ---"
 clang++ -std=c++17 -O2 -o bin/tree_builder_cpp c_src/tree_builder.cpp
 

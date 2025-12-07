@@ -1,23 +1,211 @@
 from Bio.Align import substitution_matrices
 import numpy as np
 import argparse
+import ctypes
+import os
+import sys
+from pathlib import Path
+
+# Load shared library
+def load_sw_lib():
+    """Load the shared library for Smith-Waterman alignment."""
+    # Determine extension based on platform
+    if sys.platform == 'darwin':
+        lib_name = 'libsw_align.dylib'
+    else:
+        lib_name = 'libsw_align.so'
+    
+    # Look for bin directory relative to this file
+    # py/sw_align.py -> py/ -> root/ -> bin/
+    current_dir = Path(__file__).parent.resolve()
+    project_root = current_dir.parent
+    lib_path = project_root / 'bin' / lib_name
+    
+    try:
+        lib = ctypes.CDLL(str(lib_path))
+        
+        # Define argtypes
+        # void align_local_core(const char* seq_a, int len_a, const char* seq_b, int len_b, 
+        #                       const float* matrix, float gap_extend, 
+        #                       float* out_score, int* out_len, 
+        #                       int* out_indices_a, int* out_indices_b)
+        lib.align_local_core.argtypes = [
+            ctypes.c_char_p, ctypes.c_int,
+            ctypes.c_char_p, ctypes.c_int,
+            ctypes.POINTER(ctypes.c_float), ctypes.c_float,
+            ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_int),
+            ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)
+        ]
+        return lib
+    except OSError as e:
+        print(f"Warning: Could not load C library at {lib_path}: {e}")
+        return None
+
+_SW_LIB = load_sw_lib()
+
+def get_matrix_32(weights="PAM250"):
+    """
+    Convert a Biopython substitution matrix (or name) to a flattened 32x32 float array.
+    Uses index = char & 31.
+    """
+    # Load substitution matrix if string
+    if isinstance(weights, str):
+        sub_matrix = substitution_matrices.load(weights)
+    else:
+        sub_matrix = weights
+        
+    # Create 32x32 array (1024 floats)
+    matrix_32 = np.zeros(1024, dtype=np.float32)
+    
+    # The alphabet usually contains standard amino acids + 'Z', 'B', '*', 'X'
+    # We iterate over the alphabet provided by Biopython and map to the 32x32 grid
+    alphabet = sub_matrix.alphabet
+    
+    # We need to fill the whole 32x32 matrix?
+    # Or just the relevant entries?
+    # The C code accesses `matrix[idx_a * 32 + idx_b]`.
+    # Unmapped characters will remain 0.
+    
+    # To be safe, maybe fill with a default low score (mismatch) if not 0? 
+    # But 0 is often a neutral or bad score in unnormalized matrices. 
+    # BLOSUM/PAM have positive and negative values.
+    # Let's trust the alphabet coverage.
+    
+    for i, char_a in enumerate(alphabet):
+        idx_a = ord(char_a) & 31
+        for j, char_b in enumerate(alphabet):
+            idx_b = ord(char_b) & 31
+            score = sub_matrix[i][j]
+            # Handle collisions? (e.g. 'A' vs 'a')
+            # Assuming standard uppercase alphabet.
+            matrix_32[idx_a * 32 + idx_b] = score
+            
+    return matrix_32
+
+def align_local_swissprot_c(seq_a_str, seq_b_str, weights="PAM250", gap_extend=-10):
+    """
+    Wrapper for C implementation of Local Smith-Waterman.
+    """
+    if _SW_LIB is None:
+        raise RuntimeError("C library not available")
+
+    # Prepare inputs
+    seq_a_bytes = seq_a_str.encode('ascii')
+    seq_b_bytes = seq_b_str.encode('ascii')
+    len_a = len(seq_a_str)
+    len_b = len(seq_b_str)
+    
+    # Prepare matrix
+    # Note: Optimization - we could cache this if weights is a string
+    matrix_32 = get_matrix_32(weights)
+    matrix_ptr = matrix_32.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+    
+    # Prepare outputs
+    out_score = ctypes.c_float()
+    out_len = ctypes.c_int()
+    
+    # Allocate buffers for indices (max possible length is len_a + len_b)
+    max_path_len = len_a + len_b
+    out_indices_a = (ctypes.c_int * max_path_len)()
+    out_indices_b = (ctypes.c_int * max_path_len)()
+    
+    # Call C function
+    _SW_LIB.align_local_core(
+        seq_a_bytes, len_a,
+        seq_b_bytes, len_b,
+        matrix_ptr, float(gap_extend),
+        ctypes.byref(out_score), ctypes.byref(out_len),
+        out_indices_a, out_indices_b
+    )
+    
+    if out_score.value <= 0:
+        return None
+        
+    path_len = out_len.value
+    
+    # Retrieve indices
+    # C code returns them in traceback order (reversed relative to sequence)
+    # We convert them to lists. 
+    # Note: C returns -1 for gaps.
+    raw_indices_a = out_indices_a[:path_len]
+    raw_indices_b = out_indices_b[:path_len]
+    
+    # Construct aligned strings and index lists for result dict
+    aligned_a = []
+    aligned_b = []
+    indices_a = []
+    indices_b = []
+    
+    # We iterate backwards through the C output to build the strings forward?
+    # No, traceback gives the alignment from end to start.
+    # So raw_indices[0] is the end of the alignment.
+    # raw_indices[path_len-1] is the start.
+    
+    # We want final output to be forward.
+    # So we reverse the raw lists first.
+    raw_indices_a.reverse()
+    raw_indices_b.reverse()
+    
+    for idx_a, idx_b in zip(raw_indices_a, raw_indices_b):
+        if idx_a != -1:
+            aligned_a.append(seq_a_str[idx_a])
+            indices_a.append(idx_a)
+        else:
+            aligned_a.append('-')
+            
+        if idx_b != -1:
+            aligned_b.append(seq_b_str[idx_b])
+            indices_b.append(idx_b)
+        else:
+            aligned_b.append('-')
+            
+    aligned_a_str = "".join(aligned_a)
+    aligned_b_str = "".join(aligned_b)
+    
+    # Visual text
+    match_line = ''
+    for a, b in zip(aligned_a_str, aligned_b_str):
+        if a == b:
+            match_line += '|'
+        elif a == '-' or b == '-':
+            match_line += ' '
+        else:
+            match_line += '.'
+    
+    visual_text = f"{aligned_a_str}\n{match_line}\n{aligned_b_str}"
+    
+    return {
+        "score": out_score.value,
+        "visual_text": visual_text,
+        "seq_a_indices": indices_a,
+        "seq_b_indices": indices_b,
+        "aligned_a": aligned_a_str,
+        "aligned_b": aligned_b_str,
+        "range_summary": {
+            "seq_a_start": indices_a[0] if indices_a else 0,
+            "seq_a_end": indices_a[-1] if indices_a else 0,
+            "seq_b_start": indices_b[0] if indices_b else 0,
+            "seq_b_end": indices_b[-1] if indices_b else 0
+        }
+    }
 
 
-def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250", gap_open=0, gap_extend=-10):
+def align_local_swissprot(seq_a_str, seq_b_str, weights="PAM250", gap_open=0, gap_extend=-10, use_c=True):
+    """
+    Performs a Local Smith-Waterman alignment.
+    Default: uses C implementation (ignoring gap_open).
+    Set use_c=False to use pure Python implementation.
+    """
+    if use_c and _SW_LIB:
+        return align_local_swissprot_c(seq_a_str, seq_b_str, weights, gap_extend)
+    else:
+        return align_local_swissprot_python(seq_a_str, seq_b_str, weights, gap_open, gap_extend)
+
+
+def align_local_swissprot_python(seq_a_str, seq_b_str, weights="PAM250", gap_open=0, gap_extend=-10):
     """
     Performs a Local Smith-Waterman alignment using a custom implementation.
     This correctly handles zero gap open penalty.
-    
-    Args:
-        seq_a_str: First sequence string
-        seq_b_str: Second sequence string
-        weights: Substitution matrix name (string) or dict-like object
-        gap_open: Gap opening penalty (default: 0)
-        gap_extend: Gap extension penalty (default: -10)
-
-    Returns:
-        - A dictionary with alignment score, visual text, and index mappings
-        - None if no alignment found
     """
     
     # Load substitution matrix
@@ -187,14 +375,25 @@ def test():
     print(f"Sequence B (Human fragment): {seq_b}")
     print()
 
-    result = align_local_swissprot(seq_a, seq_b)
-    
-    if print_alignment_results(result, seq_a, seq_b, verbose=True):
-        print("\n" + "=" * 60)
-        print("Test completed successfully!")
-    else:
-        print("Test failed - no significant local alignment detected")
+    print("--- Testing Python Implementation ---")
+    result_py = align_local_swissprot_python(seq_a, seq_b)
+    print_alignment_results(result_py, seq_a, seq_b)
 
+    if _SW_LIB:
+        print("\n--- Testing C Implementation ---")
+        result_c = align_local_swissprot_c(seq_a, seq_b)
+        print_alignment_results(result_c, seq_a, seq_b)
+        
+        if result_py and result_c:
+            score_diff = abs(result_py['score'] - result_c['score'])
+            if score_diff < 0.001:
+                print("\nSUCCESS: Scores match!")
+            else:
+                print(f"\nFAILURE: Scores differ! Py: {result_py['score']}, C: {result_c['score']}")
+        else:
+            print("\nCannot compare scores (one result is None)")
+    else:
+        print("\nSkipping C test (library not loaded)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -209,9 +408,6 @@ if __name__ == "__main__":
     # Test mode
     parser.add_argument('--test', action='store_true',
                         help='Run test mode with example sequences')
-    parser.add_argument('--no-test', action='store_false', dest='test',
-                        help='Disable test mode')
-    parser.set_defaults(test=False)
     
     # Sequence arguments
     parser.add_argument('--seq-a', type=str, default=None,
@@ -232,6 +428,8 @@ if __name__ == "__main__":
                         help='Verbose output with additional statistics')
     parser.add_argument('--indices-only', action='store_true',
                         help='Output only the aligned indices')
+    parser.add_argument('--python-only', action='store_true',
+                        help='Force use of Python implementation')
     
     args = parser.parse_args()
 
@@ -256,15 +454,19 @@ if __name__ == "__main__":
         print(f"  Substitution matrix: {args.matrix}")
         print(f"  Gap open penalty: {args.gap_open}")
         print(f"  Gap extend penalty: {args.gap_extend}")
+        print(f"  Implementation: {'Python' if args.python_only else 'C (default)'}")
         print()
     
     try:
+        use_c = not args.python_only
+        
         result = align_local_swissprot(
             args.seq_a, 
             args.seq_b, 
             weights=args.matrix,
             gap_open=args.gap_open,
-            gap_extend=args.gap_extend
+            gap_extend=args.gap_extend,
+            use_c=use_c
         )
         
         if args.indices_only:
@@ -279,4 +481,6 @@ if __name__ == "__main__":
             
     except Exception as e:
         print(f"Error during alignment: {e}")
+        # import traceback
+        # traceback.print_exc()
         exit(1)
