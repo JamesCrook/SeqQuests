@@ -24,7 +24,7 @@ from config import PROJECT_ROOT
 STOPWORDS = {
     # Generic terms
     'protein', 'domain', 'containing', 'subunit', 'member', 'regulator', 'fragment',
-    'precursor', 'chain', 'component', 'factor', 'element', 'unit',
+    'precursor', 'chain', 'component', 'factor', 'element', 'unit', 'specific',
     # Modifiers
     'probable', 'putative', 'possible', 'predicted', 'potential',
     'uncharacterized', 'hypothetical', 'unknown',
@@ -193,30 +193,259 @@ def phase1_filter(entry: TwilightEntry, stopwords: Set[str]) -> Optional[List[st
     return None
 
 
+def extract_similarity_terms(record) -> Set[str]:
+    """
+    Extract meaningful terms from -!- SIMILARITY: lines in a SwissProt record.
+    
+    Args:
+        record: Biopython SwissProt record (from record.full)
+    
+    Returns:
+        Set of significant terms from similarity annotations
+    """
+    terms = set()
+    
+    # Additional stopwords specific to SIMILARITY lines
+    similarity_stopwords = STOPWORDS | {
+        'protein', 'proteins', 'subfamily', 'group', 'class', 'type', 
+        'member', 'contains', 'domain', 'domains', 'repeat', 'repeats',
+        'region', 'regions', 'motif', 'motifs', 'sequence', 'sequences'
+    }
+    
+    # Get comments from the record
+    if hasattr(record, 'comments'):
+        for comment in record.comments:
+            # SIMILARITY comments have this pattern
+            if comment.startswith('SIMILARITY:'):
+                # Remove the prefix
+                text = comment[11:].strip()
+                
+                # Remove common prefixes like "Belongs to the..."
+                text = re.sub(r'^Belongs to the\s+', '', text, flags=re.IGNORECASE)
+                text = re.sub(r'^Member of the\s+', '', text, flags=re.IGNORECASE)
+                
+                # Extract significant words (families, superfamilies, etc.)
+                # Look for capitalized terms or specific patterns
+                words = re.findall(r'\b[A-Z][a-z]+(?:\s+[a-z]+)?\b|\b\w+(?:-\w+)+\b', text)
+                
+                # Also extract anything in quotes or after "family", "superfamily"
+                family_match = re.search(r'([\w-]+)\s+(?:super)?family', text, re.IGNORECASE)
+                if family_match:
+                    family_term = family_match.group(1).lower()
+                    if family_term not in similarity_stopwords and len(family_term) >= 6:
+                        terms.add(family_term)
+                
+                # Add individual significant words (longer than 5 chars, not stopwords)
+                for word in words:
+                    word = word.lower().strip()
+                    if len(word) >= 6 and word not in similarity_stopwords:
+                        terms.add(word)
+    
+    return terms
+
+
+def check_similarity_lines(record1, record2) -> Optional[str]:
+    """
+    Compare SIMILARITY annotations between two records.
+    
+    Returns:
+        Common term if found, None otherwise
+    """
+    terms1 = extract_similarity_terms(record1)
+    terms2 = extract_similarity_terms(record2)
+    
+    common = terms1 & terms2
+    
+    if common:
+        # Return the longest common term, but only if >= 6 characters
+        longest = max(common, key=len)
+        if len(longest) >= 6:
+            return longest
+    
+    return None
+
+
+def check_family_annotations(record1, record2) -> Optional[str]:
+    """
+    Compare family annotations between two records.
+    
+    Returns:
+        Common family name if found, None otherwise
+    """
+    families1 = extract_family_terms(record1)
+    families2 = extract_family_terms(record2)
+    
+    common = families1 & families2
+    
+    if common:
+        longest = max(common, key=len)
+        if len(longest) >= 6:
+            return longest
+    
+    return None
+
+
+def check_domain_annotations(record1, record2) -> Optional[str]:
+    """
+    Compare domain annotations between two records.
+    
+    Returns:
+        Common domain name if found, None otherwise
+    """
+    domains1 = extract_domain_terms(record1)
+    domains2 = extract_domain_terms(record2)
+    
+    common = domains1 & domains2
+    
+    if common:
+        longest = max(common, key=len)
+        if len(longest) >= 6:
+            return longest
+    
+    return None
+
+def extract_family_terms(record) -> Set[str]:
+    """
+    Extract family names from various record fields.
+    Looks near keywords like "Family:", "Belongs to", etc.
+    PRESERVES numbers to distinguish subfamilies.
+    """
+    terms = set()
+    
+    # Check description for family mentions
+    if hasattr(record, 'description'):
+        desc = record.description
+        
+        # Look for "Family: X" pattern - keep numbers!
+        family_match = re.search(r'Family:\s*([\w-]+(?:\s+\d+)?)', desc, re.IGNORECASE)
+        if family_match:
+            terms.add(family_match.group(1).lower())
+    
+    # Check comments for "Belongs to the X family"
+    if hasattr(record, 'comments'):
+        for comment in record.comments:
+            # Look for family membership - keep numbers!
+            belongs_match = re.search(r'Belongs to the\s+([\w-]+(?:\s+[\w-]+)?(?:\s+\d+)?)\s+family', 
+                                     comment, re.IGNORECASE)
+            if belongs_match:
+                family_name = belongs_match.group(1).lower()
+                terms.add(family_name)
+    
+    return terms
+
+
+def extract_interpro_ids(record) -> Set[str]:
+    """
+    Extract InterPro IDs from cross-references.
+    These are highly specific domain/family identifiers.
+    """
+    interpro_ids = set()
+    
+    if hasattr(record, 'cross_references'):
+        for xref in record.cross_references:
+            if xref[0] == 'InterPro' and len(xref) >= 2:
+                interpro_ids.add(xref[1])  # e.g., 'IPR016533'
+    
+    return interpro_ids
+
+
+def check_interpro_ids(record1, record2) -> Optional[str]:
+    """
+    Compare InterPro IDs between two records.
+    
+    Returns:
+        Common InterPro ID if found, None otherwise
+    """
+    ids1 = extract_interpro_ids(record1)
+    ids2 = extract_interpro_ids(record2)
+    
+    common = ids1 & ids2
+    
+    if common:
+        # Return first match (they're all equally specific)
+        return f"InterPro: {sorted(common)[0]}"
+    
+    return None
+
+
 def phase2_filter(entry: TwilightEntry) -> Optional[str]:
     """
     Phase 2: Full record analysis.
     
-    This would retrieve full UniProt records and look for:
-    - Family annotations
+    Retrieves full UniProt records and looks for:
+    - InterPro IDs (most specific!)
     - SIMILARITY lines
-    - Domain architecture
+    - Family annotations  
+    - Domain/repeat annotations
     
     Returns:
         Reason string if should be filtered, None if should keep
     """
-    # TODO: Implement when needed
-    # This is a placeholder for future expansion
-    # 
-    # Example:
-    # r1 = sequences.get_protein(entry.num1)
-    # r2 = sequences.get_protein(entry.num2)
-    # 
-    # # Extract SIMILARITY lines from r1.full and r2.full
-    # # Compare family annotations
-    # # etc.
+    try:
+        # Retrieve full records
+        r1 = sequences.get_protein(entry.num1)
+        r2 = sequences.get_protein(entry.num2)
+        
+        # Check InterPro IDs first (most specific)
+        interpro_match = check_interpro_ids(r1.full, r2.full)
+        if interpro_match:
+            return interpro_match
+        
+        # Check SIMILARITY lines
+        similarity_match = check_similarity_lines(r1.full, r2.full)
+        if similarity_match:
+            return f"-!- SIMILARITY: {similarity_match}"
+        
+        # Check Family annotations
+        family_match = check_family_annotations(r1.full, r2.full)
+        if family_match:
+            return f"Family: {family_match}"
+        
+        # Check domain annotations
+        domain_match = check_domain_annotations(r1.full, r2.full)
+        if domain_match:
+            return f"Domain: {domain_match}"
+        
+    except Exception as e:
+        print(f"Warning: Phase 2 failed for {entry.num1}-{entry.num2}: {e}")
     
     return None
+
+
+def extract_domain_terms(record) -> Set[str]:
+    """
+    Extract domain/repeat names from record annotations.
+    Looks for InterPro, Pfam, PROSITE domains.
+    """
+    terms = set()
+    
+    # Check cross-references for domain databases
+    if hasattr(record, 'cross_references'):
+        for xref in record.cross_references:
+            db = xref[0]
+            # InterPro, Pfam, SMART, PROSITE all contain domain info
+            if db in ('InterPro', 'Pfam', 'SMART', 'PROSITE', 'SUPFAM'):
+                # xref format is typically: ('Pfam', 'PF00001', 'Domain_name')
+                if len(xref) >= 3:
+                    domain_name = xref[2].lower()
+                    # Extract meaningful part of domain name
+                    # Remove version numbers, clean up
+                    domain_name = re.sub(r'[._]\d+$', '', domain_name)
+                    if len(domain_name) >= 5:
+                        terms.add(domain_name)
+    
+    # Check feature table for domain annotations
+    if hasattr(record, 'features'):
+        for feature in record.features:
+            # feature is a FeatureTable object with attributes, not subscriptable
+            if hasattr(feature, 'type') and feature.type in ('DOMAIN', 'REPEAT', 'REGION'):
+                if hasattr(feature, 'description'):
+                    desc = feature.description.lower()
+                    # Extract domain name from description
+                    words = re.findall(r'\b[a-z]{5,}\b', desc)
+                    terms.update(words)
+    
+    return terms
 
 
 # =============================================================================
@@ -241,11 +470,15 @@ def filter_twilight_file(input_file: str,
     print(f"Found {len(entries)} comparisons")
     
     filtered_entries = []
+    filtered_entries2 = []
     kept_entries = []
     reason_counts = defaultdict(int)
     
     print("Filtering...")
-    for entry in entries:
+    for i, entry in enumerate(entries):
+        if (i + 1) % 1000 == 0:
+            print(f"  Processed {i + 1}/{len(entries)} entries...")
+        
         # Phase 1: String matching
         stems = phase1_filter(entry, STOPWORDS)
         
@@ -259,7 +492,7 @@ def filter_twilight_file(input_file: str,
         if use_phase2:
             reason = phase2_filter(entry)
             if reason:
-                filtered_entries.append((entry, reason))
+                filtered_entries2.append((entry, reason))
                 reason_counts[reason] += 1
                 continue
         
@@ -271,11 +504,12 @@ def filter_twilight_file(input_file: str,
     with open(output_file, 'w') as f:
         f.write(f"Kept {len(kept_entries)} entries after filtering\n")
         f.write(f"Filtered out {len(filtered_entries)} entries\n\n")
+        f.write(f"Filtered out {len(filtered_entries2)} entries in phase2\n\n")
         
         for entry in kept_entries:
             f.write(entry.raw_header + '\n')
-            f.write(entry.raw_protein1 + '\n')
-            f.write(entry.raw_protein2 + '\n')
+            f.write(entry.raw_protein1)
+            f.write(entry.raw_protein2)
     
     # Write reasons file (sorted by length, then alphabetically)
     print(f"Writing reasons to {reasons_file}...")
@@ -291,12 +525,14 @@ def filter_twilight_file(input_file: str,
             f.write(f"{reason:40s} : {count:5d}\n")
         
         f.write("\n" + "=" * 80 + "\n")
-        f.write(f"Total filtered: {len(filtered_entries)}\n")
+        f.write(f"Total filtered: {len(filtered_entries)+len(filtered_entries2)}\n")
+        f.write(f"of which: {len(filtered_entries2)} in phase2\n")
         f.write(f"Total kept: {len(kept_entries)}\n")
     
     print(f"\nSummary:")
     print(f"  Input:    {len(entries):5d} comparisons")
-    print(f"  Filtered: {len(filtered_entries):5d} comparisons ({100*len(filtered_entries)/len(entries):.1f}%)")
+    print(f"  Filtered1: {len(filtered_entries):5d} comparisons ({100*len(filtered_entries)/len(entries):.1f}%)")
+    print(f"  Filtered2: {len(filtered_entries2):5d} comparisons ({100*len(filtered_entries2)/len(entries):.1f}%)")
     print(f"  Kept:     {len(kept_entries):5d} comparisons ({100*len(kept_entries)/len(entries):.1f}%)")
     print(f"  Unique reasons: {len(reason_counts)}")
 
