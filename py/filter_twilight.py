@@ -11,7 +11,7 @@ This program:
 
 import re
 from collections import defaultdict
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Optional, Set, Callable, Dict, Any
 import argparse
 
 import sequences
@@ -196,12 +196,6 @@ def phase1_filter(entry: TwilightEntry, stopwords: Set[str]) -> Optional[List[st
 def extract_similarity_terms(record) -> Set[str]:
     """
     Extract meaningful terms from -!- SIMILARITY: lines in a SwissProt record.
-    
-    Args:
-        record: Biopython SwissProt record (from record.full)
-    
-    Returns:
-        Set of significant terms from similarity annotations
     """
     terms = set()
     
@@ -243,66 +237,6 @@ def extract_similarity_terms(record) -> Set[str]:
     
     return terms
 
-
-def check_similarity_lines(record1, record2) -> Optional[str]:
-    """
-    Compare SIMILARITY annotations between two records.
-    
-    Returns:
-        Common term if found, None otherwise
-    """
-    terms1 = extract_similarity_terms(record1)
-    terms2 = extract_similarity_terms(record2)
-    
-    common = terms1 & terms2
-    
-    if common:
-        # Return the longest common term, but only if >= 6 characters
-        longest = max(common, key=len)
-        if len(longest) >= 6:
-            return longest
-    
-    return None
-
-
-def check_family_annotations(record1, record2) -> Optional[str]:
-    """
-    Compare family annotations between two records.
-    
-    Returns:
-        Common family name if found, None otherwise
-    """
-    families1 = extract_family_terms(record1)
-    families2 = extract_family_terms(record2)
-    
-    common = families1 & families2
-    
-    if common:
-        longest = max(common, key=len)
-        if len(longest) >= 6:
-            return longest
-    
-    return None
-
-
-def check_domain_annotations(record1, record2) -> Optional[str]:
-    """
-    Compare domain annotations between two records.
-    
-    Returns:
-        Common domain name if found, None otherwise
-    """
-    domains1 = extract_domain_terms(record1)
-    domains2 = extract_domain_terms(record2)
-    
-    common = domains1 & domains2
-    
-    if common:
-        longest = max(common, key=len)
-        if len(longest) >= 6:
-            return longest
-    
-    return None
 
 def extract_family_terms(record) -> Set[str]:
     """
@@ -349,69 +283,6 @@ def extract_interpro_ids(record) -> Set[str]:
     return interpro_ids
 
 
-def check_interpro_ids(record1, record2) -> Optional[str]:
-    """
-    Compare InterPro IDs between two records.
-    
-    Returns:
-        Common InterPro ID if found, None otherwise
-    """
-    ids1 = extract_interpro_ids(record1)
-    ids2 = extract_interpro_ids(record2)
-    
-    common = ids1 & ids2
-    
-    if common:
-        # Return first match (they're all equally specific)
-        return f"InterPro: {sorted(common)[0]}"
-    
-    return None
-
-
-def phase2_filter(entry: TwilightEntry) -> Optional[str]:
-    """
-    Phase 2: Full record analysis.
-    
-    Retrieves full UniProt records and looks for:
-    - InterPro IDs (most specific!)
-    - SIMILARITY lines
-    - Family annotations  
-    - Domain/repeat annotations
-    
-    Returns:
-        Reason string if should be filtered, None if should keep
-    """
-    try:
-        # Retrieve full records
-        r1 = sequences.get_protein(entry.num1)
-        r2 = sequences.get_protein(entry.num2)
-        
-        # Check InterPro IDs first (most specific)
-        interpro_match = check_interpro_ids(r1.full, r2.full)
-        if interpro_match:
-            return interpro_match
-        
-        # Check SIMILARITY lines
-        similarity_match = check_similarity_lines(r1.full, r2.full)
-        if similarity_match:
-            return f"-!- SIMILARITY: {similarity_match}"
-        
-        # Check Family annotations
-        family_match = check_family_annotations(r1.full, r2.full)
-        if family_match:
-            return f"Family: {family_match}"
-        
-        # Check domain annotations
-        domain_match = check_domain_annotations(r1.full, r2.full)
-        if domain_match:
-            return f"Domain: {domain_match}"
-        
-    except Exception as e:
-        print(f"Warning: Phase 2 failed for {entry.num1}-{entry.num2}: {e}")
-    
-    return None
-
-
 def extract_domain_terms(record) -> Set[str]:
     """
     Extract domain/repeat names from record annotations.
@@ -448,6 +319,116 @@ def extract_domain_terms(record) -> Set[str]:
     return terms
 
 
+def check_common_terms(record1, record2, extractor_func: Callable, min_length: int = 6) -> Optional[str]:
+    """
+    Generic function to find common terms between two records using a specific extractor.
+
+    Returns:
+        The longest common term if found and meets length criteria, else None.
+    """
+    terms1 = extractor_func(record1)
+    terms2 = extractor_func(record2)
+
+    common = terms1 & terms2
+
+    if common:
+        longest = max(common, key=len)
+        if len(longest) >= min_length:
+            return longest
+    return None
+
+
+def check_interpro_ids(record1, record2) -> Optional[str]:
+    """
+    Compare InterPro IDs between two records.
+    Returns the first alphabetically sorted common ID.
+    """
+    ids1 = extract_interpro_ids(record1)
+    ids2 = extract_interpro_ids(record2)
+
+    common = ids1 & ids2
+
+    if common:
+        return sorted(common)[0]
+    return None
+
+
+def phase2_filter(entry: TwilightEntry) -> Optional[str]:
+    """
+    Phase 2: Full record analysis.
+
+    Retrieves full UniProt records and checks multiple criteria.
+
+    Returns:
+        Reason string if should be filtered, None if should keep
+    """
+    try:
+        r1 = sequences.get_protein(entry.num1)
+        r2 = sequences.get_protein(entry.num2)
+
+        # Check InterPro IDs first (most specific)
+        match = check_interpro_ids(r1.full, r2.full)
+        if match:
+            return f"InterPro: {match}"
+
+        # Define checks as (check_func, extractor, prefix) or custom lambda
+        checks = [
+            (extract_similarity_terms, "-!- SIMILARITY: "),
+            (extract_family_terms, "Family: "),
+            (extract_domain_terms, "Domain: ")
+        ]
+
+        for extractor, prefix in checks:
+            match = check_common_terms(r1.full, r2.full, extractor)
+            if match:
+                return f"{prefix}{match}"
+
+    except Exception as e:
+        print(f"Warning: Phase 2 failed for {entry.num1}-{entry.num2}: {e}")
+
+    return None
+
+
+# =============================================================================
+# Output Writing
+# =============================================================================
+
+def write_filtered_output(output_file: str, kept_entries: List[TwilightEntry],
+                          filtered_count1: int, filtered_count2: int):
+    """Write the kept entries to the output file."""
+    print(f"\nWriting {len(kept_entries)} kept entries to {output_file}...")
+    with open(output_file, 'w') as f:
+        f.write(f"Kept {len(kept_entries)} entries after filtering\n")
+        f.write(f"Filtered out {filtered_count1} entries\n\n")
+        f.write(f"Filtered out {filtered_count2} entries in phase2\n\n")
+
+        for entry in kept_entries:
+            f.write(entry.raw_header + '\n')
+            f.write(entry.raw_protein1)
+            f.write(entry.raw_protein2)
+
+
+def write_reasons_output(reasons_file: str, reason_counts: Dict[str, int],
+                         filtered_count1: int, filtered_count2: int, kept_count: int):
+    """Write the filtering reasons to a file."""
+    print(f"Writing reasons to {reasons_file}...")
+    with open(reasons_file, 'w') as f:
+        f.write("FILTERING REASONS (sorted by length - shortest first)\n")
+        f.write("=" * 80 + "\n\n")
+
+        # Sort reasons by length, then alphabetically
+        sorted_reasons = sorted(reason_counts.items(),
+                              key=lambda x: (len(x[0]), x[0]))
+
+        for reason, count in sorted_reasons:
+            f.write(f"{reason:40s} : {count:5d}\n")
+
+        f.write("\n" + "=" * 80 + "\n")
+        f.write(f"Total filtered: {filtered_count1 + filtered_count2}\n")
+        f.write(f"of which: {filtered_count2} in phase2\n")
+        f.write(f"Total kept: {kept_count}\n")
+
+
 # =============================================================================
 # Main Processing
 # =============================================================================
@@ -458,19 +439,13 @@ def filter_twilight_file(input_file: str,
                         use_phase2: bool = False):
     """
     Main filtering function.
-    
-    Args:
-        input_file: Path to twilight comparison file
-        output_file: Path to write filtered (kept) comparisons
-        reasons_file: Path to write filtering reasons
-        use_phase2: Whether to use full record retrieval (Phase 2)
     """
     print(f"Parsing {input_file}...")
     entries = parse_twilight_file(input_file)
     print(f"Found {len(entries)} comparisons")
     
-    filtered_entries = []
-    filtered_entries2 = []
+    filtered_count1 = 0
+    filtered_count2 = 0
     kept_entries = []
     reason_counts = defaultdict(int)
     
@@ -481,10 +456,9 @@ def filter_twilight_file(input_file: str,
         
         # Phase 1: String matching
         stems = phase1_filter(entry, STOPWORDS)
-        
         if stems:
             reason = ', '.join(stems)
-            filtered_entries.append((entry, reason))
+            filtered_count1 += 1
             reason_counts[reason] += 1
             continue
         
@@ -492,47 +466,21 @@ def filter_twilight_file(input_file: str,
         if use_phase2:
             reason = phase2_filter(entry)
             if reason:
-                filtered_entries2.append((entry, reason))
+                filtered_count2 += 1
                 reason_counts[reason] += 1
                 continue
         
         # No filter matched - keep this entry
         kept_entries.append(entry)
     
-    # Write filtered file
-    print(f"\nWriting {len(kept_entries)} kept entries to {output_file}...")
-    with open(output_file, 'w') as f:
-        f.write(f"Kept {len(kept_entries)} entries after filtering\n")
-        f.write(f"Filtered out {len(filtered_entries)} entries\n\n")
-        f.write(f"Filtered out {len(filtered_entries2)} entries in phase2\n\n")
-        
-        for entry in kept_entries:
-            f.write(entry.raw_header + '\n')
-            f.write(entry.raw_protein1)
-            f.write(entry.raw_protein2)
-    
-    # Write reasons file (sorted by length, then alphabetically)
-    print(f"Writing reasons to {reasons_file}...")
-    with open(reasons_file, 'w') as f:
-        f.write("FILTERING REASONS (sorted by length - shortest first)\n")
-        f.write("=" * 80 + "\n\n")
-        
-        # Sort reasons by length, then alphabetically
-        sorted_reasons = sorted(reason_counts.items(), 
-                              key=lambda x: (len(x[0]), x[0]))
-        
-        for reason, count in sorted_reasons:
-            f.write(f"{reason:40s} : {count:5d}\n")
-        
-        f.write("\n" + "=" * 80 + "\n")
-        f.write(f"Total filtered: {len(filtered_entries)+len(filtered_entries2)}\n")
-        f.write(f"of which: {len(filtered_entries2)} in phase2\n")
-        f.write(f"Total kept: {len(kept_entries)}\n")
+    # Write outputs
+    write_filtered_output(output_file, kept_entries, filtered_count1, filtered_count2)
+    write_reasons_output(reasons_file, reason_counts, filtered_count1, filtered_count2, len(kept_entries))
     
     print(f"\nSummary:")
     print(f"  Input:    {len(entries):5d} comparisons")
-    print(f"  Filtered1: {len(filtered_entries):5d} comparisons ({100*len(filtered_entries)/len(entries):.1f}%)")
-    print(f"  Filtered2: {len(filtered_entries2):5d} comparisons ({100*len(filtered_entries2)/len(entries):.1f}%)")
+    print(f"  Filtered1: {filtered_count1:5d} comparisons ({100*filtered_count1/len(entries):.1f}%)")
+    print(f"  Filtered2: {filtered_count2:5d} comparisons ({100*filtered_count2/len(entries):.1f}%)")
     print(f"  Kept:     {len(kept_entries):5d} comparisons ({100*len(kept_entries)/len(entries):.1f}%)")
     print(f"  Unique reasons: {len(reason_counts)}")
 
