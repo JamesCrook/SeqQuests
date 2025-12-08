@@ -340,7 +340,7 @@ class MaxSpanningTree:
     def report_twilight(self, f):
 
         def should_skip(r1, r2):
-            return false
+            return None
             if 'toxin' in r1.name.lower() and 'toxin' in r2.name.lower():
                 return 'toxins'
             if ('uncharacterized' in r1.name.lower() or 'uncharacterized' in r2.name.lower() or

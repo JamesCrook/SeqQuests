@@ -236,7 +236,7 @@ public:
         std::vector<int> twilight;
         int limit = std::min(max_seen_id + 1, num_nodes);
         for (int i = 0; i < limit; i++) {
-            if (scores[i] >= 0 && scores[i] < 300) {
+            if (scores[i] >= 0 /*&& scores[i] < 300*/) {
                 twilight.push_back(i);
             }
         }
