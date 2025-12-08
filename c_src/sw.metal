@@ -46,7 +46,7 @@ kernel void sw_step(
         for (uint j = 0; j < UNROLL; j++) {
             short residue = aa[thread_id*UNROLL + j];
             uint nidx = residue * num_rows + row;
-            short penalty = select((short)10, (short)30000, residue == 0);
+            short penalty = select((short)10, (short)32767, residue == 0);
             
             result = max(accumulator[j], hValue) - penalty;
             result = max(result, (short)(dValue+pam[nidx]));

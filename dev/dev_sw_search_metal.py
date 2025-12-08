@@ -55,7 +55,7 @@ kernel void sw_step(
     uint base_nidx = aa[thread_id] * num_rows;
     short penalty = 10;
     if( aa[thread_id]==0 )
-        penalty = 30000;
+        penalty = 32767;
 
     short dValue = 0;
     
@@ -95,7 +95,7 @@ def sw_step(input_arr, output_arr, pam, aa, final_max, num_threads, num_rows):
         base_nidx = int(aa[thread_id]) * num_rows
         penalty = 10;
         if aa[thread_id]==0 :
-            penalty = 30000;
+            penalty = 32767;
 
         dValue = np.int16(0)
         

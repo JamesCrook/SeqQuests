@@ -61,8 +61,8 @@ def convert_pam_to_32x32(matrix_name="PAM250"):
 
     # For stop char @, huge penalty.
     for i in range(32):
-        pam_32x32[0, i] = -30000
-        pam_32x32[i, 0] = -30000
+        pam_32x32[0, i] = -32767
+        pam_32x32[i, 0] = -32767
     
     return pam_32x32, aa_letters
 
