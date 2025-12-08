@@ -340,6 +340,7 @@ class MaxSpanningTree:
     def report_twilight(self, f):
 
         def should_skip(r1, r2):
+            return false
             if 'toxin' in r1.name.lower() and 'toxin' in r2.name.lower():
                 return 'toxins'
             if ('uncharacterized' in r1.name.lower() or 'uncharacterized' in r2.name.lower() or
@@ -363,7 +364,7 @@ class MaxSpanningTree:
             twilight_indices = []
             limit = min(self.max_seen_id + 1, self.num_nodes)
             for i in range(limit):
-                if 300 > scores[i] >= 0:
+                if scores[i] >= 0:
                     twilight_indices.append(i)
                     finds += 1
             sorted_twilight_indices = sorted(twilight_indices, key=lambda i: scores[i], reverse=True)
@@ -691,6 +692,7 @@ Examples:
     default_input = PROJECT_ROOT / "sw_results/sw_results.csv"
     default_output = PROJECT_ROOT / "sw_results/sw_tree.txt"
     default_inv_index = PROJECT_ROOT / "data/fasta_inv_index.bin"
+    finds_file = PROJECT_ROOT / "sw_results/sw_raw_finds.txt"
 
     parser.add_argument('-i', '--input', default=str(default_input), 
                        help='Input CSV file with links (query_seq,target_seq,score,location,length)')
@@ -747,7 +749,6 @@ Examples:
         print(f"  Links rejected: {tree.links_rejected}")
         print(f"\nWriting ASCII tree to {args.output}...")
     
-    finds_file = PROJECT_ROOT / "sw_results/sw_finds.txt"
     with open(finds_file, 'w') as f:
         tree.report_twilight(f)
     tree.write_ascii_tree(args.output, args.threshold)

@@ -16,6 +16,8 @@ import argparse
 
 import sequences
 from config import PROJECT_ROOT
+from sw_align import assess_compositional_bias, align_local_swissprot
+
 
 # =============================================================================
 # Configuration
@@ -388,28 +390,89 @@ def phase2_filter(entry: TwilightEntry) -> Optional[str]:
 
     return None
 
+def phase_compositional_bias(entry, threshold=0.5):
+    """
+    Phase for compositional bias detection.
+    
+    Retrieves sequences, performs alignment, and checks for compositional bias.
+    
+    Args:
+        entry: TwilightEntry object
+        threshold: Goodness threshold (default 0.5). Values below this are flagged.
+    
+    Returns:
+        str: Reason string if biased (e.g., "Compositional: K-Rich (65%)")
+        None: If not biased or alignment failed
+    """
+    try:
+        # Get the protein sequences
+        r1 = sequences.get_protein(entry.num1)
+        r2 = sequences.get_protein(entry.num2)
+        
+        # Perform local alignment
+        result = align_local_swissprot(
+            r1.full.sequence, 
+            r2.full.sequence,
+            weights='PAM250',
+            gap_extend=-10
+        )
+        
+        if not result:
+            # No significant alignment found
+            return None
+        
+        # Assess compositional bias
+        bias_result = assess_compositional_bias(
+            result['aligned_a'],
+            result['aligned_b']
+        )
+        
+        # Check if biased
+        if bias_result['goodness'] < threshold:
+            return f"Compositional: {bias_result['reason']}"
+        
+        return None
+        
+    except Exception as e:
+        print(f"Warning: Compositional bias check failed for {entry.num1}-{entry.num2}: {e}")
+        return None
+
+
+
 
 # =============================================================================
 # Output Writing
 # =============================================================================
 
 def write_filtered_output(output_file: str, kept_entries: List[TwilightEntry],
-                          filtered_count1: int, filtered_count2: int):
+                          filtered_count1: int, filtered_count2: int,
+                          filtered_bias: int):
     """Write the kept entries to the output file."""
     print(f"\nWriting {len(kept_entries)} kept entries to {output_file}...")
     with open(output_file, 'w') as f:
         f.write(f"Kept {len(kept_entries)} entries after filtering\n")
-        f.write(f"Filtered out {filtered_count1} entries\n\n")
-        f.write(f"Filtered out {filtered_count2} entries in phase2\n\n")
+        f.write(f"Filtered out {filtered_count1} entries\n")
+        f.write(f"Filtered out {filtered_count2} entries in phase2\n")
+        f.write(f"Filtered out {filtered_bias} entries (compositional bias)\n\n")
 
         for entry in kept_entries:
             f.write(entry.raw_header + '\n')
             f.write(entry.raw_protein1)
             f.write(entry.raw_protein2)
 
+def write_bias_output( bias_output_file: str, bias_entries: List[TwilightEntry] ):
+    # Write bias output if requested
+    if bias_output_file and bias_entries:
+        print(f"Writing {len(bias_entries)} biased entries to {bias_output_file}...")
+        with open(bias_output_file, 'w') as f:
+            f.write(f"Composition-biased alignments: {len(bias_entries)} entries\n\n")
+            for entry in bias_entries:
+                f.write(entry.raw_header + '\n')
+                f.write(entry.raw_protein1)
+                f.write(entry.raw_protein2)
 
 def write_reasons_output(reasons_file: str, reason_counts: Dict[str, int],
-                         filtered_count1: int, filtered_count2: int, kept_count: int):
+                         filtered_count1: int, filtered_count2: int, filtered_bias: int, kept_count: int):
     """Write the filtering reasons to a file."""
     print(f"Writing reasons to {reasons_file}...")
     with open(reasons_file, 'w') as f:
@@ -424,29 +487,45 @@ def write_reasons_output(reasons_file: str, reason_counts: Dict[str, int],
             f.write(f"{reason:40s} : {count:5d}\n")
 
         f.write("\n" + "=" * 80 + "\n")
-        f.write(f"Total filtered: {filtered_count1 + filtered_count2}\n")
+        f.write(f"Total filtered: {filtered_count1 + filtered_count2 + filtered_bias}\n")
         f.write(f"of which: {filtered_count2} in phase2\n")
+        f.write(f"of which: {filtered_bias} as biassed\n")
         f.write(f"Total kept: {kept_count}\n")
+
+
 
 
 # =============================================================================
 # Main Processing
 # =============================================================================
 
-def filter_twilight_file(input_file: str, 
-                        output_file: str, 
-                        reasons_file: str,
-                        use_phase2: bool = False):
+def filter_twilight(input_file, output_file, reasons_file, 
+                               bias_output_file=None, use_phase2=False):
     """
-    Main filtering function.
+    Filtering function with compositional bias detection.
+    Excludes known hits.
+    Writes biased hits to a separate file.
+    
+    Args:
+        input_file: Input twilight comparison file
+        output_file: Output file for kept comparisons
+        reasons_file: File for filtering reasons
+        bias_output_file: Optional separate file for composition-biased hits
+        use_phase2: Whether to use full record analysis
     """
+    from collections import defaultdict
+    from filter_twilight import (parse_twilight_file, phase1_filter, 
+                                 phase2_filter, STOPWORDS)
+    
     print(f"Parsing {input_file}...")
     entries = parse_twilight_file(input_file)
     print(f"Found {len(entries)} comparisons")
     
-    filtered_count1 = 0
-    filtered_count2 = 0
+    filtered_count1 = 0  # Phase 1: string matching
+    filtered_count2 = 0  # Phase 2: full record
+    filtered_bias = 0    # Compositional bias
     kept_entries = []
+    bias_entries = []    # Separate list for biased entries
     reason_counts = defaultdict(int)
     
     print("Filtering...")
@@ -470,18 +549,32 @@ def filter_twilight_file(input_file: str,
                 reason_counts[reason] += 1
                 continue
         
+        # Phase Compositional Bias: Check alignment composition
+        bias_reason = phase_compositional_bias(entry, threshold=0.7)
+        if bias_reason:
+            filtered_bias += 1
+            reason_counts[bias_reason] += 1
+            bias_entries.append(entry)  # Save to separate list
+            continue
+        
         # No filter matched - keep this entry
         kept_entries.append(entry)
     
-    # Write outputs
-    write_filtered_output(output_file, kept_entries, filtered_count1, filtered_count2)
-    write_reasons_output(reasons_file, reason_counts, filtered_count1, filtered_count2, len(kept_entries))
-    
+    # Write main outputs
+
+    write_filtered_output(output_file, kept_entries,
+        filtered_count1, filtered_count2, filtered_bias)
+
+    write_bias_output( bias_output_file, bias_entries )
+    write_reasons_output(reasons_file, reason_counts,
+        filtered_count1, filtered_count2, filtered_bias, len(kept_entries))
+
     print(f"\nSummary:")
-    print(f"  Input:    {len(entries):5d} comparisons")
-    print(f"  Filtered1: {filtered_count1:5d} comparisons ({100*filtered_count1/len(entries):.1f}%)")
-    print(f"  Filtered2: {filtered_count2:5d} comparisons ({100*filtered_count2/len(entries):.1f}%)")
-    print(f"  Kept:     {len(kept_entries):5d} comparisons ({100*len(kept_entries)/len(entries):.1f}%)")
+    print(f"  Input:        {len(entries):5d} comparisons")
+    print(f"  Filtered1:    {filtered_count1:5d} comparisons ({100*filtered_count1/len(entries):.1f}%)")
+    print(f"  Filtered2:    {filtered_count2:5d} comparisons ({100*filtered_count2/len(entries):.1f}%)")
+    print(f"  Bias:         {filtered_bias:5d} comparisons ({100*filtered_bias/len(entries):.1f}%)")
+    print(f"  Kept:         {len(kept_entries):5d} comparisons ({100*len(kept_entries)/len(entries):.1f}%)")
     print(f"  Unique reasons: {len(reason_counts)}")
 
 
@@ -491,33 +584,36 @@ def filter_twilight_file(input_file: str,
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Filter twilight zone protein comparisons',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Example usage:
-  python filter_twilight.py twilight.txt -o filtered.txt -r reasons.txt
-  python filter_twilight.py twilight.txt -o filtered.txt -r reasons.txt --phase2
-        """
+        description='Filter twilight zone protein comparisons'
     )
     
-    default_input = PROJECT_ROOT / "sw_results/sw_finds.txt"
-    default_output = PROJECT_ROOT / "sw_results/twilight_filtered.txt"
+    default_input = PROJECT_ROOT / "sw_results/sw_raw_finds.txt"
+    #default_output = PROJECT_ROOT / "sw_results/twilight_filtered.txt"
+    default_output = PROJECT_ROOT / "sw_results/sw_finds.txt"
     default_reasons = PROJECT_ROOT / "sw_results/filter_reasons.txt"
-
-    parser.add_argument('-i', '--input', default=str(default_input), help='Input twilight comparison file')
+    default_bias = PROJECT_ROOT / "sw_results/biased_alignments.txt"
+    
+    parser.add_argument('-i', '--input', default=str(default_input),
+                       help='Input twilight comparison file')
     parser.add_argument('-o', '--output', default=str(default_output),
-                       help='Output file for kept comparisons (default: twilight_filtered.txt)')
+                       help='Output file for kept comparisons')
     parser.add_argument('-r', '--reasons', default=str(default_reasons),
-                       help='Output file for filtering reasons (default: filter_reasons.txt)')
+                       help='Output file for filtering reasons')
+    parser.add_argument('-b', '--bias-output', default=str(default_bias),
+                       help='Output file for biased comparisons')
     parser.add_argument('--phase2', action='store_true',
                        help='Enable Phase 2 filtering (full record retrieval)')
     
     parser.set_defaults(phase2=True)
-
     args = parser.parse_args()
     
-    filter_twilight_file(args.input, args.output, args.reasons, args.phase2)
-
+    filter_twilight(
+        args.input, 
+        args.output, 
+        args.reasons,
+        args.bias_output,
+        args.phase2
+    )
 
 if __name__ == '__main__':
     main()

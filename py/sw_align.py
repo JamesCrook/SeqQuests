@@ -322,6 +322,121 @@ def align_local_swissprot_python(seq_a_str, seq_b_str, weights="PAM250", gap_ope
     return result
 
 
+def assess_compositional_bias(aligned_a, aligned_b):
+    """
+    Assess compositional bias in alignment matches.
+    
+    Detects alignments dominated by low-complexity or biased residue composition
+    in the matching positions. Short alignments tolerate more bias than long ones.
+    
+    Args:
+        aligned_a: Aligned sequence A (with gaps as '-')
+        aligned_b: Aligned sequence B (with gaps as '-')
+    
+    Returns:
+        dict with keys:
+            - 'goodness': float 0-1, higher is better (< 0.5 suggests bias)
+            - 'reason': str, description of bias (e.g., "K-Rich (65%)")
+            - 'is_biased': bool, True if goodness < 0.5
+            - 'entropy': float, Shannon entropy of matches
+            - 'top_residue': str, most common matching residue
+            - 'top_percentage': float, percentage of matches that are top residue
+            - 'num_matches': int, total exact matches
+            - 'unique_residues': int, number of unique residue types in matches
+    """
+    import math
+    from collections import Counter
+    
+    # Extract exact matches only
+    matches = [a for a, b in zip(aligned_a, aligned_b) if a == b and a != '-']
+    
+    if len(matches) == 0:
+        return {
+            'goodness': 1.0,
+            'reason': 'No-matches',
+            'is_biased': False,
+            'entropy': 0.0,
+            'top_residue': '',
+            'top_percentage': 0.0,
+            'num_matches': 0,
+            'unique_residues': 0
+        }
+    
+    # Calculate composition
+    counts = Counter(matches)
+    total = len(matches)
+    
+    # Shannon entropy (max ~4.32 bits for 20 amino acids)
+    entropy = -sum((c/total) * math.log2(c/total) for c in counts.values())
+    
+    # Top residue dominance
+    top_residue, top_count = counts.most_common(1)[0]
+    top_pct = (top_count / total) * 100
+    
+    # Length-dependent tolerance: shorter alignments can tolerate more bias
+    # Effective length for scoring (diminishing penalty for short alignments)
+    effective_len = math.sqrt(total)
+    
+    # Normalize entropy (theoretical max is log2(20) ≈ 4.32)
+    entropy_score = entropy / 4.32
+    
+    # Penalize high dominance of a single residue (use squared penalty for more sensitivity)
+    dominance_penalty = 1 - (top_pct / 100) ** 0.8  # Slightly less than linear
+    
+    # Complexity: number of unique types relative to alignment length
+    complexity = len(counts) / effective_len
+    complexity_score = min(1.0, complexity / 2.0)  # Normalize (2+ types per sqrt(len) is good)
+    
+    # Combined goodness score (weighted average)
+    # Entropy is most important, then dominance, then complexity
+    goodness = (entropy_score * 0.45 + dominance_penalty * 0.40 + complexity_score * 0.15)
+    
+    # Generate reason string
+    reason = _generate_bias_reason(counts, total, top_residue, top_pct, entropy)
+    
+    return {
+        'goodness': goodness,
+        'reason': reason,
+        'is_biased': goodness < 0.5,
+        'entropy': entropy,
+        'top_residue': top_residue,
+        'top_percentage': top_pct,
+        'num_matches': total,
+        'unique_residues': len(counts)
+    }
+
+
+def _generate_bias_reason(counts, total, top_residue, top_pct, entropy):
+    """Generate human-readable bias reason string."""
+    
+    # Very strong single-residue bias
+    if top_pct >= 60:
+        return f"{top_residue}-Rich ({top_pct:.0f}%)"
+    
+    # Strong single-residue bias
+    if top_pct >= 40:
+        return f"{top_residue}-Biased ({top_pct:.0f}%)"
+    
+    # Check for multi-residue bias (top 2-3 residues dominating)
+    top3 = counts.most_common(3)
+    top3_pct = sum(c for _, c in top3) / total * 100
+    
+    if top3_pct >= 75:
+        # List the dominant residues
+        top_res = ''.join(r for r, _ in top3[:2])  # Show top 2
+        return f"{top_res}-Biased ({top3_pct:.0f}%)"
+    
+    # Low complexity based on entropy
+    if entropy < 2.0:
+        # Very low entropy - report the top residues
+        top2 = counts.most_common(2)
+        top_res = ''.join(r for r, _ in top2)
+        return f"Low-complexity ({top_res})"
+    
+    # If we get here, it's probably fine
+    return "Diverse"
+
+
 def print_alignment_results(result, seq_a=None, seq_b=None, verbose=False):
     """Print alignment results in a formatted way."""
     if not result:
