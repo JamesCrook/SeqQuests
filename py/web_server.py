@@ -193,6 +193,8 @@ async def get_sequence_alignment(id1: str, id2: str):
         "alignment1": parts[0],
         "alignment2": parts[2],
         "matches": parts[1],
+        "seq1_start": alignment['range_summary']['seq_a_start'],  # 0-indexed
+        "seq2_start": alignment['range_summary']['seq_b_start'],  # 0-indexed
     }
 
 @app.get("/api/proteins")

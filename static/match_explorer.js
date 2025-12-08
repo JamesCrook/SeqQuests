@@ -360,17 +360,33 @@ async function loadSequenceDetails(finding, index) {
     // Build alignment view
     const alignLines = [];
     const lineLen = 70;
+
+    // Get starting positions from server data (convert from 0-indexed to 1-indexed)
+    let pos1 = (serverData.seq1_start || 0) + 1;
+    let pos2 = (serverData.seq2_start || 0) + 1;
+
     for (let i = 0; i < alignment.align1.length; i += lineLen) {
-        const pos1 = String(i + 1).padStart(6, ' ');
         const chunk1 = alignment.align1.substr(i, lineLen);
         const chunkMatch = alignment.matches.substr(i, lineLen);
         const chunk2 = alignment.align2.substr(i, lineLen);
         
-        alignLines.push(`${pos1}  ${chunk1}`);
+        // Format current positions
+        const pos1Str = String(pos1).padStart(6, ' ');
+        const pos2Str = String(pos2).padStart(6, ' ');
+        
+        alignLines.push(`${pos1Str}  ${chunk1}`);
         alignLines.push(`        ${chunkMatch}`);
-        alignLines.push(`        ${chunk2}\n`);
+        alignLines.push(`${pos2Str}  ${chunk2}\n`);
+        
+        // Update positions for next chunk by counting non-gap characters
+        for (let j = 0; j < chunk1.length; j++) {
+            if (chunk1[j] !== '-') pos1++;
+        }
+        for (let j = 0; j < chunk2.length; j++) {
+            if (chunk2[j] !== '-') pos2++;
+        }
     }
-    
+
     if (alignmentViewer) {
         alignmentViewer.innerHTML = `<pre style="margin: 0; color: var(--text-primary);">${alignLines.join('\n')}</pre>`;
     }

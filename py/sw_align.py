@@ -162,7 +162,11 @@ def align_local_swissprot_c(seq_a_str, seq_b_str, weights="PAM250", gap_extend=-
     aligned_a_str = "".join(aligned_a)
     aligned_b_str = "".join(aligned_b)
     
-    # Visual text
+    # Get start positions for numbering
+    seq_a_start = indices_a[0] if indices_a else 0
+    seq_b_start = indices_b[0] if indices_b else 0
+    
+    # Visual text with position numbers (1-indexed for display)
     match_line = ''
     for a, b in zip(aligned_a_str, aligned_b_str):
         if a == b:
@@ -172,7 +176,9 @@ def align_local_swissprot_c(seq_a_str, seq_b_str, weights="PAM250", gap_extend=-
         else:
             match_line += '.'
     
-    visual_text = f"{aligned_a_str}\n{match_line}\n{aligned_b_str}"
+    visual_text = f"{aligned_a_str}\n" \
+                  f"{match_line}\n" \
+                  f"{aligned_b_str}"
     
     return {
         "score": out_score.value,
@@ -291,7 +297,11 @@ def align_local_swissprot_python(seq_a_str, seq_b_str, weights="PAM250", gap_ope
     indices_a = list(reversed(indices_a))
     indices_b = list(reversed(indices_b))
     
-    # Create visual alignment
+    # Get start positions for numbering
+    seq_a_start = indices_a[0] if indices_a else 0
+    seq_b_start = indices_b[0] if indices_b else 0
+    
+    # Create visual alignment with position numbers (1-indexed for display)
     match_line = ''
     for a, b in zip(aligned_a, aligned_b):
         if a == b:
@@ -301,7 +311,9 @@ def align_local_swissprot_python(seq_a_str, seq_b_str, weights="PAM250", gap_ope
         else:
             match_line += '.'
     
-    visual_text = f"{aligned_a}\n{match_line}\n{aligned_b}"
+    visual_text = f"{seq_a_start+1:4d} {aligned_a}\n" \
+                  f"     {match_line}\n" \
+                  f"{seq_b_start+1:4d} {aligned_b}"
     
     # Prepare result
     result = {
@@ -320,6 +332,70 @@ def align_local_swissprot_python(seq_a_str, seq_b_str, weights="PAM250", gap_ope
     }
     
     return result
+
+
+def format_features_swissprot(features, align_start, align_end, seq_name="Seq"):
+    """
+    Format features in SwissProt-style text format.
+    
+    Args:
+        features: List of SeqFeature objects from BioPython
+        align_start: Start position of alignment in original sequence (0-indexed)
+        align_end: End position of alignment in original sequence (0-indexed, inclusive)
+        seq_name: Name for the sequence (e.g., "Seq A" or "Seq B")
+    
+    Returns:
+        String containing formatted features
+    """
+    if not features:
+        return ""
+    
+    feature_lines = []
+    feature_lines.append(f"FT   Key             Location/Qualifiers")
+    
+    for feature in features:
+        # Get feature location (0-indexed in BioPython)
+        feat_start = int(feature.location.start)
+        feat_end = int(feature.location.end) - 1  # Make end inclusive
+        
+        # Check if feature overlaps with alignment
+        if feat_end < align_start or feat_start > align_end:
+            continue
+        
+        # Adjust coordinates to 1-indexed for display
+        display_start = feat_start + 1
+        display_end = feat_end + 1
+        
+        # Format the feature type and location
+        feat_type = feature.type
+        location_str = f"{display_start}..{display_end}"
+        
+        feature_lines.append(f"FT   {feat_type:15} {location_str}")
+        
+        # Add qualifiers (except evidence)
+        qualifiers = feature.qualifiers
+        for key, values in qualifiers.items():
+            if key.lower() == 'evidence':
+                continue
+            
+            # Format value
+            if isinstance(values, list):
+                value = "; ".join(str(v) for v in values)
+            else:
+                value = str(values)
+            
+            # For /note, put on same line if short enough
+            if key.lower() == 'note' and len(value) < 50:
+                # Replace last line with note appended
+                last_line = feature_lines[-1]
+                feature_lines[-1] = f"{last_line} /note=\"{value}\""
+            else:
+                feature_lines.append(f"FT                   /{key}=\"{value}\"")
+    
+    if len(feature_lines) == 1:
+        return ""  # Only header, no actual features
+    
+    return "\n".join(feature_lines)
 
 
 def assess_compositional_bias(aligned_a, aligned_b):
@@ -437,11 +513,56 @@ def _generate_bias_reason(counts, total, top_residue, top_pct, entropy):
     return "Diverse"
 
 
-def print_alignment_results(result, seq_a=None, seq_b=None, verbose=False):
-    """Print alignment results in a formatted way."""
+def print_alignment_results(result, seq_a=None, seq_b=None, verbose=False, 
+                           features_a=None, features_b=None):
+    """
+    Print alignment results in a formatted way.
+    
+    Args:
+        result: Alignment result dictionary
+        seq_a: Original sequence A string
+        seq_b: Original sequence B string
+        verbose: Whether to print detailed statistics
+        features_a: List of SeqFeature objects for sequence A (optional)
+        features_b: List of SeqFeature objects for sequence B (optional)
+    """
     if not result:
         print("No significant local alignment found")
         return False
+    
+    # Print features if provided
+    if features_a or features_b:
+        print("=" * 60)
+        print("FEATURES IN ALIGNED REGION")
+        print("=" * 60)
+        
+        if features_a:
+            print("\nSequence A Features:")
+            feature_text = format_features_swissprot(
+                features_a,
+                result['range_summary']['seq_a_start'],
+                result['range_summary']['seq_a_end'],
+                "Seq A"
+            )
+            if feature_text:
+                print(feature_text)
+            else:
+                print("No features in aligned region")
+        
+        if features_b:
+            print("\nSequence B Features:")
+            feature_text = format_features_swissprot(
+                features_b,
+                result['range_summary']['seq_b_start'],
+                result['range_summary']['seq_b_end'],
+                "Seq B"
+            )
+            if feature_text:
+                print(feature_text)
+            else:
+                print("No features in aligned region")
+        
+        print()
     
     print(f"Alignment Score: {result['score']:.1f}")
     print("\nVisual Alignment:")
@@ -530,6 +651,12 @@ if __name__ == "__main__":
     parser.add_argument('--seq-b', type=str, default=None,
                         help='Second sequence to align')
     
+    # Feature arguments
+    parser.add_argument('--features-a', type=str, default=None,
+                        help='SwissProt record file for sequence A features')
+    parser.add_argument('--features-b', type=str, default=None,
+                        help='SwissProt record file for sequence B features')
+    
     # Alignment parameters
     parser.add_argument('--matrix', '-m', type=str, default='PAM250',
                         help='Substitution matrix name (default: PAM250)')
@@ -558,6 +685,28 @@ if __name__ == "__main__":
         parser.print_help()
         print("\nError: Both --seq-a and --seq-b are required when not in test mode")
         exit(1)
+    
+    # Load features if provided
+    features_a = None
+    features_b = None
+    
+    if args.features_a:
+        try:
+            from Bio import SeqIO
+            with open(args.features_a, 'r') as f:
+                record = SeqIO.read(f, "swiss")
+                features_a = record.features
+        except Exception as e:
+            print(f"Warning: Could not load features from {args.features_a}: {e}")
+    
+    if args.features_b:
+        try:
+            from Bio import SeqIO
+            with open(args.features_b, 'r') as f:
+                record = SeqIO.read(f, "swiss")
+                features_b = record.features
+        except Exception as e:
+            print(f"Warning: Could not load features from {args.features_b}: {e}")
     
     # Perform alignment
     print("=" * 60)
@@ -591,7 +740,8 @@ if __name__ == "__main__":
             else:
                 exit(1)
         else:
-            if not print_alignment_results(result, args.seq_a, args.seq_b, args.verbose):
+            if not print_alignment_results(result, args.seq_a, args.seq_b, args.verbose,
+                                          features_a, features_b):
                 exit(1)
             
     except Exception as e:
