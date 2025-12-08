@@ -363,21 +363,23 @@ header h1 {
 .alignment-panel {
     grid-column: 1 / -1;
     margin-top: 10px;
-    height: 280px;
-    min-height: 280px;
-    max-height: 280px;
+    height: 480px;
 }
 
 .findings-panel {
     grid-column: 1;
     grid-row: 2;
     margin-top: 0;
+    overflow: auto; /* Add scrollbar when content overflows */
+    max-height: calc(100vh - 280px - 20px); /* Adjust based on alignment panel height + margins */
 }
 
 .detail-panel-container {
     grid-column: 2;
     grid-row: 2;
     margin-top: 0;
+    overflow: auto; /* Add scrollbar when content overflows */
+    max-height: calc(100vh - 280px - 20px); /* Adjust based on alignment panel height + margins */
 }
 
 .panel-header {
