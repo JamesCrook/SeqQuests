@@ -16,8 +16,9 @@ kernel void sw_step(
     device char* aa  [[buffer(3)]],
     device short* carry_forward_in  [[buffer(4)]],
     device short* carry_forward_out [[buffer(5)]],
-    device short* final_max_out [[buffer(6)]],
-    constant uint& num_rows [[buffer(7)]],
+    device int* answer_index [[buffer(6)]],
+    device short* final_max_out [[buffer(7)]],
+    constant uint& num_rows [[buffer(8)]],
     uint thread_id [[thread_position_in_grid]])
 {
     if (thread_id >= THREADS) return;
@@ -70,11 +71,13 @@ kernel void sw_step(
         uint addr = thread_id*UNROLL + j;
         // update with this column max
         prevMax = max(maxv[j], prevMax );
-        final_max_out[addr*2] = maxv[j];
-        final_max_out[addr*2 + 1] = prevMax;
         // Reset max after a sequence boundary
         char residue = aa[addr];
-        prevMax = select(prevMax, (short)0, residue == (char)0 );
+        if( residue == 0){
+            int protein_ix = answer_index[ thread_id*UNROLL + j];
+            final_max_out[protein_ix]=prevMax;
+            prevMax = 0;
+        }
     }
     carry_forward_out[thread_id] = prevMax;
 }

@@ -23,6 +23,8 @@
 #define UNROLL (40)
 #endif
 
+#define MAX_PROTEINS (580000)
+
 /*
 # Metal SW Searcher
 
@@ -78,7 +80,8 @@ typedef struct {
     MTL::Buffer* data_buffers[2];
     MTL::Buffer* pam_buffer;
     MTL::Buffer* aa_buffer[2];
-    MTL::Buffer* max_buffer[2];
+    MTL::Buffer* answer_index[2];
+    MTL::Buffer* max_buffer;
     MTL::Buffer* carry_forward_buffer[2];
     MTL::Buffer* row_count_buffer;
 } MetalState;
@@ -255,8 +258,9 @@ bool setup_metal(MetalState* metal_state) {
 
     metal_state->aa_buffer[0] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
     metal_state->aa_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    metal_state->max_buffer[0] = metal_state->device->newBuffer(UNROLL * THREADS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->max_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->answer_index[0] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int32_t), MTL::ResourceStorageModeShared);
+    metal_state->answer_index[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int32_t), MTL::ResourceStorageModeShared);
+    metal_state->max_buffer = metal_state->device->newBuffer(MAX_PROTEINS * sizeof(int16_t), MTL::ResourceStorageModeShared);
     metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
     metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
 
@@ -543,22 +547,15 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
 
     int8_t* aa_data;
+    int32_t* answer_index;
     int16_t* final_max;
-    final_max = (int16_t*)metal_state->max_buffer[0]->contents();
-    memset(final_max, 0, THREADS * 2 * UNROLL * sizeof(int16_t));
-    final_max = (int16_t*)metal_state->max_buffer[1]->contents();
-    memset(final_max, 0, THREADS * 2 * UNROLL * sizeof(int16_t));
+    final_max = (int16_t*)metal_state->max_buffer->contents();
+    memset(final_max, 0, MAX_PROTEINS * sizeof(int16_t));
 
     int pos[THREADS] = {0};
     int pos_reported[THREADS] = {0};
     int seqno[THREADS], first_hit[THREADS], last_hit[THREADS];
     for(int i=0; i<THREADS; ++i) seqno[i] = first_hit[i] = last_hit[i] = -1;
-
-    const int Q_SIZE = 2*(UNROLL)+2;
-    int seq_queue[THREADS][Q_SIZE]; 
-    int q_head[THREADS] = {0}; 
-    int q_tail[THREADS] = {0};
-    int current_report_seq = -1; 
 
     int seq = -1;
     if( !settings->all_recs)
@@ -595,6 +592,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     */
 
     while(true) {
+        cpu_start = std::chrono::high_resolution_clock::now();
         step++;
 
         // Data to/from kernel is double buffered by cpu/gpu owns.
@@ -606,92 +604,24 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         int data_in = step % 2;
         int data_out = (step + 1) % 2;
 
-
-        // Wait for previous GPU run to complete...
-        // This test is same as do_search && (step >=2)
-        if( do_search && command_buffer[cpu_owns] ){
-            command_buffer[cpu_owns]->waitUntilCompleted();
-        }
-
-
         /* The aa_buffer[cpu_owns] contains the amino acid data that were fed to the GPU 
         * two steps ago.
         */
         aa_data = (int8_t*)metal_state->aa_buffer[cpu_owns]->contents();
+        answer_index = (int32_t*)metal_state->answer_index[cpu_owns]->contents();
         // The max_buffer[cpu_owns] buffer is where the results of the request made two 
         // steps ago will have been put.  
-        final_max = (int16_t*)metal_state->max_buffer[cpu_owns]->contents();
+        final_max = (int16_t*)metal_state->max_buffer->contents();
 
 
-        // Analyse the results of previous GPU run...
-        if( do_search && command_buffer[cpu_owns] ){
-            // Resume CPU time tracking
-            // CPU never pays for the 'wait for'.
-            cpu_start = std::chrono::high_resolution_clock::now();
-
-            for (int i = 0; i < THREADS; ++i) {
-                for (int j = 0; j < UNROLL; j++){
-                    // Nothing on queue? We rely on the producer to terminate the searching, when no more data has been added. We just skip this thread with nothing to do on it.
-                    if(q_head[i] == q_tail[i]){ 
-                        wasted_cell_updates_this_search += rows * (UNROLL - j);
-                        break;  // Exit inner loop
-                    }
-                    current_report_seq = seq_queue[i][q_head[i]]; // No modulo needed on read
-                    if(current_report_seq == settings->debug_slot) {
-                        int16_t scoret1 = final_max[(i * UNROLL +j) * 2 ];
-                        int16_t scoret2 = final_max[(i * UNROLL +j) * 2 + 1];
-                        char aminoAcid = '@'+aa_data[i*UNROLL+j];
-                        printf( "Seq:%d %c i:%d j:%d t1:%d t2:%d\n",current_report_seq, aminoAcid, seqChar, j, scoret1, scoret2);
-                        seqChar++;
-                    }
-
-                    // score here is max for this column...
-                    int16_t score = final_max[(i * UNROLL +j) * 2];
-                    if( score >= settings->reporting_threshold ){
-                        if( first_hit[i] < 0)
-                            first_hit[i] = pos_reported[i];
-                        last_hit[i] = pos_reported[i];
-                    }
-                    pos_reported[i] += 1;
-                    if( aa_data[i*UNROLL+j] == 0 ){
-                        // score here is the max for the protein...
-                        score = final_max[(i * UNROLL +j) * 2 + 1];
-                        if (score >= settings->reporting_threshold) {
-                            if( settings->machine_output ){
-                                printf("HIT:%d,%d,%d,%d,%d\n", query, current_report_seq, score, first_hit[i],last_hit[i]-first_hit[i] );
-                            }
-                            else {
-                                printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
-                                    step, current_report_seq, data_manager->fasta_records[current_report_seq].sequence_len - 1, score, data_manager->fasta_records[current_report_seq].description);
-                            }
-                            if(settings->slow_output) usleep(100000);
-                            finds++;
-                        }
-                        //final_max[(i * UNROLL +j)* 2 + 1] = 0;
-                        q_head[i] = (q_head[i] + 1) % (Q_SIZE);
-
-                        pos_reported[i] = 0;
-                        first_hit[i] = -1;
-                        last_hit[i] = -1;// not actually required.
-                        
-                        // Count completed comparison
-                        comparisons_this_search++;
-                    }
-                }
-            }
-        }
-
-        // we finish when we have reported and there is nothing more in flight.
-        if(!more_data) break;
         more_data = false;
-
-        // we have reported on final_max (and aa_data). We can now reuse them.
-        // [the other copy of them is still in flight]
-
         // Set up more data...
         for (int i = 0; i < THREADS; ++i) {
             for (int j = 0; j < UNROLL; j++){
-                if(seqno[i] == -2) continue;
+                // deactivate the item
+                aa_data[i*UNROLL+j] = 31;
+                if(seqno[i] == -2) 
+                    continue;
 
                 bool seqDone = (seqno[i] == -1 || pos[i] >= data_manager->fasta_records[seqno[i]].sequence_len);
                 if(seqDone) {
@@ -702,18 +632,18 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                     if (seq < data_manager->num_fasta_records) {
                         pos[i] = 0;
                         seqno[i] = seq;
-                        seq_queue[i][q_tail[i]] = seq; // Write to current tail
-                        q_tail[i] = (q_tail[i] + 1) % (Q_SIZE); // Wrap carefully                            
                     } else {
                         seqno[i] = -2;
                         continue;
                     }
                 }
+                answer_index[i*UNROLL+j]=seqno[i];
                 aa_data[i*UNROLL+j] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
                 pos[i]++;
                 more_data = true;
             }
         }
+
 
         // CPU has finished with the cpu_owns buffers.
         // more_data might be false, but we keep going, because we may still have to report 
@@ -726,52 +656,128 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         auto current_report = cpu_end;
         double reporting_interval = std::chrono::duration<double>(current_report - latest_report).count();
         if( reporting_interval > 1 ){
-            printf("STATS: Seq:%d Step:%d Hits:%d\n", query, step, finds);
+            printf("STATS: Seq:%d Step:%d\n", query, step);
             latest_report = current_report;
         }
 
-        // put the data in flight.
-        if( do_search && more_data ){
+        // If we haven't yet waited on this buffer, we had better do so
+        // otherwise data_in/out aren't ready.
+        if (command_buffer[gpu_owns]){
+            command_buffer[gpu_owns]->waitUntilCompleted();
+            // We're timing complete loops and costing it as GPU time.
+            gpu_end = std::chrono::high_resolution_clock::now();
+            double gpu_time_delta = std::chrono::duration<double>(gpu_end - gpu_start).count();
+            bench->total_gpu_time += gpu_time_delta;
+            gpu_time_this_search += gpu_time_delta;
+        }
 
-            // If we haven't yet waited on this buffer, we had better do so
-            // otherwise data_in/out aren't ready.
-            if (command_buffer[gpu_owns]){
-                command_buffer[gpu_owns]->waitUntilCompleted();
-                // We're timing complete loops and costing it as GPU time.
-                gpu_end = std::chrono::high_resolution_clock::now();
-                double gpu_time_delta = std::chrono::duration<double>(gpu_end - gpu_start).count();
-                bench->total_gpu_time += gpu_time_delta;
-                gpu_time_this_search += gpu_time_delta;
+        // No more data to push? Time to finish this loop.
+        if(!more_data) 
+            break;
+
+        gpu_start = std::chrono::high_resolution_clock::now();
+
+        // No kernels are currently active.
+        // All buffers are available/unclaimed.
+        
+        command_buffer[cpu_owns] = metal_state->queue->commandBuffer();
+        MTL::ComputeCommandEncoder* encoder = command_buffer[cpu_owns]->computeCommandEncoder();
+        encoder->setComputePipelineState(metal_state->pipeline);
+        encoder->setBuffer(metal_state->data_buffers[data_in], 0, 0);
+        encoder->setBuffer(metal_state->data_buffers[data_out], 0, 1);
+        encoder->setBuffer(metal_state->pam_buffer, 0, 2);
+        // likewise cpu_owns will be here too.            
+        encoder->setBuffer(metal_state->aa_buffer[cpu_owns], 0, 3);
+        encoder->setBuffer(metal_state->carry_forward_buffer[data_in], 0, 4);
+        encoder->setBuffer(metal_state->carry_forward_buffer[data_out], 0, 5);
+        encoder->setBuffer(metal_state->answer_index[cpu_owns], 0, 6);
+        encoder->setBuffer(metal_state->max_buffer, 0, 7);
+        encoder->setBuffer(metal_state->row_count_buffer, 0, 8);
+
+        MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
+        NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
+        if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
+        MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
+
+        encoder->dispatchThreads(grid_size, threadgroup_size);
+        encoder->endEncoding();
+        command_buffer[cpu_owns]->commit();
+    }
+
+    cpu_start = std::chrono::high_resolution_clock::now();
+    // Everything has been requested and we have waited for the answers...    
+
+    seq = -1;
+    if( !settings->all_recs)
+        seq = query-1;
+
+    finds = 0;
+    int16_t score;
+    while(true) {
+        seq++;
+        while (skip_sequence( data_manager, query, seq, settings )) {
+            seq++;
+        }
+        if (seq > data_manager->num_fasta_records) 
+            break;
+        score = final_max[seq];
+        if (score >= settings->reporting_threshold) {
+            if( settings->machine_output ){
+                printf("HIT:%d,%d,%d\n", query, seq, score );
             }
-            gpu_start = std::chrono::high_resolution_clock::now();
-
-            // No kernels are currently active.
-            // All buffers are available/unclaimed.
-            
-            command_buffer[cpu_owns] = metal_state->queue->commandBuffer();
-            MTL::ComputeCommandEncoder* encoder = command_buffer[cpu_owns]->computeCommandEncoder();
-            encoder->setComputePipelineState(metal_state->pipeline);
-            encoder->setBuffer(metal_state->data_buffers[data_in], 0, 0);
-            encoder->setBuffer(metal_state->data_buffers[data_out], 0, 1);
-            encoder->setBuffer(metal_state->pam_buffer, 0, 2);
-            // likewise cpu_owns will be here too.            
-            encoder->setBuffer(metal_state->aa_buffer[cpu_owns], 0, 3);
-            encoder->setBuffer(metal_state->carry_forward_buffer[data_in], 0, 4);
-            encoder->setBuffer(metal_state->carry_forward_buffer[data_out], 0, 5);
-            encoder->setBuffer(metal_state->max_buffer[cpu_owns], 0, 6);
-            encoder->setBuffer(metal_state->row_count_buffer, 0, 7);
-
-            MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
-            NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
-            if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
-            MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
-
-            encoder->dispatchThreads(grid_size, threadgroup_size);
-            encoder->endEncoding();
-            command_buffer[cpu_owns]->commit();
+            else {
+                printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
+                    step, seq, data_manager->fasta_records[seq].sequence_len - 1, score, data_manager->fasta_records[seq].description);
+            }
+            if(settings->slow_output) usleep(100000);
+            finds++;
         }
     }
-    
+/*
+Gold standard from earlier version of algorithm...
+HIT:70009,119257,571,74,413
+HIT:70009,135608,720,70,391
+HIT:70009,150205,1268,47,393
+HIT:70009,165176,110,201,6
+HIT:70009,165179,128,169,56
+HIT:70009,153143,117,409,27
+HIT:70009,168376,119,407,11
+HIT:70009,168377,125,405,13
+HIT:70009,221456,111,355,1
+HIT:70009,241256,113,304,6
+HIT:70009,331422,115,246,4
+HIT:70009,378241,113,190,3
+STEP:     216 <-- Finished
+BENCH: Searched with 613aa protein vs 140,276,197aa in 216 steps; 43 finds
+BENCH: Execution time: 0.6710 seconds
+*/
+
+/* revised code...
+HIT:70009,103722,115
+HIT:70009,105237,111
+HIT:70009,105238,112
+HIT:70009,119257,571
+HIT:70009,124755,1147
+HIT:70009,130593,1141
+HIT:70009,135608,720
+HIT:70009,150205,1268
+HIT:70009,153143,117
+HIT:70009,165176,110
+HIT:70009,165179,128
+HIT:70009,168376,119
+HIT:70009,168377,125
+HIT:70009,221456,111
+HIT:70009,241256,113
+HIT:70009,331422,115
+HIT:70009,378241,113
+STEP:     215 <-- Finished
+BENCH: Searched with 613aa protein vs 140,902,400aa in 215 steps; 43 finds
+BENCH: Execution time: 0.7181 seconds
+*/
+
+
+
+
     // Final CPU time
     search_end = cpu_end = std::chrono::high_resolution_clock::now();
     double cpu_time_delta = std::chrono::duration<double>(cpu_end - cpu_start).count();
@@ -798,8 +804,9 @@ void cleanup(MetalState* metal_state, DataManager* data_manager) {
     release_fasta_records(data_manager->fasta_records, data_manager->num_fasta_records);
     metal_state->aa_buffer[0]->release();
     metal_state->aa_buffer[1]->release();
-    metal_state->max_buffer[0]->release();
-    metal_state->max_buffer[1]->release();
+    metal_state->answer_index[0]->release();
+    metal_state->answer_index[1]->release();
+    metal_state->max_buffer->release();
     metal_state->queue->release();
     metal_state->pipeline->release();
     metal_state->library->release();

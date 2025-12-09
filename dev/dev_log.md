@@ -62,3 +62,4 @@ e7d73cbbd452b1babd91a4dab12d78f6d2a992f1 introduced the all-recs parameter, defa
 Testing start at 70,000 and 10 sequences is currently running at:
 122 GCUPs 49% CPU - Baseline
 128 GCUPs 52% CPU - aa and PAM now int8
+121 GCUPs 46% CPU - Writing direct to the correct entry.
