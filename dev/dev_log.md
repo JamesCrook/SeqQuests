@@ -63,3 +63,5 @@ Testing start at 70,000 and 10 sequences is currently running at:
 122 GCUPs 49% CPU - Baseline
 128 GCUPs 52% CPU - aa and PAM now int8
 121 GCUPs 46% CPU - Writing direct to the correct entry.
+121 GCUPs 50% CPU - With the clever 8 bit values.
+ 75 GCUPs 30% CPU - When I also increase UNROLL to 80.

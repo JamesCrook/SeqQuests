@@ -25,6 +25,7 @@
 
 #define MAX_PROTEINS (580000)
 
+#define ZERO (32)
 /*
 # Metal SW Searcher
 
@@ -260,9 +261,9 @@ bool setup_metal(MetalState* metal_state) {
     metal_state->aa_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
     metal_state->answer_index[0] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int32_t), MTL::ResourceStorageModeShared);
     metal_state->answer_index[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int32_t), MTL::ResourceStorageModeShared);
-    metal_state->max_buffer = metal_state->device->newBuffer(MAX_PROTEINS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->max_buffer = metal_state->device->newBuffer(MAX_PROTEINS * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
 
     kernel_function->release();
     return true;
@@ -291,15 +292,15 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
         }
     }
 
-    metal_state->data_buffers[0] = metal_state->device->newBuffer(THREADS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->data_buffers[1] = metal_state->device->newBuffer(THREADS * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    memset(metal_state->data_buffers[0]->contents(), 0, THREADS * rows * sizeof(int16_t));
-    memset(metal_state->data_buffers[1]->contents(), 0, THREADS * rows * sizeof(int16_t));
+    metal_state->data_buffers[0] = metal_state->device->newBuffer(THREADS * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    metal_state->data_buffers[1] = metal_state->device->newBuffer(THREADS * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    memset(metal_state->data_buffers[0]->contents(), ZERO, THREADS * rows * sizeof(int8_t));
+    memset(metal_state->data_buffers[1]->contents(), ZERO, THREADS * rows * sizeof(int8_t));
 
-    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    memset(metal_state->carry_forward_buffer[0]->contents(), 0, THREADS * sizeof(int16_t));
-    memset(metal_state->carry_forward_buffer[1]->contents(), 0, THREADS * sizeof(int16_t));
+    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    memset(metal_state->carry_forward_buffer[0]->contents(), ZERO, THREADS * sizeof(int8_t));
+    memset(metal_state->carry_forward_buffer[1]->contents(), ZERO, THREADS * sizeof(int8_t));
 
     metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
     free(pam_lut);
@@ -548,9 +549,10 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
     int8_t* aa_data;
     int32_t* answer_index;
-    int16_t* final_max;
-    final_max = (int16_t*)metal_state->max_buffer->contents();
-    memset(final_max, 0, MAX_PROTEINS * sizeof(int16_t));
+    int8_t* final_max;
+    final_max = (int8_t*)metal_state->max_buffer->contents();
+    // genuinely zero. These are zero-corrected results.
+    memset(final_max, 0, MAX_PROTEINS * sizeof(int8_t));
 
     int pos[THREADS] = {0};
     int pos_reported[THREADS] = {0};
@@ -611,7 +613,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         answer_index = (int32_t*)metal_state->answer_index[cpu_owns]->contents();
         // The max_buffer[cpu_owns] buffer is where the results of the request made two 
         // steps ago will have been put.  
-        final_max = (int16_t*)metal_state->max_buffer->contents();
+        final_max = (int8_t*)metal_state->max_buffer->contents();
 
 
         more_data = false;
@@ -712,7 +714,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         seq = query-1;
 
     finds = 0;
-    int16_t score;
+    uint8_t score;
     while(true) {
         seq++;
         while (skip_sequence( data_manager, query, seq, settings )) {
@@ -775,8 +777,46 @@ BENCH: Searched with 613aa protein vs 140,902,400aa in 215 steps; 43 finds
 BENCH: Execution time: 0.7181 seconds
 */
 
+/*
+With clever 8 bit wrap-around
+Running Smith-Waterman steps...
+HIT:70009,98831,123
+HIT:70009,103722,115
+HIT:70009,105237,111
+HIT:70009,105238,112
+HIT:70009,153143,117
+HIT:70009,165176,110
+HIT:70009,168376,119
+HIT:70009,168377,125
+HIT:70009,221456,111
+HIT:70009,241256,113
+HIT:70009,331422,115
+HIT:70009,378241,113
+STEP:     215 <-- Finished
+BENCH: Searched with 613aa protein vs 140,902,400aa in 215 steps; 12 finds
+*/
 
-
+/*HIT:70009,103722,115
+HIT:70009,105237,111
+HIT:70009,105238,112
+HIT:70009,119257,223
+HIT:70009,124755,223
+HIT:70009,130593,223
+HIT:70009,135608,223
+HIT:70009,150205,223
+HIT:70009,153143,117
+HIT:70009,165176,110
+HIT:70009,165179,128
+HIT:70009,168376,119
+HIT:70009,168377,125
+HIT:70009,221456,111
+HIT:70009,241256,113
+HIT:70009,331422,115
+HIT:70009,378241,113
+STEP:     215 <-- Finished
+BENCH: Searched with 613aa protein vs 140,902,400aa in 215 steps; 43 finds
+BENCH: Execution time: 0.7090 seconds
+*/
 
     // Final CPU time
     search_end = cpu_end = std::chrono::high_resolution_clock::now();

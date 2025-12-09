@@ -6,54 +6,56 @@ using namespace metal;
 #endif
 
 #ifndef UNROLL
-#define UNROLL (32)
+#define UNROLL (40)
 #endif
 
 kernel void sw_step(
-    device const short* input [[buffer(0)]],
-    device short* output [[buffer(1)]],
-    device char* pam [[buffer(2)]],
-    device char* aa  [[buffer(3)]],
-    device short* carry_forward_in  [[buffer(4)]],
-    device short* carry_forward_out [[buffer(5)]],
-    device int* answer_index [[buffer(6)]],
-    device short* final_max_out [[buffer(7)]],
+    device const uchar* input [[buffer(0)]],
+    device uchar* output [[buffer(1)]],
+    device const uchar* pam [[buffer(2)]],
+    device const uchar* aa  [[buffer(3)]],
+    device const uchar* carry_forward_in  [[buffer(4)]],
+    device uchar* carry_forward_out [[buffer(5)]],
+    device const int* answer_index [[buffer(6)]],
+    device uchar* final_max_out [[buffer(7)]],
     constant uint& num_rows [[buffer(8)]],
     uint thread_id [[thread_position_in_grid]])
 {
     if (thread_id >= THREADS) return;
-    
+
+    // We're using an offset zero trick.
+    const uchar zero = 32;
     // Arrays for unrolled loop
-    short accumulator[UNROLL];
-    short maxv[UNROLL];
-    short dValue = 0;
-    short next_dValue = 0;
-    short result;
-    short penalty = 10;
+    uchar accumulator[UNROLL];
+    uchar maxv[UNROLL];
+    uchar dValue = zero;
+    uchar next_dValue = zero;
+    uchar result;
+    uchar penalty = 10;
     
     // Initialize arrays
     for (uint j = 0; j < UNROLL; j++) {
-        accumulator[j] = 0;
-        maxv[j] = 0;
+        accumulator[j] = zero;
+        maxv[j] = zero;
     }
     
     uint base_idx = thread_id * num_rows;
     
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
-        short hValue = input[idx];
+        uchar hValue = input[idx];
         dValue = next_dValue;
         next_dValue = hValue;
 
         for (uint j = 0; j < UNROLL; j++) {
-            short residue = (short)aa[thread_id*UNROLL + j];
+            char residue = (char)aa[thread_id*UNROLL + j];
             uint nidx = residue * num_rows + row;
         
             result = max(accumulator[j], hValue) - penalty;
-            result = max(result, (short)(dValue+(short)pam[nidx]));
-            result = max(result, (short)0);
+            result = max(result, (uchar)(dValue+(uchar)pam[nidx]));
+            result = max(result, (uchar)zero);
             // whole column will be zero at terminator
-            result = select(result, (short)0, residue == 0);            
+            result = select(result, (uchar)zero, residue == 0);
             maxv[j] = max(result, maxv[j]);
             dValue = accumulator[j];
             hValue = result; // free, just a renaming...
@@ -66,7 +68,7 @@ kernel void sw_step(
     // Column maxes at even locations,
     // Cumulative column max for this sequence at odd locations.
     // Collect the max left by a previous run of this kernel
-    short prevMax = carry_forward_in[thread_id];
+    uchar prevMax = carry_forward_in[thread_id];
     for (uint j = 0; j < UNROLL; j++) {
         uint addr = thread_id*UNROLL + j;
         // update with this column max
@@ -75,8 +77,8 @@ kernel void sw_step(
         char residue = aa[addr];
         if( residue == 0){
             int protein_ix = answer_index[ thread_id*UNROLL + j];
-            final_max_out[protein_ix]=prevMax;
-            prevMax = 0;
+            final_max_out[protein_ix]=prevMax-zero;
+            prevMax = zero;
         }
     }
     carry_forward_out[thread_id] = prevMax;
