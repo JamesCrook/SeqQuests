@@ -40,6 +40,8 @@ kernel void sw_step(
     }
     
     uint base_idx = thread_id * num_rows;
+    uint aa_index = thread_id * UNROLL;
+    uint nidx = 0;
     
     for (uint row = 0; row < num_rows; row++) {
         uint idx = base_idx + row;
@@ -48,11 +50,10 @@ kernel void sw_step(
         next_dValue = hValue;
 
         for (uint j = 0; j < UNROLL; j++) {
-            char residue = (char)aa[thread_id*UNROLL + j];
-            uint nidx = residue * num_rows + row;
+            uchar residue = (uchar)aa[ aa_index + j];
         
             result = max(accumulator[j], hValue) - penalty;
-            result = max(result, (uchar)(dValue+(uchar)pam[nidx]));
+            result = max(result, (uchar)(dValue+(uchar)pam[nidx+residue]));
             result = max(result, (uchar)zero);
             // whole column will be zero at terminator
             result = select(result, (uchar)zero, residue == 0);
@@ -61,7 +62,7 @@ kernel void sw_step(
             hValue = result; // free, just a renaming...
             accumulator[j] = result;
         }
-        
+        nidx += 32;
         output[idx] = hValue;
     }
     
@@ -70,13 +71,12 @@ kernel void sw_step(
     // Collect the max left by a previous run of this kernel
     uchar prevMax = carry_forward_in[thread_id];
     for (uint j = 0; j < UNROLL; j++) {
-        uint addr = thread_id*UNROLL + j;
         // update with this column max
         prevMax = max(maxv[j], prevMax );
         // Reset max after a sequence boundary
-        char residue = aa[addr];
+        char residue = aa[aa_index + j];
         if( residue == 0){
-            int protein_ix = answer_index[ thread_id*UNROLL + j];
+            int protein_ix = answer_index[ aa_index + j];
             final_max_out[protein_ix]=prevMax-zero;
             prevMax = zero;
         }

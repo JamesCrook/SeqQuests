@@ -288,7 +288,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     for (int col = 0; col < 32; ++col) {
         for (int i = 0; i < rows; ++i) {
             int aa_idx = (int)search_sequence[i] & 31;
-            pam_lut[col * rows + i] = data_manager->pam_data[col * 32 + aa_idx];
+            pam_lut[col + i*32] = data_manager->pam_data[col * 32 + aa_idx];
         }
     }
 
