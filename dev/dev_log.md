@@ -65,3 +65,4 @@ Testing start at 70,000 and 10 sequences is currently running at:
 121 GCUPs 46% CPU - Writing direct to the correct entry.
 121 GCUPs 50% CPU - With the clever 8 bit values.
  75 GCUPs 30% CPU - When I also increase UNROLL to 80.
+183 GCUPs 62% CPU - With flipped PAM indexing and capture of residues.
