@@ -32,6 +32,11 @@ M2 is a Mac M2 Pro with 16GB of RAM.
 @046,105 on 04 Dec at 23:50 estimating 7 days 11 hrs (based on PMEs). (21 days on proteins)
 @083,585 on 06 Dec at 10:45 estimating 7 days 22 hrs (based on PMEs). (17 days on proteins)
 @097,280 on 06 Dec at 20:45 estimating 8 days  0 hrs (based on PMEs). (16 days on proteins)
+@168,340 on 08 Dec at 20:00 estimating 8 days  1 hrs (based on PMEs). (12 days on proteins)
+Search aborted on 8th Dec due to 32,000 bug. Better to produce correct dataset with the new faster code.
+
+@000,000 on 08 Dec at 20:00 00% done, estimating 4 days  8 hrs
+@007,380 on 09 Dec at 13:00 15% done, estimating 4 days  3 hrs
 
 ### Additional Dev History
 
@@ -49,4 +54,11 @@ e7d73cbbd452b1babd91a4dab12d78f6d2a992f1 introduced the all-recs parameter, defa
 
 5th Dec 2025: Switched to GCUP based time estimation, %aa's done, and dropped protein count estimation. M4 has overtaken M2 (with significantly less run time) and is 128,947 proteins in (73% task complete). 28% of CPU time should be reclaimable by overlapping.
 
-6th Dec 2025: Got the 'coiled' implementation working where CPU/GPU usage overlap. 122 GCUPS with this design. Helped by less data going in in this design. The M4 (running part time) has now massively overtaken the M2 running the older software full time. It's credibly estimating 6hrs to completion, and 4x the speed. 4x is reasonable. The M4 is about twice as fast, and the software by overlapping is on the home stretch going at nearly double the speed it would without overlapping.
+6th Dec 2025: Got the 'coiled' implementation working where CPU/GPU usage overlap. 122 GCUPS with this design. Helped by less data going in in this design. The M4 (running part time) has now massively overtaken the M2 running the older software full time. It's credibly estimating 6hrs to completion, and 4x the speed. 4x is reasonable. The M4 is about twice as fast, and the software by overlapping is on the home stretch going at nearly double the speed that it would without the overlapping.
+
+8th Dec 2025: Analysing the full results from M4, found the 32,000 bug - namely very large scores above 32,000 can/will overflow into the next protein, even though they can never go above 32,767 in the matrix, due to int_16 overflow. The fix I've now made is to pull the full 32,767 down, rather than the earlier assumption that no proteins could score that high. Titin vs Titin will have a higher than 32,000 score, and in fact latches at 32,767. Fortunately the reconstruction is done in int32's, so we get the speed of search from int16 use and sustain accuracy by doing the reconstruction later. This incidentally suggests I can more than double the speed by working in int8s and doing the same trick.
+
+9th Dec 2025: Starting some optimisation steps.
+Testing start at 70,000 and 10 sequences is currently running at:
+122 GCUPs 49% CPU - Baseline
+128 GCUPs 52% CPU - aa and PAM now int8

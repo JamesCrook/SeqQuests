@@ -39,8 +39,8 @@ def create_pam_binary(matrix_name="PAM250", output_path=None, data_dir=None):
     print(f"--- Creating {output_path} ---")
     pam_32x32, _ = pam.convert_pam_to_32x32(matrix_name)
     
-    # Ensure the data type is int16, as expected by the C code
-    pam_array = np.array(pam_32x32, dtype=np.int16)
+    # Ensure the data type is int8, as expected by the C code
+    pam_array = np.array(pam_32x32, dtype=np.int8)
     
     with open(output_path, "wb") as f:
         f.write(pam_array.tobytes())

@@ -177,6 +177,25 @@ def parse_twilight_file(filepath: str) -> List[TwilightEntry]:
 # Filtering Logic
 # =============================================================================
 
+def phase0_filter(entry: TwilightEntry) -> Optional[str]:
+    """
+    Phase 0: Superficial analysis, drop similarities that aren't useful 
+    e.g. between unknown proteins, or where the names are really similar.
+    Returns:
+        Reason string if should be filtered, None if should keep
+    """
+
+    if 'toxin' in entry.name1.lower() and 'toxin' in entry.name2.lower():
+        return 'toxins'
+    if ('uncharacterized' in entry.name1.lower() or 'uncharacterized' in entry.name2.lower() or
+        'putative' in entry.name1.lower() or 'putative' in entry.name2.lower()):
+        return 'uncharacterized'
+    if 'seed storage' in entry.name1.lower() and 'seed storage' in entry.name2.lower():
+        return 'seed storage'
+    if entry.name1.lower()[:11] == entry.name2.lower()[:11]:
+        return 'similar names'
+    return None
+
 def phase1_filter(entry: TwilightEntry, stopwords: Set[str]) -> Optional[List[str]]:
     """
     Phase 1: String-based fuzzy matching.
@@ -521,6 +540,7 @@ def filter_twilight(input_file, output_file, reasons_file,
     entries = parse_twilight_file(input_file)
     print(f"Found {len(entries)} comparisons")
     
+    filtered_count0 = 0  # Phase 0: simple criteria
     filtered_count1 = 0  # Phase 1: string matching
     filtered_count2 = 0  # Phase 2: full record
     filtered_bias = 0    # Compositional bias
@@ -532,6 +552,14 @@ def filter_twilight(input_file, output_file, reasons_file,
     for i, entry in enumerate(entries):
         if (i + 1) % 1000 == 0:
             print(f"  Processed {i + 1}/{len(entries)} entries...")
+
+
+        # Phase 1: String matching
+        simple_reason = phase0_filter(entry)
+        if simple_reason:
+            filtered_count0 += 1
+            reason_counts[simple_reason] += 1
+            continue
         
         # Phase 1: String matching
         stems = phase1_filter(entry, STOPWORDS)
@@ -571,6 +599,7 @@ def filter_twilight(input_file, output_file, reasons_file,
 
     print(f"\nSummary:")
     print(f"  Input:        {len(entries):5d} comparisons")
+    print(f"  Filtered0:    {filtered_count0:5d} comparisons ({100*filtered_count0/len(entries):.1f}%)")
     print(f"  Filtered1:    {filtered_count1:5d} comparisons ({100*filtered_count1/len(entries):.1f}%)")
     print(f"  Filtered2:    {filtered_count2:5d} comparisons ({100*filtered_count2/len(entries):.1f}%)")
     print(f"  Bias:         {filtered_bias:5d} comparisons ({100*filtered_bias/len(entries):.1f}%)")

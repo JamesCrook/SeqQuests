@@ -12,8 +12,8 @@ using namespace metal;
 kernel void sw_step(
     device const short* input [[buffer(0)]],
     device short* output [[buffer(1)]],
-    device short* pam [[buffer(2)]],
-    device short* aa [[buffer(3)]],
+    device char* pam [[buffer(2)]],
+    device char* aa  [[buffer(3)]],
     device short* carry_forward_in  [[buffer(4)]],
     device short* carry_forward_out [[buffer(5)]],
     device short* final_max_out [[buffer(6)]],
@@ -28,6 +28,7 @@ kernel void sw_step(
     short dValue = 0;
     short next_dValue = 0;
     short result;
+    short penalty = 10;
     
     // Initialize arrays
     for (uint j = 0; j < UNROLL; j++) {
@@ -44,13 +45,14 @@ kernel void sw_step(
         next_dValue = hValue;
 
         for (uint j = 0; j < UNROLL; j++) {
-            short residue = aa[thread_id*UNROLL + j];
+            short residue = (short)aa[thread_id*UNROLL + j];
             uint nidx = residue * num_rows + row;
-            short penalty = select((short)10, (short)32767, residue == 0);
-            
+        
             result = max(accumulator[j], hValue) - penalty;
-            result = max(result, (short)(dValue+pam[nidx]));
+            result = max(result, (short)(dValue+(short)pam[nidx]));
             result = max(result, (short)0);
+            // whole column will be zero at terminator
+            result = select(result, (short)0, residue == 0);            
             maxv[j] = max(result, maxv[j]);
             dValue = accumulator[j];
             hValue = result; // free, just a renaming...
@@ -71,8 +73,8 @@ kernel void sw_step(
         final_max_out[addr*2] = maxv[j];
         final_max_out[addr*2 + 1] = prevMax;
         // Reset max after a sequence boundary
-        short residue = aa[addr];
-        prevMax = select(prevMax, (short)0, residue == 0 );
+        char residue = aa[addr];
+        prevMax = select(prevMax, (short)0, residue == (char)0 );
     }
     carry_forward_out[thread_id] = prevMax;
 }

@@ -84,7 +84,7 @@ typedef struct {
 } MetalState;
 
 typedef struct {
-    int16_t pam_data[32 * 32];
+    int8_t pam_data[32 * 32];
     FastaRecord* fasta_records;
     int num_fasta_records;
 } DataManager;
@@ -137,7 +137,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
                    BenchmarkState* bench);
 void cleanup(MetalState* metal_state, DataManager* data_manager);
 long file_size(const char* filename);
-void load_match_matrix(const char* filename, int16_t* pam_data);
+void load_match_matrix(const char* filename, int8_t* pam_data);
 FastaRecord* load_fasta_data(const char* filename, int* num_records);
 void release_fasta_records(FastaRecord* records, int num_records);
 bool skip_sequence(const DataManager* data_manager, int query, int seq, const AppSettings* settings);
@@ -253,8 +253,8 @@ bool setup_metal(MetalState* metal_state) {
 
     metal_state->queue = metal_state->device->newCommandQueue();
 
-    metal_state->aa_buffer[0] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
-    metal_state->aa_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->aa_buffer[0] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    metal_state->aa_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
     metal_state->max_buffer[0] = metal_state->device->newBuffer(UNROLL * THREADS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
     metal_state->max_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * 2 * sizeof(int16_t), MTL::ResourceStorageModeShared);
     metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int16_t), MTL::ResourceStorageModeShared);
@@ -279,7 +279,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     printf("SEQ: %6d Sequence length: %6d\n", probe_seq_idx, rows);
     printf("STATS: Seq:%d Step:0 Hits::0\n", probe_seq_idx);
 
-    int16_t* pam_lut = (int16_t*)malloc(32 * rows * sizeof(int16_t));
+    int8_t* pam_lut = (int8_t*)malloc(32 * rows * sizeof(int8_t));
     for (int col = 0; col < 32; ++col) {
         for (int i = 0; i < rows; ++i) {
             int aa_idx = (int)search_sequence[i] & 31;
@@ -297,7 +297,7 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
     memset(metal_state->carry_forward_buffer[0]->contents(), 0, THREADS * sizeof(int16_t));
     memset(metal_state->carry_forward_buffer[1]->contents(), 0, THREADS * sizeof(int16_t));
 
-    metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * rows * sizeof(int16_t), MTL::ResourceStorageModeShared);
+    metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
     free(pam_lut);
 
     uint32_t num_rows_val = rows;
@@ -542,7 +542,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
     auto search_end = search_start;
 
 
-    int16_t* aa_data;
+    int8_t* aa_data;
     int16_t* final_max;
     final_max = (int16_t*)metal_state->max_buffer[0]->contents();
     memset(final_max, 0, THREADS * 2 * UNROLL * sizeof(int16_t));
@@ -617,7 +617,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         /* The aa_buffer[cpu_owns] contains the amino acid data that were fed to the GPU 
         * two steps ago.
         */
-        aa_data = (int16_t*)metal_state->aa_buffer[cpu_owns]->contents();
+        aa_data = (int8_t*)metal_state->aa_buffer[cpu_owns]->contents();
         // The max_buffer[cpu_owns] buffer is where the results of the request made two 
         // steps ago will have been put.  
         final_max = (int16_t*)metal_state->max_buffer[cpu_owns]->contents();
@@ -815,13 +815,13 @@ long file_size(const char* filename) {
     return -1;
 }
 
-void load_match_matrix(const char* filename, int16_t* pam_data) {
+void load_match_matrix(const char* filename, int8_t* pam_data) {
     FILE* f = fopen(filename, "rb");
     if (!f) {
         fprintf(stderr, "Error opening %s\n", filename);
         exit(1);
     }
-    fread(pam_data, sizeof(int16_t), 32 * 32, f);
+    fread(pam_data, sizeof(int8_t), 32 * 32, f);
     fclose(f);
     printf("Match matrix data loaded from %s\n", filename);
 }
