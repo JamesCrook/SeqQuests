@@ -28,7 +28,10 @@ kernel void sw_step(
     // pam values are signed
     constant char * pam[[buffer(8)]],
     constant uint& num_rows [[buffer(9)]],
-    uint thread_id [[thread_position_in_grid]])
+    uint thread_id [[thread_position_in_grid]],
+    uint local_id [[thread_index_in_threadgroup]],    
+    uint tg_size [[threads_per_threadgroup]]
+    )
 {
     if (thread_id >= THREADS) return;
 
@@ -41,7 +44,16 @@ kernel void sw_step(
     PRECISION next_dValue = zero;
     PRECISION result;
     PRECISION penalty = 10;
-    
+
+    threadgroup char shared_pam[32 * 32];
+
+    // Cooperative load at start
+    for (uint i = local_id ; i < 32 * 32; i += tg_size) {
+        shared_pam[i] = pam[i];
+    }
+
+    threadgroup_barrier(mem_flags::mem_threadgroup);    
+
     // Initialize arrays
     for (uint j = 0; j < UNROLL; j++) {
         accumulator[j] = zero;
@@ -49,12 +61,13 @@ kernel void sw_step(
     }
     
     uint idx = thread_id;
-    uint aa_index = thread_id * UNROLL;
+    uint aa_index = thread_id;
     ushort nidx = 0;
     
     uchar residues[UNROLL];
     for (uint j = 0; j < UNROLL; j++) {
-        residues[j] = aa[aa_index + j];
+        residues[j] = aa[aa_index];
+        aa_index += THREADS;
     }
 
     for (uint row = 0; row < num_rows; row++) {
@@ -63,12 +76,12 @@ kernel void sw_step(
         next_dValue = hValue;
 
         nidx = 32 * (ushort)aa_query[row];
+
         for (uint j = 0; j < UNROLL; j++) {
-            //uchar residue = aa[ aa_index + j];
             uchar residue = residues[j];
         
             result = max(accumulator[j], hValue) - penalty;
-            result = max(result, (PRECISION)(dValue+pam[nidx+residue]));
+            result = max(result, (PRECISION)(dValue+shared_pam[nidx+residue]));
             result = max(result, zero);
             // whole column will be zero at terminator
             result = select(result, zero, residue == 0);
@@ -91,7 +104,7 @@ kernel void sw_step(
         // Reset max after a sequence boundary
         uchar residue = residues[j];
         if( residue == 0){
-            uint protein_ix = answer_index[ aa_index + j];
+            uint protein_ix = answer_index[ j*THREADS + thread_id];
             final_max_out[protein_ix]=prevMax-zero;
             prevMax = zero;
         }

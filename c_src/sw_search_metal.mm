@@ -638,10 +638,10 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         more_data = false;
         // Set up more data...
         wasted_cell_updates_this_search += THREADS * UNROLL;
-        for (int i = 0; i < THREADS; ++i) {
-            for (int j = 0; j < UNROLL; j++){
+        for (int j = 0; j < UNROLL; j++){
+            for (int i = 0; i < THREADS; ++i) {
                 // deactivate the item
-                aa_data[i*UNROLL+j] = 31;
+                aa_data[j*THREADS+i] = 31;
                 if(seqno[i] == -2) 
                     continue;
 
@@ -659,8 +659,8 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                         continue;
                     }
                 }
-                answer_index[i*UNROLL+j]=seqno[i];
-                aa_data[i*UNROLL+j] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
+                answer_index[j*THREADS+i]=seqno[i];
+                aa_data[j*THREADS+i] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
                 wasted_cell_updates_this_search--;
                 pos[i]++;
                 more_data = true;

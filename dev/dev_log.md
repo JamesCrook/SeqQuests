@@ -78,4 +78,5 @@ So no real gain from int16 -> int8 on the intermediate values.
 
 As before, at 70,000 and 10 sequences:
 202 GCUPs 53% CPU - With recent size reductions and flipped data.
+211 GCUPs 64% CPU - With preparation of aa data in thread order.
 
