@@ -737,9 +737,10 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
         MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
         NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
+        //printf("TG size %lu\n", threadgroup_size_val);
         if (threadgroup_size_val > THREADS) threadgroup_size_val = THREADS;
         MTL::Size threadgroup_size = MTL::Size(threadgroup_size_val, 1, 1);
-
+        
         encoder->dispatchThreads(grid_size, threadgroup_size);
         encoder->endEncoding();
         command_buffer[cpu_owns]->commit();

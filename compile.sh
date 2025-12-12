@@ -12,7 +12,7 @@ if [ -z "$THREADS" ] || [ -z "$UNROLL" ]; then
     CHIP=$(sysctl -n machdep.cpu.brand_string || echo "Unknown")
 
     if [[ $CHIP == *"M4 Pro"* ]]; then
-        DEFAULT_THREADS=$((4096*4))
+        DEFAULT_THREADS=$((4096*4*4))
         DEFAULT_UNROLL=40
     elif [[ $CHIP == *"M3"* ]]; then
         DEFAULT_THREADS=$((4096*2))
