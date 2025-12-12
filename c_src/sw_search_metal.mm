@@ -5,6 +5,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <chrono>
+#include <algorithm>
 
 #define NS_PRIVATE_IMPLEMENTATION
 #define CA_PRIVATE_IMPLEMENTATION
@@ -13,6 +14,9 @@
 #include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
 #include <QuartzCore/QuartzCore.hpp>
+
+// THREADS and UNROLL are set in compile.sh.
+// On Mac M4 THREADS is 4096 x 4
 
 #define MAX_DESCRIPTION_LEN 256
 #ifndef THREADS
@@ -23,8 +27,13 @@
 #define UNROLL (40)
 #endif
 
+// Swissprot database is about 573,000 proteins.
 #define MAX_PROTEINS (580000)
+// PRECISION can be uint16_t or uint8_t. Needs to match the kernel.
+// You'd think uint8_t would give a 2x speed boost, but it doesn't.
+#define PRECISION uint16_t
 
+// This is our offset trick that gives score calculations in the range -32 to 223 or 65503
 #define ZERO (32)
 /*
 # Metal SW Searcher
@@ -79,10 +88,11 @@ typedef struct {
     MTL::ComputePipelineState* pipeline;
     MTL::CommandQueue* queue;
     MTL::Buffer* data_buffers[2];
-    MTL::Buffer* pam_buffer;
+    MTL::Buffer* aa_query_buffer;
     MTL::Buffer* aa_buffer[2];
     MTL::Buffer* answer_index[2];
     MTL::Buffer* max_buffer;
+    MTL::Buffer* pam_buffer;
     MTL::Buffer* carry_forward_buffer[2];
     MTL::Buffer* row_count_buffer;
 } MetalState;
@@ -185,6 +195,7 @@ int main(int argc, char * argv[]) {
 
                 // Release sequence-specific buffers
                 metal_state.pam_buffer->release();
+                metal_state.aa_query_buffer->release();
                 metal_state.row_count_buffer->release();
                 metal_state.data_buffers[0]->release();
                 metal_state.data_buffers[1]->release();
@@ -261,9 +272,9 @@ bool setup_metal(MetalState* metal_state) {
     metal_state->aa_buffer[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
     metal_state->answer_index[0] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int32_t), MTL::ResourceStorageModeShared);
     metal_state->answer_index[1] = metal_state->device->newBuffer(UNROLL * THREADS * sizeof(int32_t), MTL::ResourceStorageModeShared);
-    metal_state->max_buffer = metal_state->device->newBuffer(MAX_PROTEINS * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    metal_state->max_buffer = metal_state->device->newBuffer(MAX_PROTEINS * sizeof(PRECISION), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(PRECISION), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(PRECISION), MTL::ResourceStorageModeShared);
 
     kernel_function->release();
     return true;
@@ -282,27 +293,35 @@ bool prepare_for_sequence(MetalState* metal_state, const DataManager* data_manag
 
     printf("\nSearching with: %s\n", data_manager->fasta_records[probe_seq_idx].description);
     printf("SEQ: %6d Sequence length: %6d\n", probe_seq_idx, rows);
-    printf("STATS: Seq:%d Step:0 Hits::0\n", probe_seq_idx);
+    printf("STATS: Seq:%d Step:0\n", probe_seq_idx);
 
-    int8_t* pam_lut = (int8_t*)malloc(32 * rows * sizeof(int8_t));
+    int8_t* pam_lut = (int8_t*)malloc(32 * 32);
     for (int col = 0; col < 32; ++col) {
-        for (int i = 0; i < rows; ++i) {
-            int aa_idx = (int)search_sequence[i] & 31;
-            pam_lut[col + i*32] = data_manager->pam_data[col * 32 + aa_idx];
+        for (int i = 0; i < 32; ++i) {
+            pam_lut[col + i*32] = (int8_t)data_manager->pam_data[col + i*32];
         }
     }
+    int8_t* query_aas = (int8_t*)malloc( rows);
+    for (int i = 0; i < rows; ++i) {
+        query_aas[ i ] = (int8_t)search_sequence[i] & 31;
+    }
 
-    metal_state->data_buffers[0] = metal_state->device->newBuffer(THREADS * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    metal_state->data_buffers[1] = metal_state->device->newBuffer(THREADS * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    memset(metal_state->data_buffers[0]->contents(), ZERO, THREADS * rows * sizeof(int8_t));
-    memset(metal_state->data_buffers[1]->contents(), ZERO, THREADS * rows * sizeof(int8_t));
+    metal_state->data_buffers[0] = metal_state->device->newBuffer(THREADS * rows * sizeof(PRECISION), MTL::ResourceStorageModeShared);
+    metal_state->data_buffers[1] = metal_state->device->newBuffer(THREADS * rows * sizeof(PRECISION), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(PRECISION), MTL::ResourceStorageModeShared);
+    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(PRECISION), MTL::ResourceStorageModeShared);
 
-    metal_state->carry_forward_buffer[0] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    metal_state->carry_forward_buffer[1] = metal_state->device->newBuffer(THREADS * sizeof(int8_t), MTL::ResourceStorageModeShared);
-    memset(metal_state->carry_forward_buffer[0]->contents(), ZERO, THREADS * sizeof(int8_t));
-    memset(metal_state->carry_forward_buffer[1]->contents(), ZERO, THREADS * sizeof(int8_t));
+    // can't use memset if PRECISION is uint16_t
+    std::fill_n((PRECISION*)metal_state->data_buffers[0]->contents(), THREADS * rows, (PRECISION)ZERO);
+    std::fill_n((PRECISION*)metal_state->data_buffers[1]->contents(), THREADS * rows, (PRECISION)ZERO);
 
-    metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    std::fill_n((PRECISION*)metal_state->carry_forward_buffer[0]->contents(), THREADS, (PRECISION)ZERO);
+    std::fill_n((PRECISION*)metal_state->carry_forward_buffer[1]->contents(), THREADS, (PRECISION)ZERO);
+
+
+    metal_state->aa_query_buffer = metal_state->device->newBuffer(query_aas, rows * sizeof(int8_t), MTL::ResourceStorageModeShared);
+    free(query_aas);
+    metal_state->pam_buffer = metal_state->device->newBuffer(pam_lut, 32 * 32 * sizeof(int8_t), MTL::ResourceStorageModeShared);
     free(pam_lut);
 
     uint32_t num_rows_val = rows;
@@ -446,7 +465,7 @@ void initialize_benchmark(BenchmarkState* bench, const DataManager* data_manager
     }
     // Adjustment if task does not go all the way to the end.
     // The ratio done/task will now give us a good idea of percentage complete.
-    bench->total_amino_acids_done -= amino_acids_left;
+    //bench->total_amino_acids_done -= amino_acids_left;
     bench->task_amino_acids -= amino_acids_left;
     
     bench->average_protein_length = (double)bench->included_amino_acids / bench->included_proteins;
@@ -499,9 +518,8 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
     double cpu_percentage = (total_elapsed > 0) ? (bench->total_cpu_time / total_elapsed) * 100.0 : 0;
     double gpu_percentage = (total_elapsed > 0) ? (bench->total_gpu_time / total_elapsed) * 100.0 : 0;
 
-    float fraction_done = ((float)bench->total_amino_acids_done)/(float)bench->task_amino_acids;
-    float assumed_cell_updates = bench->total_all_on_all_cell_updates - bench->task_cell_updates;
-    float fraction_cell_updates_done = ((float)bench->total_cell_updates_computed + assumed_cell_updates )/(float)bench->total_all_on_all_cell_updates;
+    float fraction_done = ((float)bench->total_amino_acids_done)/(float)bench->included_amino_acids;
+    float fraction_cell_updates_done = 1.0 - (1.0-fraction_done) * (1.0-fraction_done);
     float cell_updates_per_sec_one_search = (bench->cell_updates_this_search-bench->wasted_cell_updates_this_search) / elapsed.count();
     
     printf("BENCH: Searched with %saa protein vs %saa in %d steps; %d finds\n", 
@@ -511,7 +529,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
         finds);
     printf("BENCH: Execution time: %.4f seconds\n", elapsed.count());
     printf("BENCH: === Benchmark Statistics ===\n");
-    printf("BENCH: Amino acids done: %.1f%%; Task completion: %.1f%%\n", 100.0* fraction_done, 100.0 * fraction_cell_updates_done);
+    printf("BENCH: Amino acids pos: %.1f%%; All-on-all progress: %.1f%%\n", 100.0* fraction_done, 100.0 * fraction_cell_updates_done);
     printf("BENCH: CPU time: %.1f%% (%.2fs), GPU time: %.1f%% (%.2fs), Total time: 100%% (%.2fs)\n",
         cpu_percentage, 
         bench->total_cpu_time,
@@ -519,6 +537,7 @@ void report_results(int rows, int steps, int finds, std::chrono::duration<double
         bench->total_gpu_time,
         bench->total_time
         );
+    // Wastage (unused cells) seems to be less than one part in 50,000
     printf("BENCH: Perf: %s CUPS; Wastage: %.1f%%\n", fmt( cell_updates_per_sec_total ), pme_waste);
     printf("BENCH: Perf: %s CUPS (this search)\n", fmt(cell_updates_per_sec_one_search));
     printf("BENCH: Cell Updates To Do: %s\n", fmt( cell_updates_yet_to_do ) );
@@ -549,10 +568,10 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
 
     int8_t* aa_data;
     int32_t* answer_index;
-    int8_t* final_max;
-    final_max = (int8_t*)metal_state->max_buffer->contents();
+    PRECISION* final_max;
+    final_max = (PRECISION*)metal_state->max_buffer->contents();
     // genuinely zero. These are zero-corrected results.
-    memset(final_max, 0, MAX_PROTEINS * sizeof(int8_t));
+    memset(final_max, 0, MAX_PROTEINS * sizeof(PRECISION));
 
     int pos[THREADS] = {0};
     int pos_reported[THREADS] = {0};
@@ -613,11 +632,12 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         answer_index = (int32_t*)metal_state->answer_index[cpu_owns]->contents();
         // The max_buffer[cpu_owns] buffer is where the results of the request made two 
         // steps ago will have been put.  
-        final_max = (int8_t*)metal_state->max_buffer->contents();
+        final_max = (PRECISION*)metal_state->max_buffer->contents();
 
 
         more_data = false;
         // Set up more data...
+        wasted_cell_updates_this_search += THREADS * UNROLL;
         for (int i = 0; i < THREADS; ++i) {
             for (int j = 0; j < UNROLL; j++){
                 // deactivate the item
@@ -641,6 +661,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
                 }
                 answer_index[i*UNROLL+j]=seqno[i];
                 aa_data[i*UNROLL+j] = data_manager->fasta_records[seqno[i]].sequence[pos[i]] & 31;
+                wasted_cell_updates_this_search--;
                 pos[i]++;
                 more_data = true;
             }
@@ -666,11 +687,28 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         // otherwise data_in/out aren't ready.
         if (command_buffer[gpu_owns]){
             command_buffer[gpu_owns]->waitUntilCompleted();
-            // We're timing complete loops and costing it as GPU time.
-            gpu_end = std::chrono::high_resolution_clock::now();
-            double gpu_time_delta = std::chrono::duration<double>(gpu_end - gpu_start).count();
+
+            // Actual GPU time from Metal
+            double gpu_start_time = command_buffer[gpu_owns]->GPUStartTime();
+            double gpu_end_time = command_buffer[gpu_owns]->GPUEndTime();
+            double gpu_time_delta = gpu_end_time - gpu_start_time;
+            
             bench->total_gpu_time += gpu_time_delta;
             gpu_time_this_search += gpu_time_delta;
+
+            // The following diagnostic shows we lose about 0.1 ms between kernel 
+            // executions. This is 10% to 15% of performance, so it is worth looking for 
+            // ways to prepare the next buffer whilst the current one is in flight.
+
+            // static double last_gpu_end = 0;
+            // if (last_gpu_end > 0) {
+            //     double gap = gpu_start_time - last_gpu_end;
+            //     if (gap > 0.0001) {  // more than 0.1ms
+            //         printf("GPU gap: %.3fms\n", gap * 1000);
+            //     }
+            // }
+            // last_gpu_end = gpu_end_time;
+
         }
 
         // No more data to push? Time to finish this loop.
@@ -687,14 +725,15 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         encoder->setComputePipelineState(metal_state->pipeline);
         encoder->setBuffer(metal_state->data_buffers[data_in], 0, 0);
         encoder->setBuffer(metal_state->data_buffers[data_out], 0, 1);
-        encoder->setBuffer(metal_state->pam_buffer, 0, 2);
+        encoder->setBuffer(metal_state->aa_query_buffer, 0, 2);
         // likewise cpu_owns will be here too.            
         encoder->setBuffer(metal_state->aa_buffer[cpu_owns], 0, 3);
         encoder->setBuffer(metal_state->carry_forward_buffer[data_in], 0, 4);
         encoder->setBuffer(metal_state->carry_forward_buffer[data_out], 0, 5);
         encoder->setBuffer(metal_state->answer_index[cpu_owns], 0, 6);
         encoder->setBuffer(metal_state->max_buffer, 0, 7);
-        encoder->setBuffer(metal_state->row_count_buffer, 0, 8);
+        encoder->setBuffer(metal_state->pam_buffer, 0, 8);
+        encoder->setBuffer(metal_state->row_count_buffer, 0, 9);
 
         MTL::Size grid_size = MTL::Size(THREADS, 1, 1);
         NS::UInteger threadgroup_size_val = metal_state->pipeline->maxTotalThreadsPerThreadgroup();
@@ -714,7 +753,7 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         seq = query-1;
 
     finds = 0;
-    uint8_t score;
+    PRECISION score;
     while(true) {
         seq++;
         while (skip_sequence( data_manager, query, seq, settings )) {
@@ -725,16 +764,38 @@ void run_search(int query, MetalState* metal_state, const DataManager* data_mana
         score = final_max[seq];
         if (score >= settings->reporting_threshold) {
             if( settings->machine_output ){
-                printf("HIT:%d,%d,%d\n", query, seq, score );
+                printf("HIT:%d,%d,%d\n", query, seq, (uint16_t)score );
             }
             else {
                 printf("Step:%7d Seq:%6d Length:%5d Score:%6d Name:%.100s\n",
-                    step, seq, data_manager->fasta_records[seq].sequence_len - 1, score, data_manager->fasta_records[seq].description);
+                    step, seq, data_manager->fasta_records[seq].sequence_len - 1, (uint16_t)score, data_manager->fasta_records[seq].description);
             }
             if(settings->slow_output) usleep(100000);
             finds++;
         }
     }
+
+
+    // Final CPU time
+    search_end = cpu_end = std::chrono::high_resolution_clock::now();
+    double cpu_time_delta = std::chrono::duration<double>(cpu_end - cpu_start).count();
+    bench->total_cpu_time += cpu_time_delta;
+    double time_delta = std::chrono::duration<double>(search_end - search_start).count();
+    bench->total_time += time_delta;
+
+    // Update benchmark totals
+    cell_updates_this_search = (int64_t)step * rows * THREADS * UNROLL;
+    bench->total_amino_acids_done += rows;
+    bench->comparisons_this_search = comparisons_this_search;
+    bench->cell_updates_this_search = cell_updates_this_search;
+    bench->wasted_cell_updates_this_search = wasted_cell_updates_this_search;
+    bench->total_comparisons_computed += comparisons_this_search;
+    bench->total_cell_updates_computed += cell_updates_this_search - wasted_cell_updates_this_search;
+    bench->total_cell_updates_wasted += wasted_cell_updates_this_search;
+
+    report_results(rows, step, finds, search_end - search_start, query, settings, data_manager, bench);
+}
+
 /*
 Gold standard from earlier version of algorithm...
 HIT:70009,119257,571,74,413
@@ -817,27 +878,6 @@ STEP:     215 <-- Finished
 BENCH: Searched with 613aa protein vs 140,902,400aa in 215 steps; 43 finds
 BENCH: Execution time: 0.7090 seconds
 */
-
-    // Final CPU time
-    search_end = cpu_end = std::chrono::high_resolution_clock::now();
-    double cpu_time_delta = std::chrono::duration<double>(cpu_end - cpu_start).count();
-    bench->total_cpu_time += cpu_time_delta;
-    double time_delta = std::chrono::duration<double>(search_end - search_start).count();
-    bench->total_time += time_delta;
-
-    // Update benchmark totals
-    cell_updates_this_search = (int64_t)step * rows * THREADS * UNROLL;
-    bench->total_amino_acids_done += rows;
-    bench->comparisons_this_search = comparisons_this_search;
-    bench->cell_updates_this_search = cell_updates_this_search;
-    bench->wasted_cell_updates_this_search = wasted_cell_updates_this_search;
-    bench->total_comparisons_computed += comparisons_this_search;
-    bench->total_cell_updates_computed += cell_updates_this_search - wasted_cell_updates_this_search;
-    bench->total_cell_updates_wasted += wasted_cell_updates_this_search;
-
-    report_results(rows, step, finds, search_end - search_start, query, settings, data_manager, bench);
-}
-
 
 
 void cleanup(MetalState* metal_state, DataManager* data_manager) {

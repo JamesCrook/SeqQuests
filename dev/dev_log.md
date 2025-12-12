@@ -37,6 +37,9 @@ Search aborted on 8th Dec due to 32,000 bug. Better to produce correct dataset w
 
 @000,000 on 08 Dec at 20:00 00% done, estimating 4 days  8 hrs
 @007,380 on 09 Dec at 13:00 15% done, estimating 4 days  3 hrs
+@066,000 on 11 Dec at 01:50 54% done, estimating 4 days  0 hrs
+@141,815 on 11 Dec at 22:40 76% done, estimating 3 days 23 hrs
+@234,467 on 12 Dec at 12:16 90% done, estimating 3 days 23 hrs
 
 ### Additional Dev History
 
@@ -56,7 +59,7 @@ e7d73cbbd452b1babd91a4dab12d78f6d2a992f1 introduced the all-recs parameter, defa
 
 6th Dec 2025: Got the 'coiled' implementation working where CPU/GPU usage overlap. 122 GCUPS with this design. Helped by less data going in in this design. The M4 (running part time) has now massively overtaken the M2 running the older software full time. It's credibly estimating 6hrs to completion, and 4x the speed. 4x is reasonable. The M4 is about twice as fast, and the software by overlapping is on the home stretch going at nearly double the speed that it would without the overlapping.
 
-8th Dec 2025: Analysing the full results from M4, found the 32,000 bug - namely very large scores above 32,000 can/will overflow into the next protein, even though they can never go above 32,767 in the matrix, due to int_16 overflow. The fix I've now made is to pull the full 32,767 down, rather than the earlier assumption that no proteins could score that high. Titin vs Titin will have a higher than 32,000 score, and in fact latches at 32,767. Fortunately the reconstruction is done in int32's, so we get the speed of search from int16 use and sustain accuracy by doing the reconstruction later. This incidentally suggests I can more than double the speed by working in int8s and doing the same trick.
+8th Dec 2025: Analysing the full results from M4, found the 32,000 bug - namely very large scores above 32,000 can/will overflow into the next protein, even though they can never go above 32,767 in the matrix, due to int_16 overflow. The fix I've now made is to pull the full 32,767 down, rather than the earlier assumption that no proteins could score that high. Titin vs Titin will have a higher than 32,000 score, and in fact saturates at 32,767. Fortunately the reconstruction is done in int32's, so we get the speed of search from int16 use and sustain accuracy by doing the reconstruction later. This incidentally suggests I can more than double the speed by working in int8s and doing the same trick.
 
 9th Dec 2025: Starting some optimisation steps.
 Testing start at 70,000 and 10 sequences is currently running at:
@@ -66,3 +69,13 @@ Testing start at 70,000 and 10 sequences is currently running at:
 121 GCUPs 50% CPU - With the clever 8 bit values.
  75 GCUPs 30% CPU - When I also increase UNROLL to 80.
 183 GCUPs 62% CPU - With flipped PAM indexing and capture of residues.
+
+So no real gain from int16 -> int8 on the intermediate values.
+
+11 Dec 2025: The M4 run with max 223 saturation has completed, so I now have my first clean dataset. Using 65503 saturation seems to have very similar perf to using 223 saturation, making it relatively not worthwhile having a two stage 223 filter-and-then-rescore pipeline. So I am rerunning with 65503. Currently 190 GCUPS and estimating 1d 7h all-on-all search. Discussion with Gemini about where we lose perf, and it looks like packing multiple queries into one kernel will be a good solution. I think I should put the thresholding logic in the kernel, as that will mean less data is written.   
+
+12 Dec 2025:  
+
+As before, at 70,000 and 10 sequences:
+202 GCUPs 53% CPU - With recent size reductions and flipped data.
+
