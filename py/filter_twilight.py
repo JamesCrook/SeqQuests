@@ -412,14 +412,14 @@ def write_filtered_output(output_file: str, kept_entries: List[TwilightEntry],
             f.write(entry.raw_protein2)
 
 
-def write_bias_output(bias_output_file: str, bias_entries: List[TwilightEntry]):
-    """Write bias output if requested."""
+def write_bias_output(bias_output_file: str, bias_entries: List[tuple]):
+    """Write bias output with reasons if requested."""
     if bias_output_file and bias_entries:
         print(f"Writing {len(bias_entries)} biased entries to {bias_output_file}...")
         with open(bias_output_file, 'w') as f:
             f.write(f"Composition-biased alignments: {len(bias_entries)} entries\n\n")
-            for entry in bias_entries:
-                f.write(entry.raw_header + '\n')
+            for entry, reason in bias_entries:
+                f.write(f"{entry.raw_header} [{reason}]\n")
                 f.write(entry.raw_protein1)
                 f.write(entry.raw_protein2)
 
@@ -493,7 +493,7 @@ def filter_twilight(input_file: str, output_file: str, reasons_file: str,
         if bias_reason:
             filtered_counts['bias'] += 1
             reason_counts[bias_reason] += 1
-            bias_entries.append(entry)
+            bias_entries.append((entry, bias_reason))
             continue
         
         kept_entries.append(entry)
