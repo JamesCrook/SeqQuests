@@ -226,37 +226,48 @@ def extract_similarity_terms(record) -> Set[str]:
         'region', 'regions', 'motif', 'motifs', 'sequence', 'sequences'
     }
     
-    # Get comments from the record
     if hasattr(record, 'comments'):
         for comment in record.comments:
-            # SIMILARITY comments have this pattern
             if comment.startswith('SIMILARITY:'):
-                # Remove the prefix
                 text = comment[11:].strip()
                 
-                # Remove common prefixes like "Belongs to the..."
+                # Remove ECO annotations
+                text = re.sub(r'\{ECO:[^}]*\}', '', text)
+                
+                # Remove common prefixes
                 text = re.sub(r'^Belongs to the\s+', '', text, flags=re.IGNORECASE)
                 text = re.sub(r'^Member of the\s+', '', text, flags=re.IGNORECASE)
                 
-                # Extract significant words (families, superfamilies, etc.)
-                # Look for capitalized terms or specific patterns
-                words = re.findall(r'\b[A-Z][a-z]+(?:\s+[a-z]+)?\b|\b\w+(?:-\w+)+\b', text)
-                
-                # Also extract anything in quotes or after "family", "superfamily"
-                family_match = re.search(r'([\w-]+)\s+(?:super)?family', text, re.IGNORECASE)
+                # Extract the family/superfamily name (everything before "family" or "superfamily")
+                family_match = re.search(r'([\w\s/-]+?)\s+(?:super)?family', text, re.IGNORECASE)
                 if family_match:
-                    family_term = family_match.group(1).lower()
-                    if family_term not in similarity_stopwords and len(family_term) >= 6:
-                        terms.add(family_term)
+                    family_name = family_match.group(1).strip().lower()
+                    # Clean up and add if substantial
+                    if len(family_name) >= 3:
+                        terms.add(family_name)
                 
-                # Add individual significant words (longer than 5 chars, not stopwords)
+                # Also extract slash-separated terms like MutL/HexB
+                slash_terms = re.findall(r'\b[\w]+(?:/[\w]+)+\b', text)
+                for term in slash_terms:
+                    term = term.lower()
+                    if len(term) >= 4 and term not in similarity_stopwords:
+                        terms.add(term)
+                
+                # Extract hyphenated terms
+                hyphen_terms = re.findall(r'\b\w+(?:-\w+)+\b', text)
+                for term in hyphen_terms:
+                    term = term.lower()
+                    if len(term) >= 6 and term not in similarity_stopwords:
+                        terms.add(term)
+                
+                # Extract significant individual words (including all-caps like DNA)
+                words = re.findall(r'\b[A-Za-z]{3,}\b', text)
                 for word in words:
-                    word = word.lower().strip()
+                    word = word.lower()
                     if len(word) >= 6 and word not in similarity_stopwords:
                         terms.add(word)
     
     return terms
-
 
 def extract_family_terms(record) -> Set[str]:
     """
