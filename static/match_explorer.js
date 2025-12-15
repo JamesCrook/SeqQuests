@@ -184,7 +184,7 @@ let statusDot = null;
 let statusText = null;
 let findings = null;
 let isInitializing = false;
-
+let parsedFindings = [];
 
 // Initialize the application
 // Made global so it can be called from lcars.js
@@ -220,7 +220,7 @@ window.initializeApp = async function() {
         setConnectionStatus(bFound);
         
         const dataToUse = serverFindings || findingsData;
-        const parsedFindings = parseFindings(dataToUse);
+        parsedFindings = parseFindings(dataToUse);
 
         // Update entry count
         const entriesCount = document.getElementById('entriesCount');
@@ -354,7 +354,7 @@ async function loadSequenceDetails(finding, index) {
     const similarity = score ;//((matches / Math.max(seq1.length, seq2.length)) * 100).toFixed(1);
     
     // Update badges
-    if (detailBadge) detailBadge.textContent = `${similarity}% identity`;
+    if (detailBadge) detailBadge.textContent = `${similarity} score`;
     if (alignmentBadge) alignmentBadge.textContent = `${matches} matches`;
     
     // Build alignment view
@@ -430,6 +430,11 @@ async function loadSequenceDetails(finding, index) {
     isLoadingSequence = false;
 }
 
+function getMatchText( index ){
+    item = parsedFindings[index];
+    return `${item.header}\n${item.details[0]}\n${item.details[1]}\n\n`;
+}
+
 // Copy alignment to clipboard
 function copyAlignment() {
     const alignmentViewer = document.getElementById('alignmentViewer');
@@ -443,7 +448,7 @@ function copyAlignment() {
         return;
     }
     
-    const alignmentText = preElement.textContent;
+    let alignmentText = getMatchText(lastLoadedEntry) + preElement.textContent;
     
     // Copy to clipboard
     navigator.clipboard.writeText(alignmentText).then(() => {
