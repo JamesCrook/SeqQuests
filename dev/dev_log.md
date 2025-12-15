@@ -35,12 +35,15 @@ M2 is a Mac M2 Pro with 16GB of RAM.
 @168,340 on 08 Dec at 20:00 estimating 8 days  1 hrs (based on PMEs). (12 days on proteins)
 Search aborted on 8th Dec due to 32,000 bug. Better to produce correct dataset with the new faster code.
 
-@000,000 on 08 Dec at 20:00 00% done, estimating 4 days  8 hrs
-@007,380 on 09 Dec at 13:00 15% done, estimating 4 days  3 hrs
-@066,000 on 11 Dec at 01:50 54% done, estimating 4 days  0 hrs
-@141,815 on 11 Dec at 22:40 76% done, estimating 3 days 23 hrs
-@234,467 on 12 Dec at 12:16 90% done, estimating 3 days 23 hrs
+@000,000 on 08 Dec at 20:00  00% done, estimating 4 days  8 hrs
+@007,380 on 09 Dec at 13:00  15% done, estimating 4 days  3 hrs
+@066,000 on 11 Dec at 01:50  54% done, estimating 4 days  0 hrs
+@141,815 on 11 Dec at 22:40  76% done, estimating 3 days 23 hrs
+@234,467 on 12 Dec at 12:16  90% done, estimating 3 days 23 hrs
+@387,777 on 12 Dec at 21:10  99% done, estimating 2 days 23 hrs
+@573,660 on 13 Dec at 23:35 100% done, estimating 4 days  0 hrs
 
+Actual was 4 days 3hrs
 ### Additional Dev History
 
 ed10e949fd3632d98454f6569a9d350223b4f60f fixed the 1-in-40 bug. The bug arose because UNROLL is 40, and a sequence which ended on the last item of UNROLL would steal the score from the next sequence. 
@@ -79,4 +82,10 @@ So no real gain from int16 -> int8 on the intermediate values.
 As before, at 70,000 and 10 sequences:
 202 GCUPs 53% CPU - With recent size reductions and flipped data.
 211 GCUPs 64% CPU - With preparation of aa data in thread order.
+246 GCUPs 67% CPU - Up the number of threads.
 
+These optimisations included dead ends, such as using ushort4, doing some buffer creation before the waitfor, reducing threadgroup size. Also explorations using Inspector that showed 1/3rd of task is hitting launch speed limits and 2/3rds Int16.Arithmetic/Conditionals limits. 
+
+13 Dec 2025:
+
+M4 search has now completed too (22:26 Dec 11 to 10:50 AM Dec 13 paused day time Dec 12). 4,126,706,362 bytes

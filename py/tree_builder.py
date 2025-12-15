@@ -37,8 +37,6 @@ class MaxSpanningTree:
         self.parents = [0] * num_nodes
         self.scores = [-1] * num_nodes
         self.raw_scores = [-1] * num_nodes
-        self.locations = [-1] * num_nodes
-        self.lengths = [-1] * num_nodes
 
         self.links_processed = 0
         self.links_added = 0
@@ -114,8 +112,6 @@ class MaxSpanningTree:
         self.parents = data['parents']
         self.scores = data['scores']
         self.raw_scores = data['raw_scores']
-        self.locations = data['locations']
-        self.lengths = data['lengths']
 
         self.links_processed = data['links_processed']
         self.links_added = data['links_added']
@@ -131,12 +127,10 @@ class MaxSpanningTree:
         if 'root' in data:
             self.precomputed_root = data['root']
 
-    def set_link(self, node_id, parent, score, raw_score, location, length):
+    def set_link(self, node_id, parent, score, raw_score):
         self.parents[node_id] = parent
         self.scores[node_id] = score
         self.raw_scores[node_id] = raw_score
-        self.locations[node_id] = location
-        self.lengths[node_id] = length
 
         # Track max ID seen
         if node_id > self.max_seen_id:
@@ -223,8 +217,6 @@ class MaxSpanningTree:
         parents = self.parents
         scores = self.scores
         raw_scores = self.raw_scores
-        locations = self.locations
-        lengths = self.lengths
 
         for i in range(up_to_index, 0, -1):
             current_node_id = path[i]
@@ -236,15 +228,13 @@ class MaxSpanningTree:
                 prev_node_id,
                 scores[prev_node_id],
                 raw_scores[prev_node_id],
-                locations[prev_node_id],
-                lengths[prev_node_id]
             )
 
         # path[0] points nowhere (becomes root of this subtree temporarily or new connection point)
         start_node_id = path[0]
         self.set_link(start_node_id, start_node_id, -1, -1, -1, -1) # Matches default/root state
 
-    def add_link(self, node_a, node_b, score, raw_score, location, length):
+    def add_link(self, node_a, node_b, score, raw_score):
         self.links_processed += 1
 
         if node_a > self.max_seen_id:
@@ -267,10 +257,10 @@ class MaxSpanningTree:
         # Accept the link
         if which_path == 'a':
             self.reverse_path(path_a, position)
-            self.set_link(node_a, node_b, score, raw_score, location, length)
+            self.set_link(node_a, node_b, score, raw_score)
         else:
             self.reverse_path(path_b, position)
-            self.set_link(node_b, node_a, score, raw_score, location, length)
+            self.set_link(node_b, node_a, score, raw_score)
 
         self.links_added += 1
         return True
@@ -510,9 +500,7 @@ def process_links_file(filename, num_nodes):
             if target >= num_nodes:
                 continue
             score = int(parts[2])
-            location = int(parts[3])
-            length = int(parts[4])
-            tree.add_link(query, target, score, score, location, length)
+            tree.add_link(query, target, score, score)
 
     return tree
 
@@ -552,8 +540,6 @@ def run_cpp_tree_builder(input_file, num_nodes=None):
         tree.parents = data['parents']
         tree.scores = data['scores']
         tree.raw_scores = data['raw_scores']
-        tree.locations = data['locations']
-        tree.lengths = data['lengths']
 
         tree.links_processed = data['links_processed']
         tree.links_added = data['links_added']
@@ -601,14 +587,14 @@ def test():
     print()
     
     # Create test data inline
-    # Format: query_seq,target_seq,score,location,length
+    # Format: query_seq,target_seq,score
     # This creates a simple tree:
     #   0 (root)
     #   ├─ 1 (score 500)
     #   │  └─ 2 (score 400)
     #   └─ 3 (score 450)
     #      └─ 4 (score 350)
-    test_data = """query_seq,target_seq,score,location,length
+    test_data = """query_seq,target_seq,score
 0,1,500,0,100
 1,2,400,50,80
 0,3,450,20,90
@@ -695,7 +681,7 @@ Examples:
     finds_file = PROJECT_ROOT / "sw_results/sw_raw_finds.txt"
 
     parser.add_argument('-i', '--input', default=str(default_input), 
-                       help='Input CSV file with links (query_seq,target_seq,score,location,length)')
+                       help='Input CSV file with links (query_seq,target_seq,score)')
     parser.add_argument('-o', '--output', default=str(default_output),
                        help='Output file for ASCII tree')
     parser.add_argument('-n', '--nodes', type=int, default=None,

@@ -17,8 +17,6 @@ public:
     std::vector<int> parents;
     std::vector<int> scores;
     std::vector<int> raw_scores;
-    std::vector<int> locations;
-    std::vector<int> lengths;
 
     long long links_processed;
     long long links_added;
@@ -36,8 +34,6 @@ public:
         parents.assign(n, 0);
         scores.assign(n, -1);
         raw_scores.assign(n, -1);
-        locations.assign(n, -1);
-        lengths.assign(n, -1);
 
         links_processed = 0;
         links_added = 0;
@@ -50,12 +46,10 @@ public:
         search_id = 0;
     }
 
-    void set_link(int node_id, int parent, int score, int raw_score, int location, int length) {
+    void set_link(int node_id, int parent, int score, int raw_score) {
         parents[node_id] = parent;
         scores[node_id] = score;
         raw_scores[node_id] = raw_score;
-        locations[node_id] = location;
-        lengths[node_id] = length;
 
         if (node_id > max_seen_id) max_seen_id = node_id;
         if (parent > max_seen_id) max_seen_id = parent;
@@ -182,18 +176,16 @@ public:
                 current_node_id,
                 prev_node_id,
                 scores[prev_node_id],
-                raw_scores[prev_node_id],
-                locations[prev_node_id],
-                lengths[prev_node_id]
+                raw_scores[prev_node_id]
             );
         }
 
         // path[0] points nowhere (becomes root of subtree or new connection)
         int start_node_id = path[0];
-        set_link(start_node_id, start_node_id, -1, -1, -1, -1);
+        set_link(start_node_id, start_node_id, -1, -1);
     }
 
-    bool add_link(int node_a, int node_b, int score, int raw_score, int location, int length) {
+    bool add_link(int node_a, int node_b, int score, int raw_score) {
         links_processed++;
 
         if (node_a > max_seen_id) max_seen_id = node_a;
@@ -219,10 +211,10 @@ public:
 
         if (which_path == 'a') {
             reverse_path(path_a, position);
-            set_link(node_a, node_b, score, raw_score, location, length);
+            set_link(node_a, node_b, score, raw_score);
         } else {
             reverse_path(path_b, position);
-            set_link(node_b, node_a, score, raw_score, location, length);
+            set_link(node_b, node_a, score, raw_score);
         }
 
         links_added++;
@@ -362,8 +354,6 @@ void write_json(std::ostream& out, MaxSpanningTree& tree) {
     print_array("parents", tree.parents);
     print_array("scores", tree.scores);
     print_array("raw_scores", tree.raw_scores);
-    print_array("locations", tree.locations);
-    print_array("lengths", tree.lengths);
 
     // Computed data
     auto twilight = tree.get_twilight_nodes();
@@ -446,14 +436,14 @@ int main(int argc, char* argv[]) {
         while (std::getline(ss, segment, ',')) {
             parts.push_back(segment);
         }
-        if (parts.size() < 5) continue;
+        if (parts.size() < 3) continue;
         
         try {
             int query = std::stoi(parts[0]);
             int target = std::stoi(parts[1]);
             int score = std::stoi(parts[2]);
-            int location = std::stoi(parts[3]);
-            int length = std::stoi(parts[4]);
+            //int location = std::stoi(parts[3]);
+            //int length = std::stoi(parts[4]);
             
             if (query != old_query) {
                 old_query = query;
@@ -463,7 +453,7 @@ int main(int argc, char* argv[]) {
             }
             
             if (query >= settings.num_nodes || target >= settings.num_nodes) continue;
-            tree.add_link(query, target, score, score, location, length);
+            tree.add_link(query, target, score, score);
         } catch (const std::exception& e) {
             continue;
         }
