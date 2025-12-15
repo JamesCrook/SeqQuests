@@ -72,7 +72,8 @@ def extract_meaningful_tokens(name: str, stopwords: Set[str]) -> List[str]:
     Returns:
         List of stemmed tokens
     """
-    # Remove common patterns and punctuation
+    # Remove organism, common patterns and punctuation
+    name = re.sub(r';\s*[^;]+$', '', name)  # Remove organism
     name = re.sub(r'\{[^}]*\}', '', name)  # Remove {ECO:...} annotations
     name = re.sub(r'\([^)]*\)', '', name)  # Remove parenthetical info
     
@@ -190,8 +191,6 @@ def phase0_filter(entry: TwilightEntry) -> Optional[str]:
     if ('uncharacterized' in entry.name1.lower() or 'uncharacterized' in entry.name2.lower() or
         'putative' in entry.name1.lower() or 'putative' in entry.name2.lower()):
         return 'uncharacterized'
-    if 'seed storage' in entry.name1.lower() and 'seed storage' in entry.name2.lower():
-        return 'seed storage'
     if entry.name1.lower()[:11] == entry.name2.lower()[:11]:
         return 'similar names'
     return None
@@ -303,6 +302,24 @@ def extract_interpro_ids(record) -> Set[str]:
     
     return interpro_ids
 
+def extract_panther_ids(record) -> Set[str]:
+    """
+    Extract PANTHER family IDs from cross-references.
+    These are protein family/subfamily identifiers.
+    
+    Note: Extracts only the family ID (e.g., 'PTHR18875'), 
+    stripping any subfamily suffix (e.g., ':SF8').
+    """
+    panther_ids = set()
+    
+    if hasattr(record, 'cross_references'):
+        for xref in record.cross_references:
+            if xref[0] == 'PANTHER' and len(xref) >= 2:
+                # xref[1] is like 'PTHR18875:SF8' or 'PTHR18875'
+                family_id = xref[1].split(':')[0]  # Get just 'PTHR18875'
+                panther_ids.add(family_id)
+    
+    return panther_ids
 
 def extract_domain_terms(record) -> Set[str]:
     """
@@ -374,6 +391,52 @@ def check_interpro_ids(record1, record2) -> Optional[str]:
     return None
 
 
+def check_panther_ids(record1, record2) -> Optional[str]:
+    """
+    Compare Panther IDs between two records.
+    """
+    ids1 = extract_panther_ids(record1)
+    ids2 = extract_panther_ids(record2)
+
+    common = ids1 & ids2
+
+    if common:
+        return sorted(common)[0]
+    return None
+
+def check_sequential_panther_ids(record1, record2) -> Optional[str]:
+    """
+    Check if two records have sequential PANTHER family IDs,
+    which may indicate similar structure.
+    
+    Returns:
+        String like "PTHR18875/PTHR18876" if sequential IDs found, None otherwise
+    """
+    ids1 = extract_panther_ids(record1)
+    ids2 = extract_panther_ids(record2)
+    
+    for id1 in ids1:
+        # Extract the numeric part
+        match1 = re.match(r'PTHR(\d+)', id1)
+        if not match1:
+            continue
+        num1 = int(match1.group(1))
+        
+        for id2 in ids2:
+            match2 = re.match(r'PTHR(\d+)', id2)
+            if not match2:
+                continue
+            num2 = int(match2.group(1))
+            
+            if abs(num1 - num2) == 1:
+                # Return in numerical order
+                if num1 < num2:
+                    return f"{id1}/{id2}"
+                else:
+                    return f"{id2}/{id1}"
+    
+    return None
+
 def phase2_filter(entry: TwilightEntry) -> Optional[str]:
     """
     Phase 2: Full record analysis.
@@ -391,6 +454,16 @@ def phase2_filter(entry: TwilightEntry) -> Optional[str]:
         match = check_interpro_ids(r1.full, r2.full)
         if match:
             return f"InterPro: {match}"
+
+        match = check_panther_ids(r1.full, r2.full)
+        if match:
+            return f"Panther: {match}"
+
+        # As of 15th Dec 2025 the sequential panther Id check only filters out
+        # one match, Panther: PTHR22796/PTHR22797 
+        seq_match = check_sequential_panther_ids(r1.full, r2.full)
+        if seq_match:
+            return f"Panther: {seq_match}"
 
         # Define checks as (check_func, extractor, prefix) or custom lambda
         checks = [
@@ -569,7 +642,7 @@ def filter_twilight(input_file, output_file, reasons_file,
             reason_counts[reason] += 1
             continue
         
-        # Phase 2: Full record analysis (optional)
+        # Phase 2: Full record analysis
         if use_phase2:
             reason = phase2_filter(entry)
             if reason:
