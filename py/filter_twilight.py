@@ -179,6 +179,11 @@ def extract_similarity_terms(record) -> Set[str]:
             if len(family_name) >= 3:
                 terms.add(family_name)
         
+        # Capture mixed-case identifiers (e.g., FliB, Met9, RecA) - keep original case
+        mixed_case_terms = re.findall(r'\b[A-Za-z0-9]+[A-Z0-9][A-Za-z0-9]*\b', text)
+        for term in mixed_case_terms:
+            terms.add(term)
+        
         for pattern, min_len in [(r'\b[\w]+(?:/[\w]+)+\b', 4), (r'\b\w+(?:-\w+)+\b', 6), (r'\b[A-Za-z]{3,}\b', 6)]:
             for term in re.findall(pattern, text):
                 term = term.lower()
@@ -295,7 +300,7 @@ def check_sequential_panther_ids(record1, record2) -> Optional[str]:
     return None
 
 
-def check_common_terms(record1, record2, extractor_func: Callable, min_length: int = 6) -> Optional[str]:
+def check_common_terms(record1, record2, extractor_func: Callable, min_length: int = 3) -> Optional[str]:
     """Find common terms between two records using a specific extractor."""
     terms1 = extractor_func(record1)
     terms2 = extractor_func(record2)
