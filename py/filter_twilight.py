@@ -27,7 +27,7 @@ STOPWORDS = {
     'protein', 'domain', 'containing', 'subunit', 'member', 'regulator', 'fragment',
     'precursor', 'chain', 'component', 'factor', 'element', 'unit', 'specific',
     'probable', 'putative', 'possible', 'predicted', 'potential',
-    'uncharacterized', 'hypothetical', 'unknown',
+    'abnormal', 'disabled', 'uncharacterized', 'hypothetical', 'unknown',
     'small', 'large', 'short', 'long', 'terminal', 'internal',
     'type', 'like', 'related', 'homolog', 'ortholog', 'paralog',
     'family', 'superfamily', 'class',
@@ -49,7 +49,7 @@ def simple_stem(word: str) -> str:
     return word
 
 
-def extract_meaningful_tokens(name: str, stopwords: Set[str]) -> List[str]:
+def extract_meaningful_tokens(name: str, stopwords: Set[str], min_length: int = MIN_STEM_LENGTH) -> List[str]:
     """Extract meaningful tokens from a protein name."""
     name = re.sub(r';\s*[^;]+$', '', name)
     name = re.sub(r'\{[^}]*\}', '', name)
@@ -62,7 +62,7 @@ def extract_meaningful_tokens(name: str, stopwords: Set[str]) -> List[str]:
         if token.isdigit() or len(token) < 3 or token in stopwords:
             continue
         stemmed = simple_stem(token)
-        if len(stemmed) >= MIN_STEM_LENGTH:
+        if len(stemmed) >= min_length:
             meaningful_tokens.append(stemmed)
     
     return meaningful_tokens
@@ -227,6 +227,39 @@ def extract_domain_terms(record) -> Set[str]:
     return terms
 
 
+MIN_NAME_TOKEN_LENGTH = 4      # Minimum length for individual name tokens
+MIN_NAME_TOTAL_CHARS = 10     # Minimum total characters across all matching tokens
+
+
+def extract_all_name_terms(record, stopwords: Set[str]) -> Set[str]:
+    """
+    Extract meaningful terms from all protein names (RecName + AltNames).
+    
+    Parses the description field which contains lines like:
+        RecName: Full=Protein ZNF767;
+        AltName: Full=Zinc finger protein 767 pseudogene;
+    
+    Returns set of stemmed tokens after stopword removal.
+    Uses lower min_length threshold (4) since we check total chars at match time.
+    """
+    terms = set()
+    
+    if not hasattr(record, 'description'):
+        return terms
+    
+    desc = record.description
+    
+    # Extract all Full= values (covers RecName and AltName)
+    # Also extract Short= values
+    for match in re.finditer(r'(?:Full|Short)=([^;{]+)', desc):
+        name = match.group(1).strip()
+        # Use lower threshold - we'll check total chars when comparing
+        tokens = extract_meaningful_tokens(name, stopwords, min_length=MIN_NAME_TOKEN_LENGTH)
+        terms.update(tokens)
+    
+    return terms
+
+
 # =============================================================================
 # Filtering Logic
 # =============================================================================
@@ -315,6 +348,15 @@ def phase2_filter(entry: TwilightEntry) -> Optional[str]:
         if seq_match:
             return f"Panther: {seq_match}"
 
+        # Check pooled name terms (RecName + AltNames)
+        name_terms1 = extract_all_name_terms(r1.full, STOPWORDS)
+        name_terms2 = extract_all_name_terms(r2.full, STOPWORDS)
+        common_name_terms = name_terms1 & name_terms2
+        if common_name_terms:
+            total_chars = sum(len(t) for t in common_name_terms)
+            if total_chars >= MIN_NAME_TOTAL_CHARS:
+                return f"Name: {', '.join(sorted(common_name_terms))}"
+
         # Check term-based extractors
         for extractor, prefix in [(extract_similarity_terms, "-!- SIMILARITY: "),
                                    (extract_family_terms, "Family: "),
@@ -393,7 +435,7 @@ def write_reasons_output(reasons_file: str, reason_counts: Dict[str, int],
         f.write("=" * 80 + "\n\n")
 
         for reason, count in sorted(reason_counts.items(), key=lambda x: (len(x[0]), x[0])):
-            f.write(f"{reason:40s} : {count:5d}\n")
+            f.write(f"{reason:40s} : {count:6d}\n")
 
         f.write("\n" + "=" * 80 + "\n")
         f.write(f"Total filtered: {total_filtered}\n")
