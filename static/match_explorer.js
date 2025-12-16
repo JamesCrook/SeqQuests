@@ -415,12 +415,12 @@ async function loadSequenceDetails(finding, index) {
 
             <div class="sequence-section">
                 <div class="sequence-label">Sequence 1 (ID: ${id1})</div>
-                <div class="sequence-text">${seq1Details}</div>
+                <div class="sequence-text" id="details1">${seq1Details}</div>
             </div>
 
             <div class="sequence-section">
                 <div class="sequence-label">Sequence 2 (ID: ${id2})</div>
-                <div class="sequence-text">${seq2Details}</div>
+                <div class="sequence-text" id="details2">${seq2Details}</div>
             </div>
         `;
     }
@@ -466,6 +466,41 @@ function copyAlignment() {
         console.error('Failed to copy alignment:', err);
     });
 }
+
+// Copy alignment to clipboard
+function copyDetail() {
+    const detailViewer = document.getElementById('detailViewer');
+    const copyBtn = document.getElementById('copyDetailBtn');
+    if (!detailViewer || !copyBtn) return;
+    
+    // Get the text content from the pre element
+    const detail1Element = document.getElementById('details1');
+    const detail2Element = document.getElementById('details2');
+    
+    if (!detail1Element || !detail2Element) {
+        return;
+    }
+    
+    let detailText = `Is the similarity between the following two proteins already known and is it indicated in these two sequence files annotations?\n` + detail1Element.textContent + '\n'+ detail2Element.textContent;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(detailText).then(() => {
+        // Show success feedback
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.classList.remove('copied');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy detail text:', err);
+    });
+}
+
+
 
 // If loaded directly, init
 if (document.querySelector('.explorer-layout')) {

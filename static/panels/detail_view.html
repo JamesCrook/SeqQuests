@@ -9,7 +9,11 @@
 <div class="panel detail-panel-container" id="RightPanel">
     <div class="panel-header">
         <div class="panel-title">Sequence Details</div>
-        <div class="panel-badge" id="detailBadge">—</div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+           <button class="copy-button" id="copyDetailBtn" onclick="copyDetail()">Copy Pair</button>
+           <div class="panel-badge" id="detailBadge">—</div>
+        </div>
     </div>
     <div class="sequence-viewer" id="detailViewer">
         <div class="empty-state">
