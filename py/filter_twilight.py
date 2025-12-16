@@ -6,6 +6,7 @@ This program:
 1. Parses a twilight comparison file
 2. Uses fuzzy string matching (after stopword removal and stemming) to find shared terms
 3. Optionally retrieves full UniProt records for deeper analysis
+   (checking shared IDs in InterPro, PRINTS, Pfam, PANTHER, etc.)
 4. Produces a filtered file and a reasons file for auditing
 """
 
@@ -34,6 +35,23 @@ STOPWORDS = {
 }
 
 MIN_STEM_LENGTH = 8
+
+# Databases to check for exact ID matches (DB Name, Display Prefix, Strip Suffix Boolean)
+ID_CHECK_DATABASES = [
+    ('InterPro', 'InterPro', False),
+    ('PANTHER', 'Panther', True),
+    ('PRINTS', 'PRINTS', False),
+    ('Pfam', 'Pfam', False),
+    ('PROSITE', 'PROSITE', False),
+    ('SMART', 'SMART', False),
+    ('eggNOG', 'eggNOG', False),
+    ('OrthoDB', 'OrthoDB', False)
+]
+
+# Databases to extract descriptive text from (3rd column of DR line)
+TEXT_EXTRACT_DATABASES = {
+    'InterPro', 'Pfam', 'SMART', 'PROSITE', 'SUPFAM', 'PRINTS' # Added PRINTS
+}
 
 
 # =============================================================================
@@ -139,11 +157,7 @@ def parse_twilight_file(filepath: str) -> List[TwilightEntry]:
 def extract_xref_ids(record, db_name: str, strip_suffix: bool = False) -> Set[str]:
     """
     Extract IDs from cross-references for a given database.
-    
-    Args:
-        record: UniProt record
-        db_name: Database name (e.g., 'InterPro', 'PANTHER')
-        strip_suffix: If True, strip suffix after ':' (for PANTHER subfamily)
+    Example PRINTS: DR PRINTS; PR02045; F138DOMAIN. -> Returns 'PR02045'
     """
     ids = set()
     if hasattr(record, 'cross_references'):
@@ -213,14 +227,19 @@ def extract_family_terms(record) -> Set[str]:
 
 
 def extract_domain_terms(record) -> Set[str]:
-    """Extract domain/repeat names from record annotations."""
+    """
+    Extract domain/repeat names from record annotations.
+    Now includes PRINTS text (e.g., 'F138DOMAIN').
+    """
     terms = set()
     
     if hasattr(record, 'cross_references'):
         for xref in record.cross_references:
-            if xref[0] in ('InterPro', 'Pfam', 'SMART', 'PROSITE', 'SUPFAM') and len(xref) >= 3:
+            # Check configured databases
+            if xref[0] in TEXT_EXTRACT_DATABASES and len(xref) >= 3:
+                # xref[2] is usually the domain name/description
                 domain_name = re.sub(r'[._]\d+$', '', xref[2].lower())
-                if len(domain_name) >= 5:
+                if len(domain_name) >= 4: # Lowered limit slightly to catch short codes
                     terms.add(domain_name)
     
     if hasattr(record, 'features'):
@@ -237,16 +256,7 @@ MIN_NAME_TOTAL_CHARS = 10     # Minimum total characters across all matching tok
 
 
 def extract_all_name_terms(record, stopwords: Set[str]) -> Set[str]:
-    """
-    Extract meaningful terms from all protein names (RecName + AltNames).
-    
-    Parses the description field which contains lines like:
-        RecName: Full=Protein ZNF767;
-        AltName: Full=Zinc finger protein 767 pseudogene;
-    
-    Returns set of stemmed tokens after stopword removal.
-    Uses lower min_length threshold (4) since we check total chars at match time.
-    """
+    """Extract meaningful terms from all protein names (RecName + AltNames)."""
     terms = set()
     
     if not hasattr(record, 'description'):
@@ -254,11 +264,9 @@ def extract_all_name_terms(record, stopwords: Set[str]) -> Set[str]:
     
     desc = record.description
     
-    # Extract all Full= values (covers RecName and AltName)
-    # Also extract Short= values
+    # Extract all Full= values (covers RecName and AltName) and Short= values
     for match in re.finditer(r'(?:Full|Short)=([^;{]+)', desc):
         name = match.group(1).strip()
-        # Use lower threshold - we'll check total chars when comparing
         tokens = extract_meaningful_tokens(name, stopwords, min_length=MIN_NAME_TOKEN_LENGTH)
         terms.update(tokens)
     
@@ -340,15 +348,17 @@ def phase2_filter(entry: TwilightEntry) -> Optional[str]:
     try:
         r1 = sequences.get_protein(entry.num1)
         r2 = sequences.get_protein(entry.num2)
+        
+        if not r1 or not r2:
+            return None
 
-        # Check cross-reference IDs
-        for db, prefix, strip in [('InterPro', 'InterPro', False), ('PANTHER', 'Panther', True)]:
+        # Check cross-reference IDs for all configured databases (PRINTS, Pfam, etc.)
+        for db, prefix, strip in ID_CHECK_DATABASES:
             match = check_common_ids(r1.full, r2.full, db, strip)
             if match:
                 return f"{prefix}: {match}"
 
-        # As of 15th Dec 2025 the sequential panther Id check only filters out
-        # one match, Panther: PTHR22796/PTHR22797 
+        # Check sequential PANTHER IDs
         seq_match = check_sequential_panther_ids(r1.full, r2.full)
         if seq_match:
             return f"Panther: {seq_match}"
@@ -383,7 +393,7 @@ def phase_compositional_bias(entry: TwilightEntry, threshold: float = 0.5) -> Op
         r2 = sequences.get_protein(entry.num2)
         
         result = align_local_swissprot(r1.full.sequence, r2.full.sequence,
-                                        weights='PAM250', gap_extend=-10)
+                                       weights='PAM250', gap_extend=-10)
         if not result:
             return None
         
@@ -430,7 +440,7 @@ def write_bias_output(bias_output_file: str, bias_entries: List[tuple]):
 
 
 def write_reasons_output(reasons_file: str, reason_counts: Dict[str, int],
-                         filtered_counts: Dict[str, int], kept_count: int):
+                          filtered_counts: Dict[str, int], kept_count: int):
     """Write the filtering reasons to a file."""
     print(f"Writing reasons to {reasons_file}...")
     total_filtered = sum(filtered_counts.values())
@@ -530,15 +540,15 @@ def main():
     default_bias = PROJECT_ROOT / "sw_results/biased_alignments.txt"
     
     parser.add_argument('-i', '--input', default=str(default_input),
-                       help='Input twilight comparison file')
+                        help='Input twilight comparison file')
     parser.add_argument('-o', '--output', default=str(default_output),
-                       help='Output file for kept comparisons')
+                        help='Output file for kept comparisons')
     parser.add_argument('-r', '--reasons', default=str(default_reasons),
-                       help='Output file for filtering reasons')
+                        help='Output file for filtering reasons')
     parser.add_argument('-b', '--bias-output', default=str(default_bias),
-                       help='Output file for biased comparisons')
+                        help='Output file for biased comparisons')
     parser.add_argument('--phase2', action='store_true', default=True,
-                       help='Enable Phase 2 filtering (full record retrieval)')
+                        help='Enable Phase 2 filtering (full record retrieval)')
     
     args = parser.parse_args()
     
