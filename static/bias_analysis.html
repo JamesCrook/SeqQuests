@@ -114,24 +114,24 @@
     const aaColors = {
         'G': '#FFFFFF', // White
         'A': '#CCCCCC', // Light Grey
-        'T': '#00008B', // Dark Blue
-        'S': '#ADD8E6', // Light Blue
-        'D': '#FF0000', // Red
-        'E': '#FF6666', // Red (Lighter)
+        'T': '#ADD8E6', // Light Blue
+        'S': '#9292FE', // Dark Blue
+        'D': '#FF6666', // Red 
+        'E': '#FF0000', // Red (Darker)
         'Q': '#800080', // Purple
         'N': '#FF00FF', // Magenta
-        'V': '#008000', // Green
+        'V': '#A2CA2E', // Green
         'L': '#32CD32', // Lime Green
-        'I': '#228B22', // Forest Green
+        'I': '#ACF1AC', // Forest Green
         'K': '#00FFFF', // Cyan
         'R': '#00BFFF', // Deep Sky Blue
-        'M': '#2E8B57', // Sea Green
-        'C': '#ADFF2F', // Green Yellow
-        'F': '#8B4513', // Saddle Brown
+        'M': '#00FF70', // Sea Green
+        'C': '#EEFF00', // Lime Yellow
+        'F': '#D2691E', // Chocolate
         'Y': '#A0522D', // Sienna
-        'W': '#D2691E', // Chocolate
+        'W': '#FFA18A', // Salmon
         'H': '#4682B4', // Steel Blue
-        'P': '#FFD700', // Gold
+        'P': '#ffd142', // Gold
         'X': '#666666'  // Unknown
     };
 
@@ -163,21 +163,26 @@
     // --- Core Algorithms ---
 
     function getCanonicalRotation(subseq) {
-        // Rotate string until it starts with the "lightest" AA (lowest rank)
-        let minRank = Infinity;
+        // Translate amino acids to acids 'in order'
+        let translated = ""
         for (let char of subseq) {
-            let r = aaRank[char] !== undefined ? aaRank[char] : 100;
-            if (r < minRank) minRank = r;
+            let r = aaRank[char] ?? 0;
+            translated += String.fromCharCode('@'.charCodeAt(0)+r);
         }
 
-        let bestRotations = [];
+        let rotations = [];
+        let rotString;
+        // Make a list of rotated strings with the rotated 
+        // translation prepended. 
         for (let i = 0; i < subseq.length; i++) {
-            if ((aaRank[subseq[i]] || 100) === minRank) {
-                bestRotations.push(subseq.substring(i) + subseq.substring(0, i));
-            }
+            rotString = translated.substring(i) 
+                + translated.substring(0, i)
+                + subseq.substring(i) 
+                + subseq.substring(0, i)
+            rotations.push( rotString )
         }
-        bestRotations.sort();
-        return bestRotations[0] || subseq;
+        rotations.sort();
+        return rotations[0].substring( subseq.length);
     }
 
     function getChemicalDistance(aa1, aa2) {
@@ -330,7 +335,7 @@
                 }
                 
                 // Sort by Canonical Order (Light -> Heavy)
-                localAA.sort((a, b) => (aaRank[a]||100) - (aaRank[b]||100));
+                localAA.sort((a, b) => (aaRank[a]??100) - (aaRank[b]??100));
                 
                 // Draw stack
                 if (localAA.length > 0) {
