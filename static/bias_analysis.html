@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protein Texture Map: Ribbon & Composition</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #e0e0e0; padding: 20px; color: #333; }
+        h2 { margin-top: 0; color: #444; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        .controls { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 6px; }
+        textarea { width: 100%; height: 60px; padding: 10px; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin-bottom: 10px; }
+        button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+
+        .canvas-wrapper { 
+            position: relative; 
+            overflow-x: auto; 
+            border: 1px solid #555; 
+            background: #333; /* Dark background */
+            padding: 20px 10px; 
+            border-radius: 4px; 
+        }
+        canvas { display: block; margin-bottom: 5px; }
+        
+        .label { color: #aaa; font-size: 11px; margin-bottom: 2px; font-family: sans-serif; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+        .label:first-child { margin-top: 0; }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; background: #eee; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; }
+        .color-box { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.2); }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 9999;
+            white-space: pre-wrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid #777;
+            max-width: 300px;
+        }
+        
+        .settings { font-size: 13px; color: #666; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
+        .toggles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: #444; border-top: 1px solid #ddd; padding-top: 10px;}
+        label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .period-box { width: 10px; height: 10px; display: inline-block; border-radius: 50%; }
+        
+        /* Slider styling */
+        input[type=range] { width: 100px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Protein Texture Map</h2>
+    
+    <div class="controls">
+        <label for="sequenceInput">Protein Sequence:</label>
+        <!-- Added oninput for immediate rendering -->
+        <textarea id="sequenceInput" spellcheck="false" oninput="updateVisualization()">SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK</textarea>
+        
+        <div class="settings">
+            <button onclick="updateVisualization()">Render Sequence</button>
+            <label><input type="checkbox" id="showSeparators" checked onchange="updateVisualization()"> Show Ribbon Separators</label>
+            <label title="Matches residues based on proximity in the canonical list (G A T S D E...)"><input type="checkbox" id="useChemicalSim" checked onchange="updateVisualization()"> Use Chemical Similarity</label>
+            
+            <label title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
+                Mosaic Smoothing: 
+                <!-- Slider extended to 24 -->
+                <input type="range" id="mosaicWindow" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
+                <span id="mosaicVal" style="font-weight:bold; width:20px;">5</span>
+            </label>
+        </div>
+
+        <div class="toggles">
+            <strong>Detect Periods:</strong>
+            <label><input type="checkbox" class="period-toggle" value="2" checked onchange="updateVisualization()"> 2</label>
+            <label><input type="checkbox" class="period-toggle" value="3" checked onchange="updateVisualization()"> 3</label>
+            <label><input type="checkbox" class="period-toggle" value="4" checked onchange="updateVisualization()"> 4</label>
+            <label><input type="checkbox" class="period-toggle" value="5" checked onchange="updateVisualization()"> 5</label>
+            <label><input type="checkbox" class="period-toggle" value="6" checked onchange="updateVisualization()"> 6</label>
+            <label><input type="checkbox" class="period-toggle" value="7" checked onchange="updateVisualization()"> 7</label>
+        </div>
+    </div>
+
+    <div class="canvas-wrapper" id="canvasContainer">
+        <div class="label">Literal Sequence (1:1)</div>
+        <canvas id="literalCanvas" height="15"></canvas>
+        
+        <div class="label">Texture Map (Ribbon / Sorted Stack)</div>
+        <canvas id="textureCanvas" height="40"></canvas>
+
+        <div class="label">Detected Periodicity (0-7)</div>
+        <canvas id="periodCanvas" height="15"></canvas>
+    </div>
+
+    <div class="legend" id="legendContainer"></div>
+</div>
+
+<!-- Tooltip moved outside container to avoid clipping -->
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+    // --- Configuration ---
+
+    // 1. Color Palette 
+    const aaColors = {
+        'G': '#FFFFFF', // White
+        'A': '#CCCCCC', // Light Grey
+        'T': '#00008B', // Dark Blue
+        'S': '#ADD8E6', // Light Blue
+        'D': '#FF0000', // Red
+        'E': '#FF6666', // Red (Lighter)
+        'Q': '#800080', // Purple
+        'N': '#FF00FF', // Magenta
+        'V': '#008000', // Green
+        'L': '#32CD32', // Lime Green
+        'I': '#228B22', // Forest Green
+        'K': '#00FFFF', // Cyan
+        'R': '#00BFFF', // Deep Sky Blue
+        'M': '#2E8B57', // Sea Green
+        'C': '#ADFF2F', // Green Yellow
+        'F': '#8B4513', // Saddle Brown
+        'Y': '#A0522D', // Sienna
+        'W': '#D2691E', // Chocolate
+        'H': '#4682B4', // Steel Blue
+        'P': '#FFD700', // Gold
+        'X': '#666666'  // Unknown
+    };
+
+    // Periodicity Colors (Rainbow)
+    const periodColors = {
+        0: '#444444', // Grey (None)
+        2: '#FF4136', // Red
+        3: '#FF851B', // Orange
+        4: '#FFDC00', // Yellow
+        5: '#2ECC40', // Green
+        6: '#0074D9', // Blue
+        7: '#B10DC9'  // Violet
+    };
+
+    // 2. Canonical Sort Order 
+    const canonicalOrderStr = "G A T S D E Q N V L I K R M C F Y W H P";
+    const canonicalOrder = canonicalOrderStr.split(' ');
+    const aaRank = {};
+    canonicalOrder.forEach((aa, i) => aaRank[aa] = i);
+
+    const canvas = document.getElementById('textureCanvas');
+    const ctx = canvas.getContext('2d');
+    const litCanvas = document.getElementById('literalCanvas');
+    const litCtx = litCanvas.getContext('2d');
+    const perCanvas = document.getElementById('periodCanvas');
+    const perCtx = perCanvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+
+    // --- Core Algorithms ---
+
+    function getCanonicalRotation(subseq) {
+        // Rotate string until it starts with the "lightest" AA (lowest rank)
+        let minRank = Infinity;
+        for (let char of subseq) {
+            let r = aaRank[char] !== undefined ? aaRank[char] : 100;
+            if (r < minRank) minRank = r;
+        }
+
+        let bestRotations = [];
+        for (let i = 0; i < subseq.length; i++) {
+            if ((aaRank[subseq[i]] || 100) === minRank) {
+                bestRotations.push(subseq.substring(i) + subseq.substring(0, i));
+            }
+        }
+        bestRotations.sort();
+        return bestRotations[0] || subseq;
+    }
+
+    function getChemicalDistance(aa1, aa2) {
+        let r1 = aaRank[aa1];
+        let r2 = aaRank[aa2];
+        if (r1 === undefined || r2 === undefined) return 100;
+        return Math.abs(r1 - r2);
+    }
+
+    function detectPeriodicity(seq, index) {
+        let bestPeriod = 0;
+        let bestScore = 0;
+        const useChem = document.getElementById('useChemicalSim').checked;
+        
+        // Get active periods
+        const activePeriods = Array.from(document.querySelectorAll('.period-toggle:checked')).map(cb => parseInt(cb.value));
+
+        // Check enabled periods
+        for (let p of activePeriods) {
+            let matches = 0;
+            let comparisons = 0;
+            
+            // Check immediate and secondary neighbors
+            for (let k = 0; k < p; k++) {
+                if (index + k + p < seq.length) {
+                    comparisons++;
+                    let aa1 = seq[index + k];
+                    let aa2 = seq[index + k + p];
+                    
+                    if (aa1 === aa2) {
+                        matches += 1.0;
+                    } else if (useChem) {
+                        let dist = getChemicalDistance(aa1, aa2);
+                        if (dist <= 3) matches += 0.7; // Strong similarity
+                        else if (dist <= 5) matches += 0.3; // Weak similarity
+                    }
+                }
+                
+                // Look ahead 2 cycles for reinforcement
+                if (index + k + (2*p) < seq.length) {
+                    comparisons++;
+                    let aa1 = seq[index + k];
+                    let aa3 = seq[index + k + (2*p)];
+                    if (aa1 === aa3) matches += 1.0;
+                    else if (useChem && getChemicalDistance(aa1, aa3) <= 3) matches += 0.7;
+                }
+            }
+
+            let score = comparisons > 0 ? matches / comparisons : 0;
+            
+            // Prefer shorter periods if scores are tied/similar, unless longer is significantly better
+            if (score > bestScore * 1.1) {
+                bestScore = score;
+                bestPeriod = p;
+            }
+        }
+
+        return { period: bestPeriod, score: bestScore };
+    }
+
+    function renderSequence(seq) {
+        const widthPerResidue = 10; 
+        const texHeight = canvas.height;
+        const litHeight = litCanvas.height;
+        const perHeight = perCanvas.height;
+        
+        const totalWidth = seq.length * widthPerResidue;
+        
+        // Ensure canvases are large enough
+        if (canvas.width !== totalWidth) {
+            canvas.width = totalWidth;
+            litCanvas.width = totalWidth;
+            perCanvas.width = totalWidth;
+        }
+        
+        // Clear with Dark Grey
+        [ctx, litCtx, perCtx].forEach(c => {
+            c.fillStyle = "#333";
+            c.fillRect(0, 0, totalWidth, 100);
+        });
+
+        const showLines = document.getElementById('showSeparators').checked;
+        const mosaicWindowSize = parseInt(document.getElementById('mosaicWindow').value) || 5;
+        
+        canvas.dataMap = [];
+
+        for (let i = 0; i < seq.length; i++) {
+            const x = i * widthPerResidue;
+            const aa = seq[i];
+            const color = aaColors[aa] || '#666';
+
+            // --- 1. Literal Bar (Top) ---
+            litCtx.fillStyle = color;
+            litCtx.fillRect(x, 0, widthPerResidue, litHeight);
+            litCtx.strokeStyle = "rgba(0,0,0,0.1)";
+            litCtx.strokeRect(x, 0, widthPerResidue, litHeight);
+
+            // --- 2. Pattern Analysis ---
+            let detection = detectPeriodicity(seq, i);
+            let period = detection.period;
+            let score = detection.score;
+
+            let threshold = document.getElementById('useChemicalSim').checked ? 0.6 : 0.5;
+            let isRibbon = score >= threshold;
+
+            // --- 3. Periodicity Bar (Bottom) ---
+            // Visual feedback of what period was detected
+            let pColor = isRibbon ? periodColors[period] : periodColors[0];
+            perCtx.fillStyle = pColor;
+            perCtx.fillRect(x, 0, widthPerResidue, perHeight);
+            // Slight separator
+            perCtx.fillStyle = "rgba(0,0,0,0.1)";
+            perCtx.fillRect(x, 0, 1, perHeight);
+
+
+            if (isRibbon) {
+                // === RIBBON MODE ===
+                let unit = seq.substring(i, i + period);
+                if (unit.length < period) unit = unit.padEnd(period, 'X');
+                
+                let canonicalUnit = getCanonicalRotation(unit);
+                let stripeHeight = texHeight / period;
+                
+                for (let s = 0; s < period; s++) {
+                    let stripeAA = canonicalUnit[s];
+                    ctx.fillStyle = aaColors[stripeAA] || '#666';
+                    ctx.fillRect(x, s * stripeHeight, widthPerResidue, stripeHeight);
+                    
+                    if (showLines && s > 0) {
+                        ctx.fillStyle = "rgba(0,0,0,0.2)";
+                        ctx.fillRect(x, s * stripeHeight, widthPerResidue, 1);
+                    }
+                }
+                canvas.dataMap[i] = { type: 'Ribbon', period, score: score.toFixed(2), aa, unit: canonicalUnit };
+
+            } else {
+                // === MOSAIC MODE (Sorted Stack) ===
+                
+                // Calculate local window indices centered on i
+                // Total width is mosaicWindowSize
+                let halfWin = (mosaicWindowSize - 1) / 2;
+                let startK = Math.ceil(-halfWin);
+                let endK = Math.floor(halfWin);
+                
+                let localAA = [];
+                for (let k = startK; k <= endK; k++) {
+                    if (i+k >= 0 && i+k < seq.length) {
+                        localAA.push(seq[i+k]);
+                    }
+                }
+                
+                // Sort by Canonical Order (Light -> Heavy)
+                localAA.sort((a, b) => (aaRank[a]||100) - (aaRank[b]||100));
+                
+                // Draw stack
+                if (localAA.length > 0) {
+                    let blockHeight = texHeight / localAA.length;
+                    for (let s = 0; s < localAA.length; s++) {
+                        ctx.fillStyle = aaColors[localAA[s]] || '#666';
+                        // Draw +1 height to prevent sub-pixel gaps
+                        ctx.fillRect(x, s * blockHeight, widthPerResidue, blockHeight + 0.5);
+                    }
+                }
+                
+                canvas.dataMap[i] = { type: 'Mosaic', aa, context: localAA.join(''), period: 0 };
+            }
+        }
+    }
+
+    // --- Interaction ---
+
+    function updateVisualization() {
+        let seq = document.getElementById('sequenceInput').value.replace(/[^A-Za-z]/g, '').toUpperCase();
+        renderSequence(seq);
+    }
+
+    // Update Tooltip logic for boundary checking
+    function handleTooltip(e, cvs) {
+        const rect = cvs.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const widthPerResidue = 10;
+        const index = Math.floor(x / widthPerResidue);
+
+        if (canvas.dataMap && canvas.dataMap[index]) {
+            const data = canvas.dataMap[index];
+            let text = `Pos: ${index+1} (${data.aa})\nType: ${data.type}`;
+            if (data.period > 0) text += `\nPeriod: ${data.period} (Sc: ${data.score})`;
+            if (data.unit) text += `\nPattern: ${data.unit}`;
+            
+            tooltip.textContent = text;
+            tooltip.style.display = 'block';
+            
+            // Get dimensions for smart positioning
+            const tRect = tooltip.getBoundingClientRect();
+            const pad = 15;
+            
+            let left = e.pageX + pad;
+            let top = e.pageY + pad;
+            
+            // Flip horizontal if it goes off screen to the right
+            if (left + tRect.width > document.documentElement.clientWidth) {
+                left = e.pageX - tRect.width - pad;
+            }
+            
+            // Flip vertical if it goes off screen at the bottom (relative to viewport)
+            if (e.clientY + tRect.height + pad > window.innerHeight) {
+                top = e.pageY - tRect.height - pad;
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        } else {
+            tooltip.style.display = 'none';
+        }
+    }
+
+    [canvas, litCanvas, perCanvas].forEach(cvs => {
+        cvs.addEventListener('mousemove', (e) => handleTooltip(e, cvs));
+        cvs.addEventListener('mouseout', () => tooltip.style.display = 'none');
+    });
+
+    function initLegend() {
+        const leg = document.getElementById('legendContainer');
+        if(!leg) return;
+        leg.innerHTML = '';
+        
+        // AA Legend
+        for (let [aa, color] of Object.entries(aaColors)) {
+            if (aa === 'X') continue;
+            let div = document.createElement('div');
+            div.className = 'legend-item';
+            div.innerHTML = `<div class="color-box" style="background:${color}"></div> <span>${aa}</span>`;
+            leg.appendChild(div);
+        }
+
+        // Period Legend
+        let pHeader = document.createElement('div');
+        pHeader.style.width = "100%";
+        pHeader.style.marginTop = "10px";
+        pHeader.style.fontSize = "11px";
+        pHeader.style.color = "#666";
+        pHeader.innerText = "PERIODICITY KEY (Bottom Bar):";
+        leg.appendChild(pHeader);
+
+        for (let [p, color] of Object.entries(periodColors)) {
+            let label = p == 0 ? "None" : p;
+            let div = document.createElement('div');
+            div.className = 'legend-item';
+            div.innerHTML = `<div class="color-box" style="background:${color}"></div> <span>${label}</span>`;
+            leg.appendChild(div);
+        }
+    }
+
+    // Initialize immediately
+    initLegend();
+    updateVisualization();
+
+</script>
+
+</body>
+</html>
