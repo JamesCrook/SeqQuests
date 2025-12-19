@@ -177,7 +177,7 @@ button:disabled {
 }
 
 /* Logs and Output Areas */
-#log, .log-output, .sequence-viewer, .alignment-viewer-container, .findings-list {
+#log, .log-output, .findings-list {
     background: var(--bg-tertiary);
     border-radius: 12px;
     padding: 15px;
@@ -188,6 +188,18 @@ button:disabled {
     color: var(--text-secondary);
     border: 1px solid var(--bg-secondary);
     min-height: 100px;
+}
+
+.alignment-viewer-container, .sequence-viewer {
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    padding: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    border: 1px solid var(--bg-secondary);
+    /* No overflow - always show full alignment */
 }
 
 #log {
@@ -303,7 +315,7 @@ input[type="checkbox"] {
 /* Match Explorer Specific Layout */
 .container.explorer-layout {
     display: grid;
-    grid-template-columns: minmax(400px, 1fr) 640px;
+    grid-template-columns: minmax(400px, 1fr) 700px;
     grid-template-rows: 1fr;
     gap: 20px;
     height: calc(100vh - 100px);
