@@ -1,4 +1,7 @@
 // API Configuration
+// const API_BASE_URL = window.location.origin; // Defined in HTML
+// const API_TIMEOUT = 5300; // Defined in HTML
+
 function setConnectionStatus(connected) {
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
@@ -185,6 +188,7 @@ let statusText = null;
 let findings = null;
 let isInitializing = false;
 let parsedFindings = [];
+let selectedEntryIndex = null;
 
 // Initialize the application
 // Made global so it can be called from lcars.js
@@ -192,9 +196,6 @@ window.initializeApp = async function() {
     // Check if required elements exist
     if (!document.getElementById('findingsList')) {
         // We might be loading just one part, or not loaded yet.
-        // If we are called, it means we likely expect them to be there.
-        // But if we only loaded findingsList (SubPanel) and not Alignment (MainPanel), we shouldn't fail hard.
-        // However, initializeApp tries to populate findings list.
     }
 
     // Prevent multiple simultaneous initializations
@@ -230,6 +231,10 @@ window.initializeApp = async function() {
 
         // Populate findings list
         populateFindingsList(parsedFindings);
+
+        // Handle URL Params
+        handleUrlParams();
+
     } catch (error) {
         console.error('Error during app initialization:', error);
         // Optionally set connection status to disconnected on error
@@ -240,6 +245,34 @@ window.initializeApp = async function() {
         isInitializing = false;
     }    
 };
+
+function handleUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hitId = urlParams.get('hit');
+
+    if (hitId && parsedFindings.length > 0) {
+        // Find index. header contains the ID like "249655-33536 s(299)..."
+        const index = parsedFindings.findIndex(f => f.header.startsWith(hitId + ' '));
+        if (index !== -1) {
+            selectEntry(index);
+            // Scroll findings list
+            const entryDiv = document.querySelector(`.finding-entry[data-index="${index}"]`);
+            if (entryDiv) {
+                entryDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+}
+
+function updateUrl(header) {
+    const match = header.match(/^(\d+-\d+)/);
+    if (match) {
+        const id = match[1];
+        const newUrl = `${window.location.pathname}?hit=${id}`;
+        // Update URL without reloading
+        window.history.pushState({ path: newUrl }, '', newUrl);
+    }
+}
 
 // Populate findings list
 function populateFindingsList(findingsArray) {
@@ -266,23 +299,34 @@ function populateFindingsList(findingsArray) {
             entryDiv.appendChild(detailDiv);
         });
         
-        // Hover event
-        entryDiv.addEventListener('mouseenter', async () => {
-            // Ignore if already loading or if this is the same entry we just loaded
-            if (isLoadingSequence || lastLoadedEntry === index) {
-                return;
-            }
-            
-            // Remove active class from all entries
-            document.querySelectorAll('.finding-entry').forEach(e => e.classList.remove('active'));
-            entryDiv.classList.add('active');
-            
-            currentHoveredEntry = index;
-            await loadSequenceDetails(finding, index);
+        // Click event
+        entryDiv.addEventListener('click', () => {
+             updateUrl(finding.header);
+             selectEntry(index);
         });
         
         findingsList.appendChild(entryDiv);
     });
+}
+
+async function selectEntry(index) {
+    // Ignore if loading or same entry
+    if (isLoadingSequence || selectedEntryIndex === index) {
+        return;
+    }
+
+    const finding = parsedFindings[index];
+    if (!finding) return;
+
+    // Update UI selection
+    document.querySelectorAll('.finding-entry').forEach(e => e.classList.remove('active'));
+    const entryDiv = document.querySelector(`.finding-entry[data-index="${index}"]`);
+    if (entryDiv) {
+        entryDiv.classList.add('active');
+    }
+
+    selectedEntryIndex = index;
+    await loadSequenceDetails(finding, index);
 }
 
 async function loadSequenceDetails(finding, index) {
@@ -294,8 +338,7 @@ async function loadSequenceDetails(finding, index) {
     const detailBadge = document.getElementById('detailBadge');
     const alignmentBadge = document.getElementById('alignmentBadge');
     
-    // Check if viewers exist (we might only have one panel loaded)
-
+    // Check if viewers exist
     if (detailViewer) {
          detailViewer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading sequence data...</span></div>';
     }
@@ -306,8 +349,8 @@ async function loadSequenceDetails(finding, index) {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    // Check if still hovering the same entry
-    if (currentHoveredEntry !== index) {
+    // Check if still selecting the same entry (handle race condition)
+    if (selectedEntryIndex !== index) {
         isLoadingSequence = false;
         return;
     }
@@ -362,8 +405,8 @@ async function loadSequenceDetails(finding, index) {
     const lineLen = 70;
 
     // Get starting positions from server data (convert from 0-indexed to 1-indexed)
-    let pos1 = (serverData.seq1_start || 0) + 1;
-    let pos2 = (serverData.seq2_start || 0) + 1;
+    let pos1 = (serverData && serverData.seq1_start || 0) + 1;
+    let pos2 = (serverData && serverData.seq2_start || 0) + 1;
 
     for (let i = 0; i < alignment.align1.length; i += lineLen) {
         const chunk1 = alignment.align1.substr(i, lineLen);
@@ -428,9 +471,16 @@ async function loadSequenceDetails(finding, index) {
     // Mark this entry as loaded and clear loading flag
     lastLoadedEntry = index;
     isLoadingSequence = false;
+
+    // Scroll details panel to top
+    const rightPanel = document.getElementById('RightPanel');
+    if (rightPanel) {
+        rightPanel.scrollTop = 0;
+    }
 }
 
 function getMatchText( index ){
+    if (index === null || index < 0 || index >= parsedFindings.length) return '';
     item = parsedFindings[index];
     return `${item.header}\n${item.details[0]}\n${item.details[1]}\n\n`;
 }
@@ -467,7 +517,7 @@ function copyAlignment() {
     });
 }
 
-// Copy alignment to clipboard
+// Copy details to clipboard
 function copyDetail() {
     const detailViewer = document.getElementById('detailViewer');
     const copyBtn = document.getElementById('copyDetailBtn');

@@ -26,13 +26,10 @@
     </header>
 
     <div class="container explorer-layout">
-        <!-- Top Panel: Alignment View -->
-        <div class="panel alignment-panel" id="TopPanel"></div>
-
         <!-- Left Panel: Findings List -->
         <div class="panel findings-panel" id="LeftPanel"></div>
 
-        <!-- Right Panel: Detail View -->
+        <!-- Right Panel: Detail View (now includes Alignment) -->
         <div class="panel detail-panel-container" id="RightPanel"></div>
     </div>
 
@@ -51,7 +48,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             // Load partials using Lcars
 
-            // We load all three.
+            // We load only the two needed panels.
             // Note: Lcars.loadPartial is async but we fire them off.
             // We need to wait for all of them before initializing the logic?
             // The initializeApp logic binds to elements. It will fail if elements aren't there.
@@ -59,7 +56,6 @@
             // Chain the loads or use Promise.all if loadPartial returned a promise (it does).
 
             Promise.all([
-                Lcars.loadPartial('TopPanel', './panels/alignment_view.html'),
                 Lcars.loadPartial('LeftPanel', './panels/findings_list.html'),
                 Lcars.loadPartial('RightPanel', './panels/detail_view.html')
             ]).then(() => {

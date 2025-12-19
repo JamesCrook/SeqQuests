@@ -304,7 +304,7 @@ input[type="checkbox"] {
 .container.explorer-layout {
     display: grid;
     grid-template-columns: minmax(400px, 1fr) 640px;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
     gap: 20px;
     height: calc(100vh - 100px);
     background: none;
@@ -368,18 +368,16 @@ header h1 {
 
 .findings-panel {
     grid-column: 1;
-    grid-row: 2;
     margin-top: 0;
     overflow: auto; /* Add scrollbar when content overflows */
-    max-height: calc(100vh - 280px - 20px); /* Adjust based on alignment panel height + margins */
+    max-height: 100%;
 }
 
 .detail-panel-container {
     grid-column: 2;
-    grid-row: 2;
     margin-top: 0;
     overflow: auto; /* Add scrollbar when content overflows */
-    max-height: calc(100vh - 280px - 20px); /* Adjust based on alignment panel height + margins */
+    max-height: 100%;
 }
 
 .panel-header {
