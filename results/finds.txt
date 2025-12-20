@@ -47,10 +47,41 @@ In this file I also placed:
 P85828 is annotated as a single-pass membrane protein with a TRANSMEM region at 90-112.
 E2ADG2 is annotated as a secreted protein.
 
-It appears the Apis entry (P85828) contains an incorrect N-terminal extension. The region annotated as transmembrane (90-112) aligns with the Signal Peptide of the Camponotus entry. This suggests P85828 is also a secreted neuropeptide precursor, and the "membrane" classification is a computational artifact arising from the extended gene model.
+It appears the Apis entry (P85828) contains an incorrect N-terminal extension. The region annotated as transmembrane (90-112) aligns with the Signal Peptide of the Camponotus entry. This suggests P85828 is also a secreted neuropeptide precursor, and the "membrane" classification is a computational artifact arising from the extended gene model. Another 
+possibility is that the Apis entry is a polyprotein that is cleaved, and that the N terminal has some additional role.
 
+??Or is Prohormone already indicating this is a known polyprotein??  
 
+This same miss in the data file was also reported against Black cutworm moth. I've assembled the two together...
 
+206874-331047 s(590) C0HKU1-P85828 Length: 217/314
+ 206874: ITG-like peptide {ECO:0000303|PubMed:29466015}; Agrotis ipsilon (Black cutworm moth).
+ 331047: Prohormone-3; Apis mellifera (Honeybee).
+[331048: ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).]
+
+     1  MHRTMAVTAVLVLSAAG-AAHAWGGLFNRFSSDMLANLGYGRSPYRHYPYGQEPEEVYAEALEGNRLDDV cutworm moth
+        |....|.|.|...|... ...||||||||||..||.|||||... .|............... |...|. 
+    89  MYTCVALTVVALVSTMHFGVEAWGGLFNRFSPEMLSNLGYGSHG-DHISKSGLYQRPLSTSY-GYSYDS- honeybee
+        |....|.|.|....|...|||||||||||||||||||||||.||......||.|......||......||
+     1  MRVYAAITLVLVANTAYIGVEAWGGLFNRFSPEMLSNLGYGGHGSYMNRPGLLQEGYDGIYGEGAEPTEE carpenter ant
+
+    70  IDEPGHCYSAPCTTNGDCCRGLLCLDTE-DGGRCLPAFAGRKLGEICNRENQCDAGLVCEEVVPGEMHVC
+        ..|...||...||.|..||.|..|.... |.|.|.... |.|.||.|...|.|..||.|.||...|...|
+   156  LEEVIPCYERKCTLNEHCCPGSICMNVDGDVGHCVFEL-GQKQGELCRNDNDCETGLMCAEVAGSETRSC
+             |||||||..|.||||||||||..|..|.||...|..||||||.|.||||||||||..|      .   
+       71  --PCYERKCMYNDHCCPGSICMNFNGVTGTCVSDFGMTQGELCRRDSDCETGLMCAEMSG------H
+
+   139  RPPTAGRKQYNEDCNSSSECDVTRGLCCIMQRRHRQKPRKSCGYFKEPLVCIGPVATDQIREFVQHTAGE
+        ..|....|.|||.||.|.|||..|||||..||||||.|||.|.|||.|||||||||||||...||.|.||
+   225  QVPITSNKLYNEECNVSGECDISRGLCCQLQRRHRQTPRKVCSYFKDPLVCIGPVATDQIKSIVQYTSGE
+                   |||..|.||||||||||||||||||.|||||||||||||||||||||||||..||||||
+    130  ----------EECAMSSECDISRGLCCQLQRRHRQAPRKVCSYFKDPLVCIGPVATDQIKSVIQYTSGE
+
+   209  KRI
+        |||
+   295  KRITGQGNRIFKR
+        |||||||||.|||
+        KRITGQGNRLFKR
 
 
 65655-71747 s(250) Q2HEW6-A0A345BJN8 Length: 409/919
