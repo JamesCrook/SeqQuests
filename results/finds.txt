@@ -144,6 +144,34 @@ Functional annotation: probable capsule depolymerase
 This finding links an orphan prophage protein to a characterized enzymatic fold with clear functional implications.
 
 
+
+
+59770-12473 s(507) Q4R871-Q96P64 Length: 360/663
+ 59770: Cyclin-Y-like protein 2; Macaca fascicularis (Crab-eating macaque) (Cynomolgus monkey).
+ 12473: Arf-GAP with GTPase, ANK repeat and PH domain-containing protein 4 {ECO:0000312|HGNC:HGNC:23459}; Homo sapiens (Human).
+
+     1  MGNIMTCCVCPRASPELDQHQGSVCPCGSEIYKAAAGDMIAGVPVAAAVEPGEVTFEAGEGLHVHHICER
+        ||||.||.|.|..|.|.||.||||||..||||.|.|||..||.|.||||.|.|||.|.||.||.||...|
+     1  MGNILTCRVHPSVSLEFDQQQGSVCPSESEIYEAGAGDRMAGAPMAAAVQPAEVTVEVGEDLHMHHVRDR
+
+    71  EMPEDIPLESNSSDHPKASTIFLRKSQTDVQEKRKSNYTKHVSTERFTQQYSSCSTIFLDDSTASQPHLT
+        ||||  .||.|.|..|.|||||.|.|||||.|.|.||.|.||||.||.||||.|||||||||||.|..||
+    71  EMPE--ALEFNPSANPEASTIFQRNSQTDVVEIRRSNCTNHVSTVRFSQQYSLCSTIFLDDSTAIQHYLT
+
+   141  MTLKSVTLAIYYHIKQRDADRSLGIFDERLHPLTREEV
+        ||..||||.|..||.||||||||.|.||.||......|
+   139  MTIISVTLEIPHHITQRDADRSLSIPDEQLHSFAVSTV
+
+This is known (GeneCards). GeneCards shows:
+
+SIMAP paralogs for CCNYL2 Gene using alignment 
+CCNYL1 CTGLF11P AGAP8 AGAP4 CCNYL3 CCNY FLJ00312 AGAP10
+However, it seems Simap is no longer maintained.
+
+The N-terminal sequence similarity is NOT characterized in the literature. The papers on Cyclin-Y discuss its conserved 
+cyclin box domain but don't mention relationship to AGAP proteins. This N-terminal region (~180 amino acids) that shows high similarity is upstream of the annotated cyclin domain (which starts at residue 204 in CCYL2). This suggests a shared ancestral N-terminal module that predates the gene duplications - and could merit a datafile update.
+
+
 354971-111557 s(244) Q9LET3-Q9UTK7 Length: 293/372
 354971: Rhomboid-like protein 20 {ECO:0000303|PubMed:16895613}; Arabidopsis thaliana (Mouse-ear cress).
 111557: DSC E3 ubiquitin ligase complex subunit 2; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
