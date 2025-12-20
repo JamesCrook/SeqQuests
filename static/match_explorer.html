@@ -61,6 +61,13 @@
             ]).then(() => {
                 if (typeof window.initializeApp === 'function') {
                     window.initializeApp();
+                    if (typeof initMultiscroller === 'function') {
+                        initMultiscroller();
+                        // Sync UI state in case of re-render
+                        if (typeof updateMultiscrollUI === 'function') {
+                            updateMultiscrollUI();
+                        }
+                    }                    
                 }
             });
         });
