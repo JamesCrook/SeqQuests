@@ -589,8 +589,8 @@ let dragData = {
 
 // Initialize Drag Listeners
 function initMultiscroller() {
-    const leftPanel = document.getElementById('LeftPanel');
-    const rightPanel = document.getElementById('RightPanel');
+    const leftPanel = document.getElementById('findingsList');
+    const rightPanel = document.getElementById('pairViewer');
 
     if (!leftPanel || !rightPanel) return;
 
@@ -611,8 +611,9 @@ function initMultiscroller() {
 function startDrag(e, panelId) {
     if (!isMultiscrollerEnabled) return;
 
-    const leftPanel = document.getElementById('LeftPanel');
-    const rightPanel = document.getElementById('RightPanel');
+    //const leftPanel = document.getElementById('LeftPanel');
+    const leftPanel = document.getElementById('findingsList');
+    const rightPanel = document.getElementById('pairViewer');
 
     dragData.isDragging = true;
     dragData.startY = e.clientY;
@@ -630,8 +631,8 @@ function endDrag() {
 
     dragData.isDragging = false;
     document.body.classList.remove('dragging');
-    const leftPanel = document.getElementById('LeftPanel');
-    const rightPanel = document.getElementById('RightPanel');
+    const leftPanel = document.getElementById('findingsList');
+    const rightPanel = document.getElementById('pairViewer');
     if (leftPanel) leftPanel.classList.remove('active-drag');
     if (rightPanel) rightPanel.classList.remove('active-drag');
 }
@@ -642,15 +643,15 @@ function handleDrag(e) {
     e.preventDefault();
 
     const deltaY = e.clientY - dragData.startY;
-    const leftPanel = document.getElementById('LeftPanel');
-    const rightPanel = document.getElementById('RightPanel');
+    const leftPanel = document.getElementById('findingsList');
+    const rightPanel = document.getElementById('pairViewer');
 
     // 1. Update the dragged panel normally (drag down -> scroll up = content moves down)
     // Actually, "drag to scroll" usually means:
     // Drag Mouse Down -> Content Moves Down -> Scroll Top Decreases.
     // So scrollTop = startScroll - deltaY.
 
-    if (dragData.draggedPanelId === 'LeftPanel') {
+    if (dragData.draggedPanelId === 'findingsList') {
         leftPanel.scrollTop = dragData.startScrollLeft - deltaY;
         syncRightPanel(leftPanel, rightPanel);
     } else {
@@ -660,7 +661,6 @@ function handleDrag(e) {
 }
 
 function syncRightPanel(leftPanel, rightPanel) {
-    // Requirement:
     // Top of selected item @ Top of Left View -> Right Panel @ Top (0)
     // Bottom of selected item @ Bottom of Left View -> Right Panel @ Bottom (Max)
 
@@ -669,15 +669,7 @@ function syncRightPanel(leftPanel, rightPanel) {
     const entry = document.querySelector(`.finding-entry[data-index="${selectedEntryIndex}"]`);
     if (!entry) return;
 
-    const itemTop = entry.offsetTop; // Relative to offsetParent (which should be finding-list content)
-    // But LeftPanel scrollTop is relative to the viewport.
-    // Position of item relative to viewport top:
-    // y = itemTop - leftPanel.scrollTop
-
-    // However, finding-list might be a container inside LeftPanel.
-    // LeftPanel is .panel.findings-panel.
-    // findingsList is #findingsList inside it.
-    // If #LeftPanel has overflow:auto, then offsetTop is relative to the scrollable content top.
+    const itemTop = entry.offsetTop - leftPanel.offsetTop; // Relative to leftPanel
 
     const H_left = leftPanel.clientHeight;
     const h_item = entry.offsetHeight;
@@ -685,18 +677,7 @@ function syncRightPanel(leftPanel, rightPanel) {
     // y is the position of the top of the item relative to the top of the viewport
     const y = itemTop - leftPanel.scrollTop;
 
-    // We want to map y from [0, H_left - h_item] to Right Panel Scroll Range [0, MaxScroll]
-    // Wait, "Inverse Scrolling":
-    // As we scroll Left Panel DOWN (scrollTop increases), y decreases (item moves UP).
-    // As y decreases, we want Right Panel to scroll UP (scrollTop decreases).
-    // So T_right should be proportional to y.
-
-    // Range for y where sync happens:
-    // Condition 1: Item Top at Top View -> y = 0. We want T_right = 0.
-    // Condition 2: Item Bottom at Bottom View -> y + h_item = H_left -> y = H_left - h_item.
-    // We want T_right = MaxScroll.
-
-    // So T_right = y * (MaxScroll / (H_left - h_item))
+    // T_right = y * (MaxScroll / (H_left - h_item))
 
     const S_right = rightPanel.scrollHeight;
     const H_right = rightPanel.clientHeight;
@@ -707,10 +688,8 @@ function syncRightPanel(leftPanel, rightPanel) {
 
     const targetScroll = y * (maxScrollRight / denominator);
 
-    // Clamp or let it go beyond? "can stop once beyond these limits".
-    // I will clamp it to [0, maxScrollRight] effectively by clamping y?
-    // Or just set it and let the browser clamp scrollTop.
-    // User said "ganged scrolling can stop once beyond these limits".
+    // Just set it and let the browser clamp scrollTop.
+    // "ganged scrolling can stop once beyond these limits".
 
     rightPanel.scrollTop = targetScroll;
 }
@@ -739,13 +718,13 @@ function syncLeftPanel(leftPanel, rightPanel) {
     const factor = maxScrollRight / denominator;
 
     // Current Right Scroll
-    const T_right = rightPanel.scrollTop;
+    const T_right = rightPanel.scrollTop ;
 
     // Calculated y
     const y = T_right / factor;
 
     // Calculated T_left
-    const itemTop = entry.offsetTop;
+    const itemTop = entry.offsetTop - leftPanel.offsetTop;
     const targetScrollLeft = itemTop - y;
 
     leftPanel.scrollTop = targetScrollLeft;

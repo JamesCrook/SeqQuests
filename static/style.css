@@ -96,6 +96,7 @@ a:hover {
     padding: 20px;
     margin-bottom: 20px;
     position: relative;
+    min-height: 0; 
     /* box-shadow: var(--shadow); */
 }
 
@@ -107,7 +108,10 @@ a:hover {
 .panel {
     padding: 0;
     display: flex;
+    flex: 1;   
     flex-direction: column;
+    min-height: 0;    
+    height: 100%;
 }
 
 .container {
@@ -376,19 +380,20 @@ header h1 {
     grid-column: 1 / -1;
     margin-top: 10px;
     height: 480px;
+    min-height: 0;    
 }
 
 .findings-panel {
     grid-column: 1;
     margin-top: 0;
-    overflow: auto; /* Add scrollbar when content overflows */
+    /*overflow: auto; /* Add scrollbar when content overflows */
     max-height: 100%;
 }
 
 .detail-panel-container {
     grid-column: 2;
     margin-top: 0;
-    overflow: auto; /* Add scrollbar when content overflows */
+    /* overflow: auto; /* Add scrollbar when content overflows */
     max-height: 100%;
 }
 
@@ -614,13 +619,25 @@ header h1 {
 }
 
 .findings-list {
-    flex: 1;
+    flex: 1 1 0;
     overflow-y: auto;
     padding: 20px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
     line-height: 1.8;
     color: var(--text-secondary);
+    min-height: 0;
+}
+
+.pair-container{
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    min-height: 0;
 }
 
 .stats-bar-wrap {
