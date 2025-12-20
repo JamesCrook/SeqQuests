@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="./wheel.ico">
+<title>Tree Browser</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  background: #16213e;
+  padding: 10px 15px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  border-bottom: 1px solid #0f3460;
+  flex-shrink: 0;
+}
+
+.toolbar label {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.toolbar input[type="text"] {
+  background: #0f3460;
+  border: 1px solid #1a1a4e;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 250px;
+}
+
+.toolbar input[type="text"]:focus {
+  outline: none;
+  border-color: #4a9eff;
+}
+
+.toolbar button {
+  background: #0f3460;
+  border: 1px solid #1a1a4e;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toolbar button:hover {
+  background: #1a4a7e;
+}
+
+.search-info {
+  font-size: 12px;
+  color: #888;
+  min-width: 100px;
+}
+
+.breadcrumbs {
+  background: #0f3460;
+  padding: 8px 15px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #1a1a4e;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.breadcrumbs .label {
+  color: #666;
+  margin-right: 5px;
+}
+
+.breadcrumb {
+  color: #4a9eff;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.breadcrumb:hover {
+  background: #1a4a7e;
+}
+
+.breadcrumb.current {
+  color: #fff;
+  background: #2a5a8e;
+}
+
+.separator {
+  color: #444;
+}
+
+#mainUI {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.tree-container {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: scroll;
+  background: #12121f;
+  /* Firefox scrollbar */
+  scrollbar-width: auto;
+  scrollbar-color: #4a4a6e #1a1a2e;
+}
+
+/* Webkit (Chrome, Safari, Edge) scrollbar styling */
+.tree-container::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.tree-container::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+.tree-container::-webkit-scrollbar-thumb {
+  background: #4a4a6e;
+  border-radius: 7px;
+  border: 3px solid #1a1a2e;
+  min-height: 40px;
+}
+
+.tree-container::-webkit-scrollbar-thumb:hover {
+  background: #5a5a8e;
+}
+
+.tree-container::-webkit-scrollbar-corner {
+  background: #1a1a2e;
+}
+
+.tree-content {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px;
+  white-space: pre;
+  min-width: max-content;
+}
+
+.tree-line {
+  cursor: pointer;
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+.tree-line:hover {
+  background: #1a2a4e;
+}
+
+.tree-line.selected {
+  background: #2a4a7e;
+}
+
+.tree-line.search-match {
+  background: #4a3a1e;
+}
+
+.tree-line.search-match.selected {
+  background: #5a4a2e;
+}
+
+.node-accession {
+  color: #4ae;
+}
+
+.node-name {
+  color: #aaa;
+}
+
+.node-organism {
+  color: #6a6;
+}
+
+.node-length {
+  color: #a8a;
+}
+
+.node-score {
+  color: #aa6;
+}
+
+.tree-chars {
+  color: #555;
+}
+
+.instructions {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(15, 52, 96, 0.9);
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #888;
+  max-width: 300px;
+}
+
+.instructions kbd {
+  background: #1a1a2e;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.load-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.load-area h2 {
+  color: #4a9eff;
+}
+
+.load-area textarea {
+  width: 80%;
+  max-width: 800px;
+  height: 300px;
+  background: #0f3460;
+  border: 1px solid #1a1a4e;
+  color: #fff;
+  padding: 15px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.load-area button {
+  background: #4a9eff;
+  border: none;
+  color: #fff;
+  padding: 10px 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.load-area button:hover {
+  background: #3a8eef;
+}
+
+.hidden {
+  display: none !important;
+}
+</style>
+</head>
+<body>
+
+<div id="loadArea" class="load-area">
+  <h2>Tree Browser</h2>
+  <p>Paste your tree data below:</p>
+  <textarea id="inputData" placeholder="0:Node 492056 A2ASS6 Length:35213 [ROOT 0] Titin; Mus musculus (Mouse).
+0:├─ Node 492055 Q8WZ42 Length:34350 (s:65503) Titin; Homo sapiens (Human).
+..."></textarea>
+  <button id="loadBtn">Load Tree</button>
+</div>
+
+<div id="mainUI" class="hidden">
+  <div class="toolbar">
+    <label>Search:</label>
+    <input type="text" id="searchBox" placeholder="Type to search...">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="nextBtn">Next ▶</button>
+    <span id="searchInfo" class="search-info"></span>
+    <div style="flex:1"></div>
+    <button id="resetBtn">Reset</button>
+  </div>
+  
+  <div id="breadcrumbs" class="breadcrumbs">
+    <span class="label">Path:</span>
+  </div>
+  
+  <div id="treeContainer" class="tree-container">
+    <div id="treeContent" class="tree-content"></div>
+  </div>
+</div>
+
+<div id="instructions" class="instructions hidden">
+  <strong>Navigation:</strong><br>
+  • Click a line to select<br>
+  • Click breadcrumbs to jump to ancestors<br>
+  • <kbd>↑</kbd>/<kbd>↓</kbd> to move selection<br>
+  • <kbd>Enter</kbd> in search to find next<br>
+  • <kbd>Esc</kbd> to clear search
+</div>
+
+<script>
+// Data structures
+let lines = [];           // Parsed line data
+let lineElements = [];    // DOM elements for each line
+let selectedIndex = -1;   // Currently selected line
+let searchMatches = [];   // Indices of lines matching search
+let currentMatchIndex = -1;
+
+// Parse a single line of tree data
+function parseLine(raw) {
+  // Pattern: "depth:treeChars Node ID ACCESSION Length:N (s:N)? Name; Organism."
+  // The depth prefix like "0:" or "40:" indicates indentation level
+  
+  const depthMatch = raw.match(/^(\d+):/);
+  if (!depthMatch) return null;
+  
+  const depthPrefix = parseInt(depthMatch[1], 10);
+  const rest = raw.substring(depthMatch[0].length);
+  
+  // Extract tree characters (├─, └─, │, spaces)
+  const treeCharsMatch = rest.match(/^([│├└─\s]*)/);
+  const treeChars = treeCharsMatch ? treeCharsMatch[1] : '';
+  const afterTree = rest.substring(treeChars.length);
+  
+  // Calculate actual depth from tree characters
+  // Each level is typically 3 chars: "│  " or "├─ " or "└─ " or "   "
+  let depth = 0;
+  if (treeChars.length > 0) {
+    // Count significant tree markers
+    depth = Math.floor((treeChars.length + 2) / 3);
+  }
+  // Add the abbreviated depth
+  depth += Math.floor(depthPrefix / 3);
+  
+  // Parse the node content
+  // Format: "Node ID ACCESSION Length:N (s:N)? Description; Organism."
+  const nodeMatch = afterTree.match(/^(Node\s+\d+)\s+([A-Z0-9]+)\s+Length:(\d+)(?:\s+\(s:(\d+)\))?\s*(?:\[([^\]]+)\])?\s*(.*)$/);
+  
+  if (!nodeMatch) {
+    return {
+      raw,
+      depthPrefix,
+      treeChars,
+      depth,
+      content: afterTree.trim(),
+      accession: null,
+      nodeId: null,
+      length: null,
+      score: null,
+      name: null,
+      organism: null
+    };
+  }
+  
+  const [, nodeId, accession, length, score, rootInfo, remainder] = nodeMatch;
+  
+  // Parse name and organism from remainder (format: "Name; Organism.")
+  let name = '', organism = '';
+  const semicolonIdx = remainder.indexOf(';');
+  if (semicolonIdx >= 0) {
+    name = remainder.substring(0, semicolonIdx).trim();
+    organism = remainder.substring(semicolonIdx + 1).replace(/\.$/, '').trim();
+  } else {
+    name = remainder.replace(/\.$/, '').trim();
+  }
+  
+  return {
+    raw,
+    depthPrefix,
+    treeChars,
+    depth,
+    accession,
+    nodeId,
+    length: parseInt(length, 10),
+    score: score ? parseInt(score, 10) : null,
+    rootInfo,
+    name,
+    organism
+  };
+}
+
+// Expand abbreviated indentation to full tree characters
+function expandTreeChars(line, index) {
+  if (!line) return '';
+  
+  // Build the full indentation based on depth and tree chars
+  const fullDepthChars = line.depthPrefix / 3; // How many levels are abbreviated
+  
+  // For abbreviated levels, we need to figure out the correct tree chars
+  // This requires looking at the tree structure
+  let expandedPrefix = '';
+  
+  // Look at previous lines to determine what continuation chars we need
+  for (let d = 0; d < fullDepthChars; d++) {
+    // Check if there are any siblings below at this depth
+    let hasSiblingBelow = false;
+    for (let i = index + 1; i < lines.length; i++) {
+      const otherLine = lines[i];
+      if (!otherLine) continue;
+      const otherFullDepth = Math.floor(otherLine.depthPrefix / 3) + 
+        (otherLine.treeChars.length > 0 ? Math.floor((otherLine.treeChars.length + 2) / 3) : 0);
+      if (otherFullDepth <= d) break; // Went back up
+      if (otherFullDepth === d + 1 && Math.floor(otherLine.depthPrefix / 3) <= d) {
+        hasSiblingBelow = true;
+        break;
+      }
+    }
+    expandedPrefix += hasSiblingBelow ? '│  ' : '   ';
+  }
+  
+  return expandedPrefix + line.treeChars;
+}
+
+// Render a parsed line to HTML
+function renderLine(line, index) {
+  if (!line) return '';
+  
+  const fullTreeChars = expandTreeChars(line, index);
+  
+  let html = `<span class="tree-chars">${escapeHtml(fullTreeChars)}</span>`;
+  
+  if (line.accession) {
+    html += `<span class="node-accession">${escapeHtml(line.nodeId)} ${escapeHtml(line.accession)}</span>`;
+    html += ` <span class="node-length">Length:${line.length}</span>`;
+    if (line.score !== null) {
+      html += ` <span class="node-score">(s:${line.score})</span>`;
+    }
+    if (line.rootInfo) {
+      html += ` [${escapeHtml(line.rootInfo)}]`;
+    }
+    if (line.name) {
+      html += ` <span class="node-name">${escapeHtml(line.name)}</span>`;
+    }
+    if (line.organism) {
+      html += `; <span class="node-organism">${escapeHtml(line.organism)}</span>`;
+    }
+  } else {
+    html += `<span class="node-name">${escapeHtml(line.content)}</span>`;
+  }
+  
+  return html;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Find ancestors of a line by walking up the tree
+function findAncestors(index) {
+  const ancestors = [];
+  if (index < 0 || index >= lines.length) return ancestors;
+  
+  const targetDepth = lines[index].depth;
+  let currentDepth = targetDepth;
+  
+  for (let i = index - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (line && line.depth < currentDepth) {
+      ancestors.unshift({ index: i, line });
+      currentDepth = line.depth;
+      if (currentDepth === 0) break;
+    }
+  }
+  
+  return ancestors;
+}
+
+// Update breadcrumb display
+function updateBreadcrumbs(index) {
+  const container = document.getElementById('breadcrumbs');
+  container.innerHTML = '<span class="label">Path:</span>';
+  
+  if (index < 0 || index >= lines.length) return;
+  
+  const ancestors = findAncestors(index);
+  const currentLine = lines[index];
+  
+  // Add ancestors
+  ancestors.forEach((anc, i) => {
+    const span = document.createElement('span');
+    span.className = 'breadcrumb';
+    span.textContent = anc.line.accession || `Node@${anc.index}`;
+    span.onclick = () => selectLine(anc.index);
+    container.appendChild(span);
+    
+    const sep = document.createElement('span');
+    sep.className = 'separator';
+    sep.textContent = ' › ';
+    container.appendChild(sep);
+  });
+  
+  // Add current
+  const current = document.createElement('span');
+  current.className = 'breadcrumb current';
+  current.textContent = currentLine.accession || `Node@${index}`;
+  container.appendChild(current);
+}
+
+// Select a line and scroll to it
+function selectLine(index) {
+  // Remove old selection
+  if (selectedIndex >= 0 && lineElements[selectedIndex]) {
+    lineElements[selectedIndex].classList.remove('selected');
+  }
+  
+  selectedIndex = index;
+  
+  if (index >= 0 && lineElements[index]) {
+    lineElements[index].classList.add('selected');
+    updateBreadcrumbs(index);
+    scrollToLine(index);
+  }
+}
+
+// Scroll to make a line visible, with horizontal scroll to show content
+function scrollToLine(index) {
+  const el = lineElements[index];
+  if (!el) return;
+  
+  const container = document.getElementById('treeContainer');
+  const line = lines[index];
+  
+  // Vertical scroll - center the line
+  const containerRect = container.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  
+  const elTop = el.offsetTop;
+  const targetScrollTop = elTop - (containerRect.height / 2) + (el.offsetHeight / 2);
+  container.scrollTop = Math.max(0, targetScrollTop);
+  
+  // Horizontal scroll - show the start of actual content (after tree chars)
+  if (line) {
+    const fullTreeChars = expandTreeChars(line, index);
+    const charWidth = 7.8; // Approximate width of monospace char at 13px
+    const contentStart = fullTreeChars.length * charWidth;
+    const targetScrollLeft = Math.max(0, contentStart - 50); // 50px padding
+    container.scrollLeft = targetScrollLeft;
+  }
+}
+
+// Search functionality
+function performSearch() {
+  const query = document.getElementById('searchBox').value.toLowerCase().trim();
+  
+  // Clear previous matches
+  searchMatches = [];
+  currentMatchIndex = -1;
+  lineElements.forEach(el => el.classList.remove('search-match'));
+  
+  if (!query) {
+    document.getElementById('searchInfo').textContent = '';
+    return;
+  }
+  
+  // Find all matches
+  lines.forEach((line, index) => {
+    if (!line) return;
+    const searchText = (line.accession || '') + ' ' + (line.name || '') + ' ' + (line.organism || '') + ' ' + (line.nodeId || '');
+    if (searchText.toLowerCase().includes(query)) {
+      searchMatches.push(index);
+      lineElements[index].classList.add('search-match');
+    }
+  });
+  
+  document.getElementById('searchInfo').textContent = `${searchMatches.length} matches`;
+  
+  if (searchMatches.length > 0) {
+    currentMatchIndex = 0;
+    selectLine(searchMatches[0]);
+    updateSearchInfo();
+  }
+}
+
+function findNext() {
+  if (searchMatches.length === 0) return;
+  currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+  selectLine(searchMatches[currentMatchIndex]);
+  updateSearchInfo();
+}
+
+function findPrev() {
+  if (searchMatches.length === 0) return;
+  currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+  selectLine(searchMatches[currentMatchIndex]);
+  updateSearchInfo();
+}
+
+function updateSearchInfo() {
+  if (searchMatches.length > 0) {
+    document.getElementById('searchInfo').textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
+  }
+}
+
+function resetView() {
+  document.getElementById('searchBox').value = '';
+  searchMatches = [];
+  currentMatchIndex = -1;
+  lineElements.forEach(el => el.classList.remove('search-match'));
+  document.getElementById('searchInfo').textContent = '';
+  selectLine(0);
+}
+
+// Main tree loading function
+function loadTree() {
+  const input = document.getElementById('inputData').value;
+  if (!input.trim()) return;
+  
+  // Parse all lines
+  const rawLines = input.split('\n');
+  lines = rawLines.map(raw => parseLine(raw.trimEnd()));
+  
+  // Render tree
+  const treeContent = document.getElementById('treeContent');
+  treeContent.innerHTML = '';
+  lineElements = [];
+  
+  lines.forEach((line, index) => {
+    const div = document.createElement('div');
+    div.className = 'tree-line';
+    div.innerHTML = renderLine(line, index);
+    div.onclick = () => selectLine(index);
+    treeContent.appendChild(div);
+    lineElements.push(div);
+  });
+  
+  // Show main UI
+  document.getElementById('loadArea').classList.add('hidden');
+  document.getElementById('mainUI').classList.remove('hidden');
+  document.getElementById('instructions').classList.remove('hidden');
+  
+  // Select first line
+  selectLine(0);
+  
+  // Focus search box
+  document.getElementById('searchBox').focus();
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  const searchBox = document.getElementById('searchBox');
+  const isSearchFocused = document.activeElement === searchBox;
+  
+  if (e.key === 'Escape') {
+    searchBox.value = '';
+    performSearch();
+    searchBox.blur();
+    return;
+  }
+  
+  if (e.key === 'Enter' && isSearchFocused) {
+    if (searchMatches.length === 0) {
+      performSearch();
+    } else {
+      findNext();
+    }
+    return;
+  }
+  
+  if (isSearchFocused) return;
+  
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (selectedIndex < lines.length - 1) {
+      selectLine(selectedIndex + 1);
+    }
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (selectedIndex > 0) {
+      selectLine(selectedIndex - 1);
+    }
+  } else if (e.key === '/') {
+    e.preventDefault();
+    searchBox.focus();
+  }
+});
+
+// Search on input
+document.getElementById('searchBox').addEventListener('input', performSearch);
+
+// Button event listeners
+document.getElementById('prevBtn').addEventListener('click', function() {
+  if (searchMatches.length === 0) return;
+  currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+  selectLine(searchMatches[currentMatchIndex]);
+  updateSearchInfo();
+});
+
+document.getElementById('nextBtn').addEventListener('click', function() {
+  if (searchMatches.length === 0) return;
+  currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+  selectLine(searchMatches[currentMatchIndex]);
+  updateSearchInfo();
+});
+
+document.getElementById('resetBtn').addEventListener('click', resetView);
+document.getElementById('loadBtn').addEventListener('click', loadTree);
+
+// Pre-populate with sample data for demo
+document.getElementById('inputData').value = `0:Node 492056 A2ASS6 Length:35213 [ROOT 0] Titin; Mus musculus (Mouse). 
+0:├─ Node 492055 Q8WZ42 Length:34350 (s:65503) Titin; Homo sapiens (Human).
+0:│  ├─ Node 514964 Q23551 Length:7158 (s:5354) Twitchin {ECO:0000303|PubMed:7190524}; Caenorhabditis elegans.
+0:│  │  └─ Node 103567 Q18066 Length:640 (s:297) Disorganized muscle protein 1; Caenorhabditis elegans.
+0:│  ├─ Node 197905 Q86VF2 Length:1251 (s:1036) Immunoglobulin-like and fibronectin type III domain-containing protein 1; Homo sapiens (Human).
+0:│  │  └─ Node 197906 Q3KNY0 Length:2849 (s:3400) Immunoglobulin-like and fibronectin type III domain-containing protein 1; Mus musculus (Mouse).
+0:│  │     └─ Node 461450 P83544 Length:148 (s:114) Transglutaminase-activating metalloprotease inhibitor; Streptomyces mobaraensis (Streptoverticillium mobaraense).
+0:│  │        ├─ Node 461449 O33702 Length:145 (s:461) Kexstatin-1; Streptomyces platensis.
+0:│  │        ├─ Node 461460 P80600 Length:108 (s:439) Protease inhibitor SIL-V5; Streptomyces luteoverticillatus (Streptoverticillatum luteoverticillatus).
+0:│  │        │  └─ Node 461456 P80598 Length:108 (s:442) Protease inhibitor SIL-V3; Streptomyces eurocidicus (Streptoverticillium eurocidicus).
+0:│  │        │     └─ Node 461461 P80596 Length:110 (s:419) Protease inhibitor SIL-V1/SIL-V4; Streptomyces netropsis (Streptoverticillium netropsis).
+0:│  │        │        └─ Node 461443 P29607 Length:113 (s:360) Subtilisin inhibitor-like protein 2; Streptomyces rochei (Streptomyces parvullus).
+0:│  │        │           ├─ Node 461455 P61152 Length:144 (s:459) Subtilase-type protease inhibitor; Streptomyces coelicolor (strain ATCC BAA-471 / A3(2) / M145).
+0:│  │        │           │  ├─ Node 461459 P61153 Length:144 (s:641) Protease inhibitor; Streptomyces lividans.
+0:│  │        │           │  │  └─ Node 461442 P35706 Length:144 (s:542) Trypsin inhibitor STI2; Streptomyces longisporus.
+0:│  │        │           │  │     ├─ Node 461454 Q825H1 Length:144 (s:555) Probable subtilase-type protease inhibitor; Streptomyces avermitilis (strain ATCC 31267 / DSM 46492 / JCM 5070 / NBRC 14893 / NCIMB 12804 / NRRL 8165 / MA-4680).
+0:│  │        │           │  │     │  ├─ Node 461452 P01007 Length:109 (s:461) Plasminostreptin; Streptomyces antifibrinolyticus.
+0:│  │        │           │  │     │  └─ Node 461457 Q9ZA15 Length:142 (s:337) Subtilase-type protease inhibitor; Streptomyces fradiae (Streptomyces roseoflavus).
+0:│  │        │           │  │     ├─ Node 461445 P29609 Length:116 (s:445) Subtilisin inhibitor-like protein 4; Streptomyces lavendulae.
+0:│  │        │           │  │     │  └─ Node 461446 Q9R643 Length:107 (s:367) Subtilisin inhibitor-like protein 5; Streptomyces fradiae (Streptomyces roseoflavus).
+0:│  │        │           │  │     └─ Node 461453 P01006 Length:144 (s:434) Subtilisin inhibitor; Streptomyces albogriseolus.
+0:│  │        │           │  │        ├─ Node 461458 P28592 Length:107 (s:477) Alkaline protease inhibitor 2C'; Streptomyces griseoincarnatus.
+0:│  │        │           │  │        └─ Node 461451 Q82L56 Length:146 (s:200) Putative serine protease inhibitor SAV_2156; Streptomyces avermitilis (strain ATCC 31267 / DSM 46492 / JCM 5070 / NBRC 14893 / NCIMB 12804 / NRRL 8165 / MA-4680).
+0:│  │        │           │  └─ Node 461444 P29608 Length:107 (s:478) Subtilisin inhibitor-like protein 3; Streptomyces coelicolor.
+0:│  │        │           └─ Node 461447 Q9R642 Length:109 (s:453) Subtilisin inhibitor-like protein 7; Streptomyces ambofaciens.
+0:│  │        ├─ Node 461462 P80597 Length:109 (s:426) Protease inhibitor SIL-V2; Streptomyces orinoci (Streptoverticillium orinoci).
+0:│  │        │  └─ Node 461439 Q9R641 Length:111 (s:355) Subtilisin inhibitor-like protein 12; Streptomyces hygroscopicus.
+0:│  │        │     └─ Node 461441 P29606 Length:110 (s:280) Subtilisin inhibitor-like protein 1; Streptomyces cacaoi.
+0:│  │        └─ Node 461463 O06871 Length:146 (s:337) Subtilisin inhibitor; Streptomyces violaceus (Streptomyces venezuelae).
+0:│  │           └─ Node 461448 P80388 Length:111 (s:295) Subtilisin inhibitor-like protein 8; Streptomyces virginiae (Streptomyces cinnamonensis).
+0:│  │              └─ Node 461440 Q9R645 Length:113 (s:365) Subtilisin inhibitor-like protein 15; Streptomyces bikiniensis.
+0:│  ├─ Node 269965 P16419 Length:1132 (s:918) Myosin-binding protein C, fast-type; Gallus gallus (Chicken).
+0:│  │  └─ Node 269967 Q5XKE0 Length:1136 (s:4277) Myosin-binding protein C, fast-type; Mus musculus (Mouse).
+0:│  │     ├─ Node 269966 Q14324 Length:1141 (s:5293) Myosin-binding protein C, fast-type; Homo sapiens (Human).
+0:│  │     │  └─ Node 269969 Q90688 Length:1272 (s:3189) Myosin-binding protein C, cardiac-type; Gallus gallus (Chicken).
+0:│  │     │     ├─ Node 269970 Q14896 Length:1274 (s:4671) Myosin-binding protein C, cardiac-type; Homo sapiens (Human).
+0:│  │     │     │  └─ Node 269972 P56741 Length:1274 (s:5705) Myosin-binding protein C, cardiac-type; Rattus norvegicus (Rat).
+0:│  │     │     │     └─ Node 269971 O70468 Length:1270 (s:5964) Myosin-binding protein C, cardiac-type; Mus musculus (Mouse).`;
+</script>
+
+</body>
+</html>
