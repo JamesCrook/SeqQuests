@@ -72,13 +72,19 @@ body {
   min-width: 100px;
 }
 
+.line-info {
+  font-size: 12px;
+  color: #666;
+  margin-left: auto;
+}
+
 .breadcrumbs {
   background: #0f3460;
   padding: 8px 15px;
   font-size: 13px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   flex-wrap: wrap;
   border-bottom: 1px solid #1a1a4e;
   min-height: 36px;
@@ -107,8 +113,66 @@ body {
   background: #2a5a8e;
 }
 
+.breadcrumb.ghosted {
+  color: #4a6a8e;
+  opacity: 0.6;
+}
+
+.breadcrumb.ghosted:hover {
+  opacity: 1;
+  background: #1a3a5e;
+}
+
 .separator {
   color: #444;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  cursor: pointer;
+  position: relative;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.separator:hover {
+  background: rgba(74, 158, 255, 0.15);
+  border-color: rgba(74, 158, 255, 0.3);
+}
+
+.separator.ghosted {
+  opacity: 0.4;
+}
+
+.separator.ghosted:hover {
+  opacity: 0.7;
+}
+
+.separator .tooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  background: #1a2a4e;
+  border: 1px solid #2a4a7e;
+  color: #aaa;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  white-space: pre;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.separator:hover .tooltip {
+  display: block;
 }
 
 #mainUI {
@@ -124,6 +188,7 @@ body {
   overflow-x: auto;
   overflow-y: scroll;
   background: #12121f;
+  position: relative;
   /* Firefox scrollbar */
   scrollbar-width: auto;
   scrollbar-color: #4a4a6e #1a1a2e;
@@ -154,19 +219,22 @@ body {
   background: #1a1a2e;
 }
 
-.tree-content {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  padding: 10px;
-  white-space: pre;
-  min-width: max-content;
+.tree-scroll-content {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
 }
 
 .tree-line {
+  position: absolute;
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  padding: 1px 10px;
   cursor: pointer;
-  padding: 1px 5px;
-  border-radius: 2px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  white-space: pre;
 }
 
 .tree-line:hover {
@@ -221,6 +289,23 @@ body {
   max-width: 300px;
 }
 
+.instructions .close-btn {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.instructions .close-btn:hover {
+  color: #aaa;
+}
+
 .instructions kbd {
   background: #1a1a2e;
   padding: 2px 5px;
@@ -269,8 +354,55 @@ body {
   background: #3a8eef;
 }
 
+.load-area .button-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .hidden {
   display: none !important;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 26, 46, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-overlay h2 {
+  color: #4a9eff;
+  margin-bottom: 20px;
+}
+
+.loading-overlay .status {
+  color: #aaa;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.loading-overlay .progress-bar {
+  width: 300px;
+  height: 8px;
+  background: #0f3460;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.loading-overlay .progress-fill {
+  height: 100%;
+  background: #4a9eff;
+  width: 0%;
+  transition: width 0.2s;
 }
 </style>
 </head>
@@ -278,11 +410,24 @@ body {
 
 <div id="loadArea" class="load-area">
   <h2>Tree Browser</h2>
-  <p>Paste your tree data below:</p>
+  <p>Paste your tree data below, or load from file:</p>
   <textarea id="inputData" placeholder="0:Node 492056 A2ASS6 Length:35213 [ROOT 0] Titin; Mus musculus (Mouse).
 0:├─ Node 492055 Q8WZ42 Length:34350 (s:65503) Titin; Homo sapiens (Human).
 ..."></textarea>
-  <button id="loadBtn">Load Tree</button>
+  <div class="button-row">
+    <button id="loadBtn">Load from Paste</button>
+    <span style="color: #666;">— or —</span>
+    <input type="file" id="fileInput" accept=".txt" style="display: none;">
+    <button id="fileBtn">Load from File</button>
+  </div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay hidden">
+  <h2>Loading Tree</h2>
+  <div id="loadingStatus" class="status">Reading file...</div>
+  <div class="progress-bar">
+    <div id="progressFill" class="progress-fill"></div>
+  </div>
 </div>
 
 <div id="mainUI" class="hidden">
@@ -292,7 +437,7 @@ body {
     <button id="prevBtn">◀ Prev</button>
     <button id="nextBtn">Next ▶</button>
     <span id="searchInfo" class="search-info"></span>
-    <div style="flex:1"></div>
+    <span id="lineInfo" class="line-info"></span>
     <button id="resetBtn">Reset</button>
   </div>
   
@@ -301,11 +446,12 @@ body {
   </div>
   
   <div id="treeContainer" class="tree-container">
-    <div id="treeContent" class="tree-content"></div>
+    <div id="treeScrollContent" class="tree-scroll-content"></div>
   </div>
 </div>
 
 <div id="instructions" class="instructions hidden">
+  <button class="close-btn" id="closeInstructions">×</button>
   <strong>Navigation:</strong><br>
   • Click a line to select<br>
   • Click breadcrumbs to jump to ancestors<br>
@@ -315,62 +461,69 @@ body {
 </div>
 
 <script>
+// Configuration
+const LINE_HEIGHT = 20;  // pixels per line
+const BUFFER_LINES = 20; // extra lines to render above/below viewport
+
 // Data structures
-let lines = [];           // Parsed line data
-let lineElements = [];    // DOM elements for each line
-let selectedIndex = -1;   // Currently selected line
-let searchMatches = [];   // Indices of lines matching search
+let rawLines = [];        // Raw line strings (unparsed for memory efficiency)
+let parsedCache = {};     // Cache of parsed lines (sparse)
+let lineCount = 0;
+let selectedIndex = -1;
+let searchMatches = new Set();
+let searchMatchList = [];
 let currentMatchIndex = -1;
 
+// Virtual scrolling state
+let visibleStart = 0;
+let visibleEnd = 0;
+let lineElements = {};    // Currently rendered DOM elements, keyed by line index
+
+// Breadcrumb forward history
+let forwardHistory = [];  // Array of {index, accession} for ghosted breadcrumbs
+
+// DOM references
+let treeContainer, treeScrollContent;
+
 // Parse a single line of tree data
-function parseLine(raw) {
-  // Pattern: "depth:treeChars Node ID ACCESSION Length:N (s:N)? Name; Organism."
-  // The depth prefix like "0:" or "40:" indicates indentation level
+function parseLine(index) {
+  if (parsedCache[index]) return parsedCache[index];
+  
+  const raw = rawLines[index];
+  if (!raw) return null;
   
   const depthMatch = raw.match(/^(\d+):/);
-  if (!depthMatch) return null;
+  if (!depthMatch) {
+    parsedCache[index] = { raw, depth: 0, content: raw };
+    return parsedCache[index];
+  }
   
   const depthPrefix = parseInt(depthMatch[1], 10);
   const rest = raw.substring(depthMatch[0].length);
   
-  // Extract tree characters (├─, └─, │, spaces)
   const treeCharsMatch = rest.match(/^([│├└─\s]*)/);
   const treeChars = treeCharsMatch ? treeCharsMatch[1] : '';
   const afterTree = rest.substring(treeChars.length);
   
-  // Calculate actual depth from tree characters
-  // Each level is typically 3 chars: "│  " or "├─ " or "└─ " or "   "
   let depth = 0;
   if (treeChars.length > 0) {
-    // Count significant tree markers
     depth = Math.floor((treeChars.length + 2) / 3);
   }
-  // Add the abbreviated depth
   depth += Math.floor(depthPrefix / 3);
   
-  // Parse the node content
-  // Format: "Node ID ACCESSION Length:N (s:N)? Description; Organism."
   const nodeMatch = afterTree.match(/^(Node\s+\d+)\s+([A-Z0-9]+)\s+Length:(\d+)(?:\s+\(s:(\d+)\))?\s*(?:\[([^\]]+)\])?\s*(.*)$/);
   
   if (!nodeMatch) {
-    return {
-      raw,
-      depthPrefix,
-      treeChars,
-      depth,
+    parsedCache[index] = {
+      raw, depthPrefix, treeChars, depth,
       content: afterTree.trim(),
-      accession: null,
-      nodeId: null,
-      length: null,
-      score: null,
-      name: null,
-      organism: null
+      accession: null
     };
+    return parsedCache[index];
   }
   
   const [, nodeId, accession, length, score, rootInfo, remainder] = nodeMatch;
   
-  // Parse name and organism from remainder (format: "Name; Organism.")
   let name = '', organism = '';
   const semicolonIdx = remainder.indexOf(';');
   if (semicolonIdx >= 0) {
@@ -380,55 +533,53 @@ function parseLine(raw) {
     name = remainder.replace(/\.$/, '').trim();
   }
   
-  return {
-    raw,
-    depthPrefix,
-    treeChars,
-    depth,
-    accession,
-    nodeId,
+  parsedCache[index] = {
+    raw, depthPrefix, treeChars, depth,
+    accession, nodeId,
     length: parseInt(length, 10),
     score: score ? parseInt(score, 10) : null,
-    rootInfo,
-    name,
-    organism
+    rootInfo, name, organism
   };
+  
+  return parsedCache[index];
 }
 
-// Expand abbreviated indentation to full tree characters
+// Expand abbreviated indentation
 function expandTreeChars(line, index) {
-  if (!line) return '';
+  if (!line || line.depthPrefix === undefined) return '';
   
-  // Build the full indentation based on depth and tree chars
-  const fullDepthChars = line.depthPrefix / 3; // How many levels are abbreviated
-  
-  // For abbreviated levels, we need to figure out the correct tree chars
-  // This requires looking at the tree structure
+  const fullDepthChars = line.depthPrefix / 3;
   let expandedPrefix = '';
   
-  // Look at previous lines to determine what continuation chars we need
   for (let d = 0; d < fullDepthChars; d++) {
-    // Check if there are any siblings below at this depth
     let hasSiblingBelow = false;
-    for (let i = index + 1; i < lines.length; i++) {
-      const otherLine = lines[i];
+    for (let i = index + 1; i < lineCount; i++) {
+      const otherLine = parseLine(i);
       if (!otherLine) continue;
-      const otherFullDepth = Math.floor(otherLine.depthPrefix / 3) + 
-        (otherLine.treeChars.length > 0 ? Math.floor((otherLine.treeChars.length + 2) / 3) : 0);
-      if (otherFullDepth <= d) break; // Went back up
-      if (otherFullDepth === d + 1 && Math.floor(otherLine.depthPrefix / 3) <= d) {
-        hasSiblingBelow = true;
-        break;
+      const otherFullDepth = otherLine.depth;
+      if (otherFullDepth <= d) break;
+      if (otherFullDepth === d + 1) {
+        const otherPrefixDepth = Math.floor((otherLine.depthPrefix || 0) / 3);
+        if (otherPrefixDepth <= d) {
+          hasSiblingBelow = true;
+          break;
+        }
       }
     }
     expandedPrefix += hasSiblingBelow ? '│  ' : '   ';
   }
   
-  return expandedPrefix + line.treeChars;
+  return expandedPrefix + (line.treeChars || '');
 }
 
-// Render a parsed line to HTML
-function renderLine(line, index) {
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Render a line to HTML
+function renderLineHtml(index) {
+  const line = parseLine(index);
   if (!line) return '';
   
   const fullTreeChars = expandTreeChars(line, index);
@@ -451,27 +602,75 @@ function renderLine(line, index) {
       html += `; <span class="node-organism">${escapeHtml(line.organism)}</span>`;
     }
   } else {
-    html += `<span class="node-name">${escapeHtml(line.content)}</span>`;
+    html += `<span class="node-name">${escapeHtml(line.content || '')}</span>`;
   }
   
   return html;
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Create or update a line element
+function createLineElement(index) {
+  const div = document.createElement('div');
+  div.className = 'tree-line';
+  div.style.top = (index * LINE_HEIGHT) + 'px';
+  div.style.height = LINE_HEIGHT + 'px';
+  div.innerHTML = renderLineHtml(index);
+  div.dataset.index = index;
+  
+  if (index === selectedIndex) {
+    div.classList.add('selected');
+  }
+  if (searchMatches.has(index)) {
+    div.classList.add('search-match');
+  }
+  
+  div.addEventListener('click', () => selectLine(index));
+  
+  return div;
 }
 
-// Find ancestors of a line by walking up the tree
+// Virtual scrolling: render visible lines
+function renderVisibleLines() {
+  const scrollTop = treeContainer.scrollTop;
+  const viewportHeight = treeContainer.clientHeight;
+  
+  const newStart = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - BUFFER_LINES);
+  const newEnd = Math.min(lineCount, Math.ceil((scrollTop + viewportHeight) / LINE_HEIGHT) + BUFFER_LINES);
+  
+  // Remove lines that are no longer visible
+  for (const idx in lineElements) {
+    const i = parseInt(idx);
+    if (i < newStart || i >= newEnd) {
+      lineElements[i].remove();
+      delete lineElements[i];
+    }
+  }
+  
+  // Add new lines that have become visible
+  for (let i = newStart; i < newEnd; i++) {
+    if (!lineElements[i]) {
+      const el = createLineElement(i);
+      treeScrollContent.appendChild(el);
+      lineElements[i] = el;
+    }
+  }
+  
+  visibleStart = newStart;
+  visibleEnd = newEnd;
+}
+
+// Find ancestors of a line
 function findAncestors(index) {
   const ancestors = [];
-  if (index < 0 || index >= lines.length) return ancestors;
+  if (index < 0 || index >= lineCount) return ancestors;
   
-  const targetDepth = lines[index].depth;
-  let currentDepth = targetDepth;
+  const targetLine = parseLine(index);
+  if (!targetLine) return ancestors;
+  
+  let currentDepth = targetLine.depth;
   
   for (let i = index - 1; i >= 0; i--) {
-    const line = lines[i];
+    const line = parseLine(i);
     if (line && line.depth < currentDepth) {
       ancestors.unshift({ index: i, line });
       currentDepth = line.depth;
@@ -483,38 +682,128 @@ function findAncestors(index) {
 }
 
 // Update breadcrumb display
-function updateBreadcrumbs(index) {
+function updateBreadcrumbs(index, fromBreadcrumbClick = false, clickedBreadcrumbIdx = -1) {
   const container = document.getElementById('breadcrumbs');
   container.innerHTML = '<span class="label">Path:</span>';
   
-  if (index < 0 || index >= lines.length) return;
+  if (index < 0 || index >= lineCount) return;
   
   const ancestors = findAncestors(index);
-  const currentLine = lines[index];
+  const currentLine = parseLine(index);
+  
+  // If clicked a breadcrumb, build forward history from current position
+  if (fromBreadcrumbClick && clickedBreadcrumbIdx >= 0) {
+    // Get the old breadcrumb trail (ancestors of where we were + where we were)
+    // The forward history should be everything after the clicked position
+    const oldAncestors = findAncestors(selectedIndex);
+    const oldTrail = [...oldAncestors.map(a => ({ index: a.index, accession: a.line.accession }))];
+    oldTrail.push({ index: selectedIndex, accession: parseLine(selectedIndex)?.accession });
+    
+    // Add any existing forward history
+    oldTrail.push(...forwardHistory);
+    
+    // Forward history is everything after clickedBreadcrumbIdx
+    forwardHistory = oldTrail.slice(clickedBreadcrumbIdx + 1);
+  }
+  
+  // Helper to extract node number from nodeId like "Node 492055"
+  function getNodeNumber(line) {
+    if (!line || !line.nodeId) return '?';
+    const match = line.nodeId.match(/Node\s+(\d+)/);
+    return match ? match[1] : '?';
+  }
   
   // Add ancestors
   ancestors.forEach((anc, i) => {
     const span = document.createElement('span');
     span.className = 'breadcrumb';
     span.textContent = anc.line.accession || `Node@${anc.index}`;
-    span.onclick = () => selectLine(anc.index);
+    span.addEventListener('click', () => {
+      document.getElementById('instructions').classList.add('hidden');
+      navigateViaBreadcrumb(anc.index, i);
+    });
     container.appendChild(span);
+    
+    // Separator with tooltip - connects this ancestor to the next node
+    const nextLine = (i < ancestors.length - 1) ? ancestors[i + 1].line : currentLine;
+    const parentNodeNum = getNodeNumber(anc.line);
+    const childNodeNum = getNodeNumber(nextLine);
+    const childScore = nextLine?.score;
     
     const sep = document.createElement('span');
     sep.className = 'separator';
-    sep.textContent = ' › ';
+    sep.innerHTML = '›';
+    
+    // Add tooltip
+    const tooltip = document.createElement('span');
+    tooltip.className = 'tooltip';
+    let tooltipText = `${parentNodeNum}-${childNodeNum}`;
+    if (childScore !== null && childScore !== undefined) {
+      tooltipText = `score:${childScore}\n${tooltipText}`;
+    }
+    tooltip.textContent = tooltipText;
+    sep.appendChild(tooltip);
+    
+    // Store data for future click handling
+    sep.dataset.parentNode = parentNodeNum;
+    sep.dataset.childNode = childNodeNum;
+    sep.dataset.score = childScore || '';
+    
     container.appendChild(sep);
   });
   
   // Add current
   const current = document.createElement('span');
   current.className = 'breadcrumb current';
-  current.textContent = currentLine.accession || `Node@${index}`;
+  current.textContent = (currentLine && currentLine.accession) || `Node@${index}`;
   container.appendChild(current);
+  
+  // Add forward history (ghosted)
+  let prevLine = currentLine;
+  forwardHistory.forEach((fwd, i) => {
+    const fwdLine = parseLine(fwd.index);
+    const parentNodeNum = getNodeNumber(prevLine);
+    const childNodeNum = getNodeNumber(fwdLine);
+    const childScore = fwdLine?.score;
+    
+    const sep = document.createElement('span');
+    sep.className = 'separator ghosted';
+    sep.innerHTML = '›';
+    
+    // Add tooltip
+    const tooltip = document.createElement('span');
+    tooltip.className = 'tooltip';
+    let tooltipText = `${parentNodeNum}-${childNodeNum}`;
+    if (childScore !== null && childScore !== undefined) {
+      tooltipText = `score:${childScore}\n${tooltipText}`;
+    }
+    tooltip.textContent = tooltipText;
+    sep.appendChild(tooltip);
+    
+    // Store data for future click handling
+    sep.dataset.parentNode = parentNodeNum;
+    sep.dataset.childNode = childNodeNum;
+    sep.dataset.score = childScore || '';
+    
+    container.appendChild(sep);
+    
+    const span = document.createElement('span');
+    span.className = 'breadcrumb ghosted';
+    span.textContent = fwd.accession || `Node@${fwd.index}`;
+    span.addEventListener('click', () => {
+      document.getElementById('instructions').classList.add('hidden');
+      navigateForward(i);
+    });
+    container.appendChild(span);
+    
+    prevLine = fwdLine;
+  });
 }
 
-// Select a line and scroll to it
-function selectLine(index) {
+// Navigate via breadcrumb click (preserves forward history)
+function navigateViaBreadcrumb(index, breadcrumbIdx) {
+  updateBreadcrumbs(index, true, breadcrumbIdx);
+  
   // Remove old selection
   if (selectedIndex >= 0 && lineElements[selectedIndex]) {
     lineElements[selectedIndex].classList.remove('selected');
@@ -522,128 +811,245 @@ function selectLine(index) {
   
   selectedIndex = index;
   
-  if (index >= 0 && lineElements[index]) {
+  if (lineElements[index]) {
     lineElements[index].classList.add('selected');
-    updateBreadcrumbs(index);
-    scrollToLine(index);
+  }
+  
+  updateLineInfo();
+  scrollToLine(index);
+}
+
+// Navigate forward in history
+function navigateForward(forwardIdx) {
+  const target = forwardHistory[forwardIdx];
+  if (!target) return;
+  
+  // Everything before forwardIdx becomes part of normal trail
+  // Everything after stays in forward history
+  forwardHistory = forwardHistory.slice(forwardIdx + 1);
+  
+  // Remove old selection
+  if (selectedIndex >= 0 && lineElements[selectedIndex]) {
+    lineElements[selectedIndex].classList.remove('selected');
+  }
+  
+  selectedIndex = target.index;
+  
+  if (lineElements[target.index]) {
+    lineElements[target.index].classList.add('selected');
+  }
+  
+  updateBreadcrumbs(target.index);
+  updateLineInfo();
+  scrollToLine(target.index);
+}
+
+// Select a line (clears forward history)
+function selectLine(index) {
+  // Clear forward history when navigating directly
+  forwardHistory = [];
+  
+  // Remove old selection
+  if (selectedIndex >= 0 && lineElements[selectedIndex]) {
+    lineElements[selectedIndex].classList.remove('selected');
+  }
+  
+  selectedIndex = index;
+  
+  // Add new selection (if visible)
+  if (lineElements[index]) {
+    lineElements[index].classList.add('selected');
+  }
+  
+  updateBreadcrumbs(index);
+  updateLineInfo();
+  scrollToLine(index);
+}
+
+// Scroll to make a line visible
+function scrollToLine(index) {
+  const targetScrollTop = (index * LINE_HEIGHT) - (treeContainer.clientHeight / 2) + (LINE_HEIGHT / 2);
+  treeContainer.scrollTop = Math.max(0, targetScrollTop);
+  
+  // Horizontal scroll to show content
+  const line = parseLine(index);
+  if (line) {
+    const fullTreeChars = expandTreeChars(line, index);
+    const charWidth = 7.8;
+    const contentStart = fullTreeChars.length * charWidth;
+    const targetScrollLeft = Math.max(0, contentStart - 50);
+    treeContainer.scrollLeft = targetScrollLeft;
+  }
+  
+  // Re-render to ensure the line is visible
+  renderVisibleLines();
+  
+  // Make sure selection is shown
+  if (lineElements[index]) {
+    lineElements[index].classList.add('selected');
   }
 }
 
-// Scroll to make a line visible, with horizontal scroll to show content
-function scrollToLine(index) {
-  const el = lineElements[index];
-  if (!el) return;
-  
-  const container = document.getElementById('treeContainer');
-  const line = lines[index];
-  
-  // Vertical scroll - center the line
-  const containerRect = container.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  
-  const elTop = el.offsetTop;
-  const targetScrollTop = elTop - (containerRect.height / 2) + (el.offsetHeight / 2);
-  container.scrollTop = Math.max(0, targetScrollTop);
-  
-  // Horizontal scroll - show the start of actual content (after tree chars)
-  if (line) {
-    const fullTreeChars = expandTreeChars(line, index);
-    const charWidth = 7.8; // Approximate width of monospace char at 13px
-    const contentStart = fullTreeChars.length * charWidth;
-    const targetScrollLeft = Math.max(0, contentStart - 50); // 50px padding
-    container.scrollLeft = targetScrollLeft;
-  }
+function updateLineInfo() {
+  document.getElementById('lineInfo').textContent = `Line ${(selectedIndex + 1).toLocaleString()} of ${lineCount.toLocaleString()}`;
 }
 
 // Search functionality
 function performSearch() {
   const query = document.getElementById('searchBox').value.toLowerCase().trim();
   
-  // Clear previous matches
-  searchMatches = [];
+  searchMatches.clear();
+  searchMatchList = [];
   currentMatchIndex = -1;
-  lineElements.forEach(el => el.classList.remove('search-match'));
+  
+  // Update visible elements to remove match highlighting
+  for (const idx in lineElements) {
+    lineElements[idx].classList.remove('search-match');
+  }
   
   if (!query) {
     document.getElementById('searchInfo').textContent = '';
     return;
   }
   
-  // Find all matches
-  lines.forEach((line, index) => {
-    if (!line) return;
-    const searchText = (line.accession || '') + ' ' + (line.name || '') + ' ' + (line.organism || '') + ' ' + (line.nodeId || '');
-    if (searchText.toLowerCase().includes(query)) {
-      searchMatches.push(index);
-      lineElements[index].classList.add('search-match');
+  // Search through all lines
+  showLoading('Searching...', 0);
+  
+  setTimeout(() => {
+    const batchSize = 50000;
+    let i = 0;
+    
+    function searchBatch() {
+      const end = Math.min(i + batchSize, lineCount);
+      
+      for (; i < end; i++) {
+        const raw = rawLines[i];
+        if (raw && raw.toLowerCase().includes(query)) {
+          searchMatches.add(i);
+          searchMatchList.push(i);
+        }
+      }
+      
+      if (i < lineCount) {
+        updateProgress((i / lineCount) * 100);
+        setTimeout(searchBatch, 0);
+      } else {
+        hideLoading();
+        finishSearch();
+      }
     }
-  });
+    
+    searchBatch();
+  }, 10);
+}
+
+function finishSearch() {
+  document.getElementById('searchInfo').textContent = `${searchMatchList.length.toLocaleString()} matches`;
   
-  document.getElementById('searchInfo').textContent = `${searchMatches.length} matches`;
+  // Update visible elements with match highlighting
+  for (const idx in lineElements) {
+    if (searchMatches.has(parseInt(idx))) {
+      lineElements[idx].classList.add('search-match');
+    }
+  }
   
-  if (searchMatches.length > 0) {
+  if (searchMatchList.length > 0) {
     currentMatchIndex = 0;
-    selectLine(searchMatches[0]);
+    selectLine(searchMatchList[0]);
     updateSearchInfo();
   }
 }
 
 function findNext() {
-  if (searchMatches.length === 0) return;
-  currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
-  selectLine(searchMatches[currentMatchIndex]);
+  if (searchMatchList.length === 0) return;
+  currentMatchIndex = (currentMatchIndex + 1) % searchMatchList.length;
+  selectLine(searchMatchList[currentMatchIndex]);
   updateSearchInfo();
 }
 
 function findPrev() {
-  if (searchMatches.length === 0) return;
-  currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
-  selectLine(searchMatches[currentMatchIndex]);
+  if (searchMatchList.length === 0) return;
+  currentMatchIndex = (currentMatchIndex - 1 + searchMatchList.length) % searchMatchList.length;
+  selectLine(searchMatchList[currentMatchIndex]);
   updateSearchInfo();
 }
 
 function updateSearchInfo() {
-  if (searchMatches.length > 0) {
-    document.getElementById('searchInfo').textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
+  if (searchMatchList.length > 0) {
+    document.getElementById('searchInfo').textContent = 
+      `${(currentMatchIndex + 1).toLocaleString()} of ${searchMatchList.length.toLocaleString()}`;
   }
 }
 
 function resetView() {
   document.getElementById('searchBox').value = '';
-  searchMatches = [];
+  searchMatches.clear();
+  searchMatchList = [];
   currentMatchIndex = -1;
-  lineElements.forEach(el => el.classList.remove('search-match'));
+  forwardHistory = [];
   document.getElementById('searchInfo').textContent = '';
+  
+  for (const idx in lineElements) {
+    lineElements[idx].classList.remove('search-match');
+  }
+  
   selectLine(0);
 }
 
+// Loading UI
+function showLoading(status, progress) {
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('loadingStatus').textContent = status;
+  document.getElementById('progressFill').style.width = progress + '%';
+}
+
+function updateProgress(progress) {
+  document.getElementById('progressFill').style.width = progress + '%';
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
 // Main tree loading function
-function loadTree() {
-  const input = document.getElementById('inputData').value;
-  if (!input.trim()) return;
+function loadTreeFromText(text) {
+  showLoading('Splitting lines...', 0);
   
-  // Parse all lines
-  const rawLines = input.split('\n');
-  lines = rawLines.map(raw => parseLine(raw.trimEnd()));
+  setTimeout(() => {
+    rawLines = text.split('\n');
+    lineCount = rawLines.length;
+    
+    // Clear parse cache
+    parsedCache = {};
+    
+    showLoading(`Loaded ${lineCount.toLocaleString()} lines. Preparing view...`, 50);
+    
+    setTimeout(() => {
+      initializeTreeView();
+      hideLoading();
+    }, 50);
+  }, 50);
+}
+
+function initializeTreeView() {
+  treeContainer = document.getElementById('treeContainer');
+  treeScrollContent = document.getElementById('treeScrollContent');
   
-  // Render tree
-  const treeContent = document.getElementById('treeContent');
-  treeContent.innerHTML = '';
-  lineElements = [];
+  // Set total scrollable height
+  treeScrollContent.style.height = (lineCount * LINE_HEIGHT) + 'px';
   
-  lines.forEach((line, index) => {
-    const div = document.createElement('div');
-    div.className = 'tree-line';
-    div.innerHTML = renderLine(line, index);
-    div.onclick = () => selectLine(index);
-    treeContent.appendChild(div);
-    lineElements.push(div);
-  });
+  // Clear existing elements
+  treeScrollContent.innerHTML = '';
+  lineElements = {};
+  forwardHistory = [];
   
   // Show main UI
   document.getElementById('loadArea').classList.add('hidden');
   document.getElementById('mainUI').classList.remove('hidden');
   document.getElementById('instructions').classList.remove('hidden');
+  
+  // Initial render
+  renderVisibleLines();
   
   // Select first line
   selectLine(0);
@@ -652,68 +1058,35 @@ function loadTree() {
   document.getElementById('searchBox').focus();
 }
 
-// Keyboard navigation
-document.addEventListener('keydown', (e) => {
-  const searchBox = document.getElementById('searchBox');
-  const isSearchFocused = document.activeElement === searchBox;
+function loadTree() {
+  const input = document.getElementById('inputData').value;
+  if (!input.trim()) return;
+  loadTreeFromText(input);
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Close instructions button
+  document.getElementById('closeInstructions').addEventListener('click', function() {
+    document.getElementById('instructions').classList.add('hidden');
+  });
   
-  if (e.key === 'Escape') {
-    searchBox.value = '';
-    performSearch();
-    searchBox.blur();
-    return;
-  }
+  // Search input with debounce
+  let searchTimeout;
+  document.getElementById('searchBox').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(performSearch, 300);
+  });
   
-  if (e.key === 'Enter' && isSearchFocused) {
-    if (searchMatches.length === 0) {
-      performSearch();
-    } else {
-      findNext();
-    }
-    return;
-  }
+  // Button event listeners
+  document.getElementById('prevBtn').addEventListener('click', findPrev);
+  document.getElementById('nextBtn').addEventListener('click', findNext);
+  document.getElementById('resetBtn').addEventListener('click', resetView);
+  document.getElementById('loadBtn').addEventListener('click', loadTree);
   
-  if (isSearchFocused) return;
-  
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (selectedIndex < lines.length - 1) {
-      selectLine(selectedIndex + 1);
-    }
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (selectedIndex > 0) {
-      selectLine(selectedIndex - 1);
-    }
-  } else if (e.key === '/') {
-    e.preventDefault();
-    searchBox.focus();
-  }
-});
 
-// Search on input
-document.getElementById('searchBox').addEventListener('input', performSearch);
-
-// Button event listeners
-document.getElementById('prevBtn').addEventListener('click', function() {
-  if (searchMatches.length === 0) return;
-  currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
-  selectLine(searchMatches[currentMatchIndex]);
-  updateSearchInfo();
-});
-
-document.getElementById('nextBtn').addEventListener('click', function() {
-  if (searchMatches.length === 0) return;
-  currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
-  selectLine(searchMatches[currentMatchIndex]);
-  updateSearchInfo();
-});
-
-document.getElementById('resetBtn').addEventListener('click', resetView);
-document.getElementById('loadBtn').addEventListener('click', loadTree);
-
-// Pre-populate with sample data for demo
-document.getElementById('inputData').value = `0:Node 492056 A2ASS6 Length:35213 [ROOT 0] Titin; Mus musculus (Mouse). 
+  // Pre-populate with sample data for demo
+  document.getElementById('inputData').value = `0:Node 492056 A2ASS6 Length:35213 [ROOT 0] Titin; Mus musculus (Mouse). 
 0:├─ Node 492055 Q8WZ42 Length:34350 (s:65503) Titin; Homo sapiens (Human).
 0:│  ├─ Node 514964 Q23551 Length:7158 (s:5354) Twitchin {ECO:0000303|PubMed:7190524}; Caenorhabditis elegans.
 0:│  │  └─ Node 103567 Q18066 Length:640 (s:297) Disorganized muscle protein 1; Caenorhabditis elegans.
@@ -751,6 +1124,90 @@ document.getElementById('inputData').value = `0:Node 492056 A2ASS6 Length:35213 
 0:│  │     │     ├─ Node 269970 Q14896 Length:1274 (s:4671) Myosin-binding protein C, cardiac-type; Homo sapiens (Human).
 0:│  │     │     │  └─ Node 269972 P56741 Length:1274 (s:5705) Myosin-binding protein C, cardiac-type; Rattus norvegicus (Rat).
 0:│  │     │     │     └─ Node 269971 O70468 Length:1270 (s:5964) Myosin-binding protein C, cardiac-type; Mus musculus (Mouse).`;
+
+  // File loading
+  document.getElementById('fileBtn').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+  });
+  
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    showLoading(`Reading ${file.name}...`, 0);
+    
+    const reader = new FileReader();
+    
+    reader.onprogress = function(event) {
+      if (event.lengthComputable) {
+        const pct = (event.loaded / event.total) * 100;
+        updateProgress(pct);
+        showLoading(`Reading file... ${Math.round(pct)}%`, pct);
+      }
+    };
+    
+    reader.onload = function(event) {
+      loadTreeFromText(event.target.result);
+    };
+    
+    reader.onerror = function() {
+      hideLoading();
+      alert('Error reading file');
+    };
+    
+    reader.readAsText(file);
+  });
+  
+  // Scroll handler for virtual scrolling
+  document.getElementById('treeContainer').addEventListener('scroll', function() {
+    requestAnimationFrame(renderVisibleLines);
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    const searchBox = document.getElementById('searchBox');
+    const isSearchFocused = document.activeElement === searchBox;
+    
+    if (e.key === 'Escape') {
+      searchBox.value = '';
+      searchMatches.clear();
+      searchMatchList = [];
+      currentMatchIndex = -1;
+      document.getElementById('searchInfo').textContent = '';
+      for (const idx in lineElements) {
+        lineElements[idx].classList.remove('search-match');
+      }
+      searchBox.blur();
+      return;
+    }
+    
+    if (e.key === 'Enter' && isSearchFocused) {
+      if (searchMatchList.length === 0) {
+        performSearch();
+      } else {
+        findNext();
+      }
+      return;
+    }
+    
+    if (isSearchFocused) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (selectedIndex < lineCount - 1) {
+        selectLine(selectedIndex + 1);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (selectedIndex > 0) {
+        selectLine(selectedIndex - 1);
+      }
+    } else if (e.key === '/') {
+      e.preventDefault();
+      searchBox.focus();
+    }
+  });
+});
 </script>
 
 </body>
