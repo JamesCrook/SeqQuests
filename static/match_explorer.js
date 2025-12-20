@@ -554,5 +554,199 @@ function copyDetail() {
 
 // If loaded directly, init
 if (document.querySelector('.explorer-layout')) {
-    window.addEventListener('DOMContentLoaded', window.initializeApp);
+    window.addEventListener('DOMContentLoaded', async () => {
+        await window.initializeApp();
+        if (typeof initMultiscroller === 'function') {
+            initMultiscroller();
+            // Sync UI state in case of re-render
+            if (typeof updateMultiscrollUI === 'function') {
+                updateMultiscrollUI();
+            }
+        }
+    });
+}
+
+/* Multiscroll Support */
+let isMultiscrollerEnabled = false;
+
+function toggleMultiscroller() {
+    isMultiscrollerEnabled = !isMultiscrollerEnabled;
+    const btn = document.getElementById('multiscrollBtn');
+    if (btn) {
+        btn.textContent = `Multiscroll: ${isMultiscrollerEnabled ? 'ON' : 'OFF'}`;
+        btn.classList.toggle('active', isMultiscrollerEnabled);
+    }
+}
+
+// Drag State
+let dragData = {
+    isDragging: false,
+    startY: 0,
+    startScrollLeft: 0,
+    startScrollRight: 0,
+    draggedPanelId: null
+};
+
+// Initialize Drag Listeners
+function initMultiscroller() {
+    const leftPanel = document.getElementById('LeftPanel');
+    const rightPanel = document.getElementById('RightPanel');
+
+    if (!leftPanel || !rightPanel) return;
+
+    // Helper to setup listeners
+    const setupDrag = (panel) => {
+        panel.addEventListener('mousedown', (e) => startDrag(e, panel.id));
+        panel.classList.add('draggable'); // Ensure cursor style is ready
+    };
+
+    setupDrag(leftPanel);
+    setupDrag(rightPanel);
+
+    // Global listeners for drag operation
+    window.addEventListener('mousemove', handleDrag);
+    window.addEventListener('mouseup', endDrag);
+}
+
+function startDrag(e, panelId) {
+    if (!isMultiscrollerEnabled) return;
+
+    const leftPanel = document.getElementById('LeftPanel');
+    const rightPanel = document.getElementById('RightPanel');
+
+    dragData.isDragging = true;
+    dragData.startY = e.clientY;
+    dragData.startScrollLeft = leftPanel.scrollTop;
+    dragData.startScrollRight = rightPanel.scrollTop;
+    dragData.draggedPanelId = panelId;
+
+    document.body.classList.add('dragging'); // Global cursor style
+    leftPanel.classList.add('active-drag');
+    rightPanel.classList.add('active-drag');
+}
+
+function endDrag() {
+    if (!dragData.isDragging) return;
+
+    dragData.isDragging = false;
+    document.body.classList.remove('dragging');
+    const leftPanel = document.getElementById('LeftPanel');
+    const rightPanel = document.getElementById('RightPanel');
+    if (leftPanel) leftPanel.classList.remove('active-drag');
+    if (rightPanel) rightPanel.classList.remove('active-drag');
+}
+
+function handleDrag(e) {
+    if (!dragData.isDragging || !isMultiscrollerEnabled) return;
+
+    e.preventDefault();
+
+    const deltaY = e.clientY - dragData.startY;
+    const leftPanel = document.getElementById('LeftPanel');
+    const rightPanel = document.getElementById('RightPanel');
+
+    // 1. Update the dragged panel normally (drag down -> scroll up = content moves down)
+    // Actually, "drag to scroll" usually means:
+    // Drag Mouse Down -> Content Moves Down -> Scroll Top Decreases.
+    // So scrollTop = startScroll - deltaY.
+
+    if (dragData.draggedPanelId === 'LeftPanel') {
+        leftPanel.scrollTop = dragData.startScrollLeft - deltaY;
+        syncRightPanel(leftPanel, rightPanel);
+    } else {
+        rightPanel.scrollTop = dragData.startScrollRight - deltaY;
+        syncLeftPanel(leftPanel, rightPanel);
+    }
+}
+
+function syncRightPanel(leftPanel, rightPanel) {
+    // Requirement:
+    // Top of selected item @ Top of Left View -> Right Panel @ Top (0)
+    // Bottom of selected item @ Bottom of Left View -> Right Panel @ Bottom (Max)
+
+    // Check if we have a selection
+    if (selectedEntryIndex === null) return;
+    const entry = document.querySelector(`.finding-entry[data-index="${selectedEntryIndex}"]`);
+    if (!entry) return;
+
+    const itemTop = entry.offsetTop; // Relative to offsetParent (which should be finding-list content)
+    // But LeftPanel scrollTop is relative to the viewport.
+    // Position of item relative to viewport top:
+    // y = itemTop - leftPanel.scrollTop
+
+    // However, finding-list might be a container inside LeftPanel.
+    // LeftPanel is .panel.findings-panel.
+    // findingsList is #findingsList inside it.
+    // If #LeftPanel has overflow:auto, then offsetTop is relative to the scrollable content top.
+
+    const H_left = leftPanel.clientHeight;
+    const h_item = entry.offsetHeight;
+
+    // y is the position of the top of the item relative to the top of the viewport
+    const y = itemTop - leftPanel.scrollTop;
+
+    // We want to map y from [0, H_left - h_item] to Right Panel Scroll Range [0, MaxScroll]
+    // Wait, "Inverse Scrolling":
+    // As we scroll Left Panel DOWN (scrollTop increases), y decreases (item moves UP).
+    // As y decreases, we want Right Panel to scroll UP (scrollTop decreases).
+    // So T_right should be proportional to y.
+
+    // Range for y where sync happens:
+    // Condition 1: Item Top at Top View -> y = 0. We want T_right = 0.
+    // Condition 2: Item Bottom at Bottom View -> y + h_item = H_left -> y = H_left - h_item.
+    // We want T_right = MaxScroll.
+
+    // So T_right = y * (MaxScroll / (H_left - h_item))
+
+    const S_right = rightPanel.scrollHeight;
+    const H_right = rightPanel.clientHeight;
+    const maxScrollRight = S_right - H_right;
+
+    const denominator = H_left - h_item;
+    if (denominator === 0) return; // Divide by zero protection
+
+    const targetScroll = y * (maxScrollRight / denominator);
+
+    // Clamp or let it go beyond? "can stop once beyond these limits".
+    // I will clamp it to [0, maxScrollRight] effectively by clamping y?
+    // Or just set it and let the browser clamp scrollTop.
+    // User said "ganged scrolling can stop once beyond these limits".
+
+    rightPanel.scrollTop = targetScroll;
+}
+
+function syncLeftPanel(leftPanel, rightPanel) {
+    // Bidirectional Sync
+    // We reverse the formula:
+    // T_right = y * factor
+    // y = T_right / factor
+    // itemTop - T_left = T_right / factor
+    // T_left = itemTop - (T_right / factor)
+
+    if (selectedEntryIndex === null) return;
+    const entry = document.querySelector(`.finding-entry[data-index="${selectedEntryIndex}"]`);
+    if (!entry) return;
+
+    const H_left = leftPanel.clientHeight;
+    const h_item = entry.offsetHeight;
+    const S_right = rightPanel.scrollHeight;
+    const H_right = rightPanel.clientHeight;
+    const maxScrollRight = S_right - H_right;
+
+    const denominator = H_left - h_item;
+    if (denominator === 0 || maxScrollRight === 0) return;
+
+    const factor = maxScrollRight / denominator;
+
+    // Current Right Scroll
+    const T_right = rightPanel.scrollTop;
+
+    // Calculated y
+    const y = T_right / factor;
+
+    // Calculated T_left
+    const itemTop = entry.offsetTop;
+    const targetScrollLeft = itemTop - y;
+
+    leftPanel.scrollTop = targetScrollLeft;
 }

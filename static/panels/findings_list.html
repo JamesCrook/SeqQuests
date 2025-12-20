@@ -6,10 +6,13 @@
     <link rel="stylesheet" href="../lcars.css">
 </head>
 <body>
-<div class="panel findings-panel" id="LeftPanel">
+<div class="panel-inner-content">
     <div class="panel-header">
         <div class="panel-title">Protein Alignments</div>
-        <div class="panel-badge" id="entriesCount">14 entries</div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="multiscrollBtn" onclick="toggleMultiscroller()" class="job-button">Multiscroll: OFF</button>
+            <div class="panel-badge" id="entriesCount">14 entries</div>
+        </div>
     </div>
     <div class="findings-list" id="findingsList">
         <!-- Findings will be populated here -->

@@ -662,3 +662,18 @@ header h1 {
 .demo-padding {
     padding: 20px;
 }
+
+/* Multiscroll Support */
+.draggable {
+    cursor: grab;
+}
+
+.draggable:active {
+    cursor: grabbing;
+    user-select: none;
+}
+
+#multiscrollBtn.active {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
