@@ -16,3 +16,6 @@ This document outlines the technical debt identified in the SeqQuests project. T
 - [ ] **Magic Constants:**
     - `py/sw_align.py` and `c_src/sw.metal` rely on constants like `THREADS` and `UNROLL`.
     - *Action:* Ensure these match or are passed dynamically to avoid mismatches between host and device code. Note that they ultimately come from compile.sh
+
+- [ ] **Database Node Numbers:**
+    - The tree building code produces files with 'node numbers' in them - but these numbers are only of internal interest and do not have enduring value. Instead files and analysis code downstream of the tree building code should present accession IDs. 

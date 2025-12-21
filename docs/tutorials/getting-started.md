@@ -79,7 +79,7 @@ There are two panels with star-trek themed buttons around them. There is a main 
 
 When you start, the secondary panel shows information about your current set up - whether you have a protein database, whether you have the fast smith-waterman executable.
 
-# Tree Browser
+## Tree Browser
 
 Since you have this repo, you have the sample results, and you can browse them. Click on the button 'Tree'. You will be shown the protein relatedness tree. You can scroll up and down in it, and search for text strings. Here is what different parts of an entry in the tree mean:
 
@@ -89,7 +89,7 @@ Background on how the tree was formed and why some links are shown and not other
 
 At the top of the panel are 'breadcrumbs' for navigating the tree. The last not-dimmed sequence identifier in it is the currently selected sequence. You can click on other items to move up and down the breadcrumbs. Additionally between the sequences are chevrons, which when you hover over them show the two sequences and the strength of their link.
 
-# List Browser
+## List Browser
 
 Lorem Ipsum delores
 

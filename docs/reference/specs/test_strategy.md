@@ -11,6 +11,7 @@ SeqQuests uses operational validation:
 - Real workloads (570K sequence runs) stress test the system
 - Core routines collect memory/speed benchmark data, more actionable than pass/fail
 - Python and C versions of core routines; Python easier to reason about and debug
+- Playwright scripts to generate images for the documentation test/validates the web user-interface
 
 Modules
 - Python modules are additionally argparse functionality, so that they can be used from command line
@@ -19,7 +20,7 @@ Modules
 Do not create separate test harnesses or frameworks.
 Focus on making examples and tools that have independent value.
 
-## For LLMs
+## For AI
 Do not create separate test harnesses or frameworks.
 Focus on making examples and tools that have independent value.
 Prefer benchmarking and cross-implementation validation over pass/fail testing.
@@ -30,7 +31,7 @@ Prefer benchmarking and cross-implementation validation over pass/fail testing.
 - Benchmark data should be tracked over time to detect performance regressions
 
 ## Architectural Principles
-The testing strategy is enabled by architectural principles in `/specs/specs.md`:
+The testing strategy is enabled by [architectural principles](./specs.md):
 - Thin web server wrapper enables CLI testing
 - Abstraction layers (sequences.py) enable fallback validation
 - Separation of concerns reduces need for mocking
