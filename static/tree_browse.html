@@ -481,6 +481,7 @@ let lineElements = {};    // Currently rendered DOM elements, keyed by line inde
 
 // Breadcrumb forward history
 let forwardHistory = [];  // Array of {index, accession} for ghosted breadcrumbs
+let activePipes = "";
 
 // DOM references
 let treeContainer, treeScrollContent;
@@ -492,24 +493,23 @@ function parseLine(index) {
   const raw = rawLines[index];
   if (!raw) return null;
   
+  // After dead reckoning, every line effectively has a '0:' prefix
   const depthMatch = raw.match(/^(\d+):/);
   if (!depthMatch) {
     parsedCache[index] = { raw, depth: 0, content: raw };
     return parsedCache[index];
   }
   
-  const depthPrefix = parseInt(depthMatch[1], 10);
+  const depthPrefix = parseInt(depthMatch[1], 10); // This will be 0 after pre-processing
   const rest = raw.substring(depthMatch[0].length);
   
+  // Capture all tree characters (pipes, branches, and the spaces between them)
   const treeCharsMatch = rest.match(/^([│├└─\s]*)/);
   const treeChars = treeCharsMatch ? treeCharsMatch[1] : '';
   const afterTree = rest.substring(treeChars.length);
   
-  let depth = 0;
-  if (treeChars.length > 0) {
-    depth = Math.floor((treeChars.length + 2) / 3);
-  }
-  depth += Math.floor(depthPrefix / 3);
+  // Depth is now simply the number of 3-character blocks
+  const depth = Math.floor(treeChars.length / 3);
   
   const nodeMatch = afterTree.match(/^(Node\s+\d+)\s+([A-Z0-9]+)\s+Length:(\d+)(?:\s+\(s:(\d+)\))?\s*(?:\[([^\]]+)\])?\s*(.*)$/);
   
@@ -546,30 +546,9 @@ function parseLine(index) {
 
 // Expand abbreviated indentation
 function expandTreeChars(line, index) {
-  if (!line || line.depthPrefix === undefined) return '';
-  
-  const fullDepthChars = line.depthPrefix / 3;
-  let expandedPrefix = '';
-  
-  for (let d = 0; d < fullDepthChars; d++) {
-    let hasSiblingBelow = false;
-    for (let i = index + 1; i < lineCount; i++) {
-      const otherLine = parseLine(i);
-      if (!otherLine) continue;
-      const otherFullDepth = otherLine.depth;
-      if (otherFullDepth <= d) break;
-      if (otherFullDepth === d + 1) {
-        const otherPrefixDepth = Math.floor((otherLine.depthPrefix || 0) / 3);
-        if (otherPrefixDepth <= d) {
-          hasSiblingBelow = true;
-          break;
-        }
-      }
-    }
-    expandedPrefix += hasSiblingBelow ? '│  ' : '   ';
-  }
-  
-  return expandedPrefix + (line.treeChars || '');
+  // Since we pre-processed everything into depth 0, 
+  // there is nothing left to expand.
+  return line.treeChars || '';
 }
 
 function escapeHtml(str) {
@@ -1013,17 +992,61 @@ function hideLoading() {
 
 // Main tree loading function
 function loadTreeFromText(text) {
-  showLoading('Splitting lines...', 0);
+  showLoading('Processing tree structure...', 0);
   
   setTimeout(() => {
-    rawLines = text.split('\n');
-    lineCount = rawLines.length;
-    
-    // Clear parse cache
-    parsedCache = {};
-    
-    showLoading(`Loaded ${lineCount.toLocaleString()} lines. Preparing view...`, 50);
-    
+    const lines = text.split('\n');
+    lineCount = lines.length;
+    rawLines = []; // We will store the ALREADY expanded lines here
+    let currentPipes = ""; 
+
+    for (let i = 0; i < lineCount; i++) {
+      const raw = lines[i];
+      const depthMatch = raw.match(/^(\d+):/);
+      if (!depthMatch) {
+        rawLines.push(raw);
+        continue;
+      }
+
+      const prefixNum = parseInt(depthMatch[1], 10);
+      const rest = raw.substring(depthMatch[0].length);
+      const treeCharsMatch = rest.match(/^([│├└─\s]*)/);
+      const treeChars = treeCharsMatch ? treeCharsMatch[1] : '';
+      const content = rest.substring(treeChars.length);
+
+      // 1. Reconstruct the missing prefix using dead reckoning
+      // Truncate the existing pipe state to the current prefix length
+      let expanded = currentPipes.substring(0, prefixNum);
+      
+      // If the pipe state isn't long enough (new depth), pad with spaces
+      if (expanded.length < prefixNum) {
+        expanded = expanded.padEnd(prefixNum, " ");
+      }
+
+      // 2. Update the "Dead Reckoning" state for future lines
+      // We look at the treeChars of the CURRENT line to see what 
+      // the NEXT lines should inherit.
+      let nextStateBase = expanded + treeChars;
+      let nextState = "";
+      
+      for (let j = 0; j < nextStateBase.length; j += 3) {
+        const chunk = nextStateBase.substring(j, j + 3);
+        if (chunk.includes('│') || chunk.includes('├')) {
+          nextState += "│  ";
+        } else {
+          nextState += "   ";
+        }
+      }
+      currentPipes = nextState;
+
+      // 3. Store the fully reconstructed line
+      // We store it as "0:FullExpandedChars + Content" to keep your parseLine happy
+      rawLines.push(`0:${expanded}${treeChars}${content}`);
+      
+      if (i % 50000 === 0) updateProgress((i / lineCount) * 100);
+    }
+
+    showLoading(`Prepared ${lineCount.toLocaleString()} lines.`, 100);
     setTimeout(() => {
       initializeTreeView();
       hideLoading();
