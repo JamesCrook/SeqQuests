@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shortest Path Element Connector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .scroller {
+            overflow: auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            position: relative;
+        }
+        .content-area {
+            width: 1000px;
+            height: 1000px;
+            position: relative;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .target-node {
+            width: 120px;
+            height: 80px;
+            background: #3b82f6;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            position: absolute;
+            font-weight: 600;
+            cursor: move;
+            user-select: none;
+        }
+        .text-box-container {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            padding: 1rem;
+            width: 1500px;
+            outline: none;
+            min-height: 100%;
+        }
+        .scroller:focus-within {
+            border-color: #cbd5e1;
+            box-shadow: 0 0 0 2px rgba(203, 213, 225, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="p-6 h-screen flex flex-col gap-4">
+        <header class="flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Enhanced Element Connector</h1>
+                <p class="text-slate-500">Connecting boxes and editable text via the Range API.</p>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Search & Link Text</label>
+                <input type="text" id="searchInput" placeholder="Type to link green box to text..." 
+                       class="px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
+                       value="tempor varius ipsum">
+            </div>
+        </header>
+
+        <div class="grid grid-cols-2 gap-8 h-1/2 min-h-0">
+            <div id="scroll1" class="scroller shadow-inner">
+                <div class="content-area">
+                    <div id="box1" class="target-node" style="top: 200px; left: 200px;">Box A</div>
+                </div>
+            </div>
+
+            <div id="scroll2" class="scroller shadow-inner">
+                <div class="content-area">
+                    <div id="box2" class="target-node" style="top: 100px; left: 100px; background: #10b981;">Box B</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scroll3" class="scroller shadow-inner flex-1 min-h-0">
+            <div id="textContent" class="text-box-container text-slate-700" contenteditable="true" spellcheck="false">Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Suspendisse ut ipsum sed quam vehicula elementum nec eget urna. Maecenas varius vel turpis non aliquet. Cras lobortis aliquet odio, at auctor nisi consectetur aliquam. Donec venenatis ex vitae lectus egestas viverra. Nullam vel hendrerit enim, at sagittis risus. Donec tempor varius ipsum, vitae luctus metus. Morbi mattis magna nulla, molestie condimentum risus condimentum et. Integer a libero sed massa pretium egestas a id lectus. Praesent at eros placerat, pretium sem sed, scelerisque lorem. Duis at dolor dictum, pulvinar odio at, lobortis neque. Integer ut justo sem. Maecenas efficitur urna at vulputate pellentesque. In eu fringilla lectus. Vestibulum tortor lorem, dignissim id tempor sed, dapibus et augue. Nullam commodo purus sit amet erat euismod, at lobortis nulla malesuada. Suspendisse dignissim libero velit, et viverra massa fermentum eu.
+
+Morbi sed ex non lorem accumsan mattis vel a nibh. Fusce vitae augue non tellus faucibus luctus vel facilisis ante. Aliquam a diam ultricies, tincidunt sem non, semper lacus. Sed nec arcu congue, mattis nisl non, aliquet enim. Integer rhoncus in purus ac hendrerit. Sed dignissim ex purus, eget dictum nisi posuere nec. Cras semper a leo at ultricies. Nam ornare tortor at erat ultricies commodo. Nam at orci rutrum tellus tincidunt viverra. Donec elementum elementum sapien, quis dictum nulla lacinia et. Cras congue mollis maximus. Vestibulum ac massa mi. Fusce ac justo sit amet eros vulputate pharetra a non dolor. Suspendisse nec quam iaculis, bibendum tortor vel, rutrum est. Vestibulum vestibulum purus sodales, placerat elit id, blandit ipsum.
+
+Fusce ac viverra urna. Suspendisse quis orci molestie, imperdiet odio nec, mollis ligula. Nullam mollis quam at dignissim blandit. Suspendisse congue faucibus ante, vitae finibus magna finibus ac. Aliquam a auctor purus. Donec fringilla a odio et vulputate. Suspendisse porta lectus purus, sit amet sagittis dolor faucibus eget. Suspendisse interdum sem ut quam efficitur ornare. Nullam porttitor lectus eu erat mattis, at tincidunt velit bibendum. Sed quis fermentum magna.
+
+Duis vehicula arcu eget tincidunt porta. Pellentesque fermentum vehicula leo a accumsan. Vivamus convallis massa purus, ac ullamcorper dui placerat vitae. Praesent nisi risus, consequat vel porta eu, malesuada in enim. Vivamus semper viverra enim. Curabitur luctus iaculis nulla, tincidunt ornare felis laoreet ut. Donec nisl sapien, imperdiet eget tincidunt sit amet, faucibus in nunc. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Ut malesuada odio ut mattis fermentum. Morbi non turpis feugiat, interdum arcu ac, fermentum quam.
+
+Curabitur purus risus, sodales nec facilisis at, vulputate sed ipsum. Praesent ultricies suscipit leo malesuada suscipit. Donec consequat rhoncus ligula imperdiet elementum. Etiam lobortis dui turpis, non congue odio gravida fermentum. Aenean hendrerit ligula sem, eget tempus diam convallis quis. Nulla bibendum et quam a rutrum. Sed porttitor mattis metus sit amet dictum. Aliquam erat volutpat.
+
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const box1 = document.getElementById('box1');
+        const box2 = document.getElementById('box2');
+        const searchInput = document.getElementById('searchInput');
+        const textContent = document.getElementById('textContent');
+
+        function getElementBox(el) {
+            if (!el) return null;
+            const rect = el.getBoundingClientRect();
+            return {
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                width: rect.width,
+                height: rect.height,
+                centerX: rect.left + rect.width / 2,
+                centerY: rect.top + rect.height / 2
+            };
+        }
+
+        /**
+         * Fixed version using textContent to match character offsets exactly
+         * as they appear in the DOM TreeWalker.
+         */
+        function getTextBoundingBox(container, searchTerm) {
+            if (!searchTerm || searchTerm.length < 2) return null;
+
+            // Use textContent instead of innerText to avoid offset drift from 
+            // browser-inserted layout characters (\n)
+            const text = container.textContent;
+            const index = text.toLowerCase().indexOf(searchTerm.toLowerCase());
+            
+            if (index === -1) return null;
+
+            let charCount = 0;
+            let startNode = null;
+            let startOffset = 0;
+            let endNode = null;
+            let endOffset = 0;
+
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            
+            // Find start and end nodes/offsets within the text nodes
+            while (node = walker.nextNode()) {
+                const nodeLength = node.textContent.length;
+                
+                // Check if the start of our search term is in this node
+                if (!startNode && charCount + nodeLength > index) {
+                    startNode = node;
+                    startOffset = index - charCount;
+                }
+                
+                // Check if the end of our search term is in this node
+                if (startNode && charCount + nodeLength >= index + searchTerm.length) {
+                    endNode = node;
+                    endOffset = (index + searchTerm.length) - charCount;
+                    break;
+                }
+                
+                charCount += nodeLength;
+            }
+
+            if (startNode && endNode) {
+                try {
+                    const range = document.createRange();
+                    range.setStart(startNode, startOffset);
+                    range.setEnd(endNode, endOffset);
+                    const rects = range.getClientRects();
+                    
+                    if (rects.length === 0) return null;
+
+                    // Use the first rect (handles multiline matches by sticking to the first line start)
+                    const rect = rects[0];
+                    
+                    return {
+                        left: rect.left,
+                        top: rect.top,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height,
+                        centerX: rect.left + rect.width / 2,
+                        centerY: rect.top + rect.height / 2
+                    };
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        function getNearestPoints(box1, box2) {
+            const p1 = {
+                x: Math.max(box1.left, Math.min(box2.centerX, box1.right)),
+                y: Math.max(box1.top, Math.min(box2.centerY, box1.bottom))
+            };
+
+            const p2 = {
+                x: Math.max(box2.left, Math.min(p1.x, box2.right)),
+                y: Math.max(box2.top, Math.min(p1.y, box2.bottom))
+            };
+            
+            p1.x = Math.max(box1.left, Math.min(p2.x, box1.right));
+            p1.y = Math.max(box1.top, Math.min(p2.y, box1.bottom));
+
+            return { p1, p2 };
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function drawArrow(ctx, fromX, fromY, toX, toY, color = '#64748b') {
+            const headlen = 12;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const angle = Math.atan2(dy, dx);
+
+            if (dist < 1) return;
+
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 7), toY - headlen * Math.sin(angle - Math.PI / 7));
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 7), toY - headlen * Math.sin(angle + Math.PI / 7));
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function drawHighlightBox(ctx, box) {
+            if (!box) return;
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 2]);
+            ctx.strokeRect(box.left - 2, box.top - 2, box.width + 4, box.height + 4);
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
+            ctx.fillRect(box.left - 2, box.top - 2, box.width + 4, box.height + 4);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const b1 = getElementBox(box1);
+            const b2 = getElementBox(box2);
+            const bHighlight = getTextBoundingBox(textContent, searchInput.value);
+
+            const isInViewport = (b) => b && (
+                b.bottom > 0 && b.top < window.innerHeight &&
+                b.right > 0 && b.left < window.innerWidth
+            );
+
+            if (isInViewport(b1) && isInViewport(b2)) {
+                const { p1, p2 } = getNearestPoints(b1, b2);
+                drawArrow(ctx, p1.x, p1.y, p2.x, p2.y, '#64748b');
+            }
+
+            if (isInViewport(b2) && isInViewport(bHighlight)) {
+                drawHighlightBox(ctx, bHighlight);
+                const { p1, p2 } = getNearestPoints(b2, bHighlight);
+                drawArrow(ctx, p1.x, p1.y, p2.x, p2.y, '#10b981');
+            }
+            
+            requestAnimationFrame(draw);
+        }
+
+        function makeDraggable(el) {
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            el.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = parseInt(el.style.left) || 0;
+                initialTop = parseInt(el.style.top) || 0;
+                el.style.cursor = 'grabbing';
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                el.style.left = `${initialLeft + (e.clientX - startX)}px`;
+                el.style.top = `${initialTop + (e.clientY - startY)}px`;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                el.style.cursor = 'move';
+            });
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        makeDraggable(box1);
+        makeDraggable(box2);
+        
+        resizeCanvas();
+        draw();
+    </script>
+</body>
+</html>
