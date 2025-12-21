@@ -18,3 +18,14 @@
 * [command_wrapper](/reference/command-wrapper.md) - A wrapper that turns a text-generating program into a schedulable job that can be paused and restarted and that can be configured via the web and report specific progress to the web UI.
 * [job_manager.py](/reference/job-manager.md) - Interface between wrapped programs and scripts and the actual job launching web interface.
 * [web_server.py](/reference/web-server.md) - The FastAPI based web-server that serves the bioinformatics web pages.
+
+# Other Frontend Files
+
+* [Frontend Files](frontend_files.md) - Documentation for other frontend files like `app.js`, `lcars.js`, etc.
+
+# Web Server Topics (Placeholder)
+
+* **Deployment**: (Placeholder for deployment topics)
+* **Authentication**: (Placeholder for authentication topics)
+* **API Documentation**: (Placeholder for API docs)
+* **Configuration**: (Placeholder for server configuration)
