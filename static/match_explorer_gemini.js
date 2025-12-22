@@ -19,19 +19,15 @@ class FindingsNavigator {
 
 class ScrollMath {
     static calculateTargetScroll(itemTop, itemHeight, viewportHeight, targetScrollHeight) {
-        // 'Travel' is the room the item has to move within the viewport
         const travel = viewportHeight - itemHeight;
         const maxScroll = targetScrollHeight - viewportHeight;
-        
         if (travel <= 0 || maxScroll <= 0) return 0;
 
-        // Ratio: 0.0 (top of viewport) to 1.0 (bottom of viewport)
+        // Ratio: 0.0 (top) to 1.0 (bottom)
         const ratio = Math.max(0, Math.min(1, itemTop / travel));
         return ratio * maxScroll;
     }
 }
-
-//2. Refactored Class HierarchyThe Orchestrator (Multiscroller.js)The orchestrator manages SyncTarget objects. It is the central hub for event broadcasting.
 
 class Multiscroller {
     constructor(navigator) {
@@ -40,34 +36,32 @@ class Multiscroller {
         this.activeCursor = [0];
     }
 
-    // Phase 1: Retrofit existing DOM (Match Explorer)
     attach(element, level) {
         const target = new AttachedPanel(element, level, this);
         this.targets.push(target);
         return target;
     }
 
-    // Phase 2: Create generated UI (Successor to Column.js)
-    addColumn(container, level, renderer) {
-        const target = new ManagedColumn(container, level, this, renderer);
-        this.targets.push(target);
-        return target;
+    // Single point of entry for state changes
+    setActiveCursor(cursor, sourceIndex) {
+        this.activeCursor = cursor;
+        // Optionally update UI selection across all panels here
     }
 
-    // The new 'onDrag' hub
-    broadcastSync(sourceIndex, bounds) {
+    broadcastSync(sourceIndex) {
+        const source = this.targets[sourceIndex];
+        const bounds = source.getBounds(this.activeCursor);
+        if (!bounds) return;
+
         this.targets.forEach((target, i) => {
-            if (i !== sourceIndex) {
-                target.applySync(bounds);
-            }
+            if (i !== sourceIndex) target.applySync(bounds);
         });
     }
 }
-//The Targets (SyncTarget.js)This base class handles the "ganging" logic. Subclasses handle the specific DOM details.
 
 class SyncTarget {
     constructor(el, level, orch) {
-        this.el = el; // The scrollable container
+        this.el = el;
         this.level = level;
         this.orch = orch;
         this.isEnabled = false;
@@ -75,7 +69,6 @@ class SyncTarget {
         
         this._boundMouseMove = (e) => this.onMouseMove(e);
         this._boundMouseUp = (e) => this.onMouseUp(e);
-        
         this.setupEventListeners();
     }
 
@@ -88,6 +81,14 @@ class SyncTarget {
 
     onMouseDown(e) {
         if (!this.isEnabled) return;
+        
+        const clickedItem = e.target.closest('[data-index]');
+        if (clickedItem) {
+            const index = parseInt(clickedItem.dataset.index);
+            const newCursor = this.getCursorFromIndex(index);
+            this.orch.setActiveCursor(newCursor, this.level);
+        }
+
         this.isDragging = true;
         this.dragStartY = e.clientY;
         this.dragStartPos = this.getInternalScrollPos();
@@ -100,13 +101,8 @@ class SyncTarget {
     onMouseMove(e) {
         if (!this.isDragging) return;
         const delta = e.clientY - this.dragStartY;
-        
-        // Update local scroll
         this.setInternalScrollPos(this.dragStartPos - delta);
-
-        // Broadcast to others
-        const bounds = this.getBounds(this.orch.activeCursor);
-        this.orch.broadcastSync(this.level, bounds);
+        this.orch.broadcastSync(this.level);
     }
 
     onMouseUp() {
@@ -124,81 +120,52 @@ class SyncTarget {
         this.setInternalScrollPos(targetScroll);
     }
 
-    // --- Abstract methods to be implemented by subclasses ---
+    // --- Implementation Details ---
     getInternalScrollPos() { throw "Not Implemented"; }
     setInternalScrollPos(val) { throw "Not Implemented"; }
     getBounds(cursor) { throw "Not Implemented"; }
+    getCursorFromIndex(index) { throw "Not Implemented"; }
 }
 
-// For existing DOM elements (Match Explorer)
 class AttachedPanel extends SyncTarget {
     getInternalScrollPos() { return this.el.scrollTop; }
     setInternalScrollPos(val) { this.el.scrollTop = val; }
 
-    getBounds(cursor) {
-        // 1. Translate cursor to THIS level (e.g., [5] becomes [5, 0])
-        const translated = this.orch.nav.translateCursor(cursor, this.level);
-        
-        // 2. Identify the local index within this panel
-        const localIndex = translated[translated.length - 1];
-        
-        // 3. Find the item.
-        let item = this.el.querySelector(`[data-index="${localIndex}"]`);
-        
-        // Fallback: If this is level 1 and it's a giant detail block, use the first child
-        if (!item && this.level === 1) {
-            item = this.el.firstElementChild;
-        }
+    getCursorFromIndex(index) {
+        // Simple mapping: level 0 is index, level 1 is index 0 of current parent
+        if (this.level === 0) return [index];
+        return [this.orch.activeCursor[0], 0]; 
+    }
 
-        if (!item) return { top: 0, height: 100 };
+    getBounds(cursor) {
+        const translated = this.orch.nav.translateCursor(cursor, this.level);
+        const localIndex = translated[translated.length - 1];
+        const item = this.el.querySelector(`[data-index="${localIndex}"]`) || this.el.firstElementChild;
         
-        // FIX: Using getBoundingClientRect for reliability across different layouts
+        if (!item) return null;
         const itemRect = item.getBoundingClientRect();
         const containerRect = this.el.getBoundingClientRect();
-        
-        return { 
-            top: itemRect.top - containerRect.top, 
-            height: itemRect.height 
-        };
+        return { top: itemRect.top - containerRect.top, height: itemRect.height };
     }
 }
 
-// For procedurally generated Miller Columns
 class ManagedColumn extends SyncTarget {
-    constructor(el, level, orch, renderer) {
-        super(el, level, orch);
-        this.scrollOffset = 0;
-        this.renderer = renderer;
-        this.items = []; // List of {cursor, element}
-    }
-
     getInternalScrollPos() { return -this.scrollOffset; }
-    setInternalScrollPos(val) { 
-        this.scrollOffset = -val; 
-        this.render(); 
-    }
+    setInternalScrollPos(val) { this.scrollOffset = -val; this.render(); }
+
+    getCursorFromIndex(index) { return this.items[index]?.cursor || [0]; }
 
     getBounds(cursor) {
         const translated = this.orch.nav.translateCursor(cursor, this.level);
-        
-        const index = this.items.findIndex(it => 
-            JSON.stringify(it.cursor) === JSON.stringify(translated)
-        );
-        
-        if (index === -1 || this.items.length === 0) {
-             return { top: 0, height: this.el.clientHeight };
-        }
-        
-        const item = this.items[index];
+        const item = this.items.find(it => JSON.stringify(it.cursor) === JSON.stringify(translated));
+        if (!item) return null;
+
         const itemRect = item.element.getBoundingClientRect();
         const containerRect = this.el.getBoundingClientRect();
-
-        return {
-            top: itemRect.top - containerRect.top,
-            height: itemRect.height
-        };
+        return { top: itemRect.top - containerRect.top, height: itemRect.height };
     }
 }
+
 
 
 //3. Migration Plan (Step-by-Step)Step 1: Centralize the Math (No breaking changes)Add the ScrollMath class to your project.In match_explorer.js, modify syncRightPanel to use ScrollMath.calculateTargetScroll. This confirms the "Golden Standard" works for your existing data.Step 2: The "Attached" WrapperImplement Multiscroller and AttachedPanel.In match_explorer.js, instead of manual sync functions, call:
@@ -795,7 +762,7 @@ function copyDetail() {
 
 
 let orchestrator = null;
-let isMultiscrollerEnabled = false;
+let isMultiscrollerEnabled = true;
 
 // 2. Updated toggle function
 function toggleMultiscroller() {
@@ -839,184 +806,3 @@ if (document.querySelector('.explorer-layout')) {
         await window.initializeApp(); // Load data first
     });
 }
-
-/*
-
-// If loaded directly, init
-if (document.querySelector('.explorer-layout')) {
-    window.addEventListener('DOMContentLoaded', async () => {
-        await window.initializeApp();
-        if (typeof initMultiscroller === 'function') {
-            initMultiscroller();
-            // Sync UI state in case of re-render
-            if (typeof updateMultiscrollUI === 'function') {
-                updateMultiscrollUI();
-            }
-        }
-    });
-}
-
-/* Multiscroll Support 
-let isMultiscrollerEnabled = false;
-
-function toggleMultiscroller() {
-    isMultiscrollerEnabled = !isMultiscrollerEnabled;
-    const btn = document.getElementById('multiscrollBtn');
-    if (btn) {
-        btn.textContent = `Multiscroll: ${isMultiscrollerEnabled ? 'ON' : 'OFF'}`;
-        btn.classList.toggle('active', isMultiscrollerEnabled);
-    }
-}
-
-// Drag State
-let dragData = {
-    isDragging: false,
-    startY: 0,
-    startScrollLeft: 0,
-    startScrollRight: 0,
-    draggedPanelId: null
-};
-
-// Initialize Drag Listeners
-function initMultiscroller() {
-    const leftPanel = document.getElementById('findingsList');
-    const rightPanel = document.getElementById('pairViewer');
-
-    if (!leftPanel || !rightPanel) return;
-
-    // Helper to setup listeners
-    const setupDrag = (panel) => {
-        panel.addEventListener('mousedown', (e) => startDrag(e, panel.id));
-        panel.classList.add('draggable'); // Ensure cursor style is ready
-    };
-
-    setupDrag(leftPanel);
-    setupDrag(rightPanel);
-
-    // Global listeners for drag operation
-    window.addEventListener('mousemove', handleDrag);
-    window.addEventListener('mouseup', endDrag);
-}
-
-function startDrag(e, panelId) {
-    if (!isMultiscrollerEnabled) return;
-
-    //const leftPanel = document.getElementById('LeftPanel');
-    const leftPanel = document.getElementById('findingsList');
-    const rightPanel = document.getElementById('pairViewer');
-
-    dragData.isDragging = true;
-    dragData.startY = e.clientY;
-    dragData.startScrollLeft = leftPanel.scrollTop;
-    dragData.startScrollRight = rightPanel.scrollTop;
-    dragData.draggedPanelId = panelId;
-
-    document.body.classList.add('dragging'); // Global cursor style
-    leftPanel.classList.add('active-drag');
-    rightPanel.classList.add('active-drag');
-}
-
-function endDrag() {
-    if (!dragData.isDragging) return;
-
-    dragData.isDragging = false;
-    document.body.classList.remove('dragging');
-    const leftPanel = document.getElementById('findingsList');
-    const rightPanel = document.getElementById('pairViewer');
-    if (leftPanel) leftPanel.classList.remove('active-drag');
-    if (rightPanel) rightPanel.classList.remove('active-drag');
-}
-
-function handleDrag(e) {
-    if (!dragData.isDragging || !isMultiscrollerEnabled) return;
-
-    e.preventDefault();
-
-    const deltaY = e.clientY - dragData.startY;
-    const leftPanel = document.getElementById('findingsList');
-    const rightPanel = document.getElementById('pairViewer');
-
-    // 1. Update the dragged panel normally (drag down -> scroll up = content moves down)
-    // Actually, "drag to scroll" usually means:
-    // Drag Mouse Down -> Content Moves Down -> Scroll Top Decreases.
-    // So scrollTop = startScroll - deltaY.
-
-    if (dragData.draggedPanelId === 'findingsList') {
-        leftPanel.scrollTop = dragData.startScrollLeft - deltaY;
-        syncRightPanel(leftPanel, rightPanel);
-    } else {
-        rightPanel.scrollTop = dragData.startScrollRight - deltaY;
-        syncLeftPanel(leftPanel, rightPanel);
-    }
-}
-
-function syncRightPanel(leftPanel, rightPanel) {
-    // Top of selected item @ Top of Left View -> Right Panel @ Top (0)
-    // Bottom of selected item @ Bottom of Left View -> Right Panel @ Bottom (Max)
-
-    // Check if we have a selection
-    if (selectedEntryIndex === null) return;
-    const entry = document.querySelector(`.finding-entry[data-index="${selectedEntryIndex}"]`);
-    if (!entry) return;
-
-    const itemTop = entry.offsetTop - leftPanel.offsetTop; // Relative to leftPanel
-
-    const H_left = leftPanel.clientHeight;
-    const h_item = entry.offsetHeight;
-
-    // y is the position of the top of the item relative to the top of the viewport
-    const y = itemTop - leftPanel.scrollTop;
-
-    // T_right = y * (MaxScroll / (H_left - h_item))
-
-    const S_right = rightPanel.scrollHeight;
-    const H_right = rightPanel.clientHeight;
-    const maxScrollRight = S_right - H_right;
-
-    const denominator = H_left - h_item;
-    if (denominator === 0) return; // Divide by zero protection
-
-    const targetScroll = y * (maxScrollRight / denominator);
-
-    // Just set it and let the browser clamp scrollTop.
-    // "ganged scrolling can stop once beyond these limits".
-
-    rightPanel.scrollTop = targetScroll;
-}
-
-function syncLeftPanel(leftPanel, rightPanel) {
-    // Bidirectional Sync
-    // We reverse the formula:
-    // T_right = y * factor
-    // y = T_right / factor
-    // itemTop - T_left = T_right / factor
-    // T_left = itemTop - (T_right / factor)
-
-    if (selectedEntryIndex === null) return;
-    const entry = document.querySelector(`.finding-entry[data-index="${selectedEntryIndex}"]`);
-    if (!entry) return;
-
-    const H_left = leftPanel.clientHeight;
-    const h_item = entry.offsetHeight;
-    const S_right = rightPanel.scrollHeight;
-    const H_right = rightPanel.clientHeight;
-    const maxScrollRight = S_right - H_right;
-
-    const denominator = H_left - h_item;
-    if (denominator === 0 || maxScrollRight === 0) return;
-
-    const factor = maxScrollRight / denominator;
-
-    // Current Right Scroll
-    const T_right = rightPanel.scrollTop ;
-
-    // Calculated y
-    const y = T_right / factor;
-
-    // Calculated T_left
-    const itemTop = entry.offsetTop - leftPanel.offsetTop;
-    const targetScrollLeft = itemTop - y;
-
-    leftPanel.scrollTop = targetScrollLeft;
-}
-*/

@@ -235,6 +235,14 @@ window.initializeApp = async function() {
         // Handle URL Params
         handleUrlParams();
 
+        if (typeof initMultiscroller === 'function') {
+            initMultiscroller();
+            // Sync UI state in case of re-render
+            if (typeof updateMultiscrollUI === 'function') {
+                updateMultiscrollUI();
+            }
+        }        
+
     } catch (error) {
         console.error('Error during app initialization:', error);
         // Optionally set connection status to disconnected on error
@@ -556,18 +564,11 @@ function copyDetail() {
 if (document.querySelector('.explorer-layout')) {
     window.addEventListener('DOMContentLoaded', async () => {
         await window.initializeApp();
-        if (typeof initMultiscroller === 'function') {
-            initMultiscroller();
-            // Sync UI state in case of re-render
-            if (typeof updateMultiscrollUI === 'function') {
-                updateMultiscrollUI();
-            }
-        }
     });
 }
 
 /* Multiscroll Support */
-let isMultiscrollerEnabled = false;
+let isMultiscrollerEnabled = true;
 
 function toggleMultiscroller() {
     isMultiscrollerEnabled = !isMultiscrollerEnabled;
