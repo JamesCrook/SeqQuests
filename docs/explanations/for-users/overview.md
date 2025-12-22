@@ -21,7 +21,7 @@ SeqQuest was developed for local use rather than for use by many people connecti
 
 # Additional Tools
 * Retrieve structures for chosen pairs of proteins
-* Aligne their structures
+* Align their structures
 
 # Web UI
 
