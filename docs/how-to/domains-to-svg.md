@@ -1,3 +1,3 @@
 # Use a domain-comparison chart in a publication
 
-(This is a placeholder for a recipe on how to create domain-comparison charts for publications.)
+This isn't available yet either. I'm still working on the feature table display. 

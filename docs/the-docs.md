@@ -48,11 +48,3 @@ Step by step guides:
 * [Using Help](./tutorials/using-help.md) - There is some built in help in the program, but to get the most from SeqQuest you need to read the docs. This document shows you how to use the built-in help
 * [Multiscrollers](./tutorials/multiscrollers.md) - A user interface feature for navigating large quantities of information. This document shows you how to use multiscrollers.
 
-## Suggested Additions
-
-* **Tutorials**:
-    *   **Analyzing Results**: A guide on how to interpret the results of a sequence search.
-    *   **Customizing the UI**: How to customize the interface to suit your needs.
-* **How-To**:
-    *   **Converting Data Formats**: How to convert common bioinformatics formats for use with SeqQuest.
-    *   **Running on a Remote Server**: Setting up SeqQuest on a remote server.
