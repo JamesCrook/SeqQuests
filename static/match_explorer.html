@@ -6,7 +6,7 @@
     <title>Protein Sequence Match Explorer</title>
     <link rel="icon" href="./wheel.ico">
     <link rel="stylesheet" type="text/css" href="./style.css">
-    <script src="./match_explorer.js"></script>
+    <script src="./match_explorer_gemini.js"></script>
     <script src="./lcars.js"></script>
 
 </head>
@@ -43,7 +43,7 @@
         //let isInitializing = false;
         let isLoadingSequence = false;
         let lastLoadedEntry = null;
-        
+     
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             // Load partials using Lcars
@@ -61,13 +61,6 @@
             ]).then(() => {
                 if (typeof window.initializeApp === 'function') {
                     window.initializeApp();
-                    if (typeof initMultiscroller === 'function') {
-                        initMultiscroller();
-                        // Sync UI state in case of re-render
-                        if (typeof updateMultiscrollUI === 'function') {
-                            updateMultiscrollUI();
-                        }
-                    }                    
                 }
             });
         });

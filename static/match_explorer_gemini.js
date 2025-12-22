@@ -1,5 +1,22 @@
 //Multiscroller Refactor Blueprint1. The Proportional Gold StandardThis static method is the "Universal Translator" between different columns. It calculates a ratio (0 to 1) of where an item sits in its viewport "travel zone" and maps it to the target's scroll range.
 
+
+// 1. Define the Navigator for Match Explorer
+// Level 0: Findings List [index]
+// Level 1: Details View [index, 0]
+class FindingsNavigator {
+    constructor(data) {
+        this.data = data;
+    }
+    
+    // Maps a finding selection to its detail view equivalent
+    translateCursor(cursor, targetLevel) {
+        if (targetLevel === 0) return [cursor[0]];
+        if (targetLevel === 1) return [cursor[0], 0];
+        return cursor;
+    }
+}
+
 class ScrollMath {
     static calculateTargetScroll(itemTop, itemHeight, viewportHeight, targetScrollHeight) {
         // 'Travel' is the room the item has to move within the viewport
@@ -53,110 +70,136 @@ class SyncTarget {
         this.el = el; // The scrollable container
         this.level = level;
         this.orch = orch;
-    }
-
-    // Every target must be able to report the 'Visual Rect' of a cursor
-    getBounds(cursor) { throw "Not Implemented"; }
-
-    // Logic migrated from Column.scrollToProportional
-    applySync(refBounds) {
-        const targetScroll = ScrollMath.calculateTargetScroll(
-            refBounds.top,
-            refBounds.height,
-            this.el.clientHeight,
-            this.el.scrollHeight
-        );
-        this.updateScrollPosition(targetScroll);
-    }
-}
-
-// FOR MATCH EXPLORER: Wraps existing DOM
-class AttachedPanel extends SyncTarget {
-    getBounds(cursor) {
-        const item = this.el.querySelector(`[data-index="${cursor[0]}"]`);
-        if (!item) return { top: 0, height: 0 };
-        return { 
-            top: item.offsetTop - this.el.scrollTop, 
-            height: item.offsetHeight 
-        };
-    }
-    
-    updateScrollPosition(val) { this.el.scrollTop = val; }
-}
-
-// FOR MILLER COLUMNS: The refactored Column.js
-class ManagedColumn extends SyncTarget {
-    constructor(container, level, orch, renderer) {
-        super(container, level, orch);
-        this.scrollOffset = 0;
-        this.container = container;
-
-        this.level = level;
-        this.items = [];
-        this.selectedIndices = []; // Changed to array for multiple selections
-
-        this.element = document.createElement('div');
-        this.element.className = 'column';
-        this.container.appendChild(this.element);
-
-        this.content = document.createElement('div');
-        this.content.className = 'column-content';
-        this.element.appendChild(this.content);
-
-        this.scrollOffset = 0;
+        this.isEnabled = false;
         this.isDragging = false;
-        this.dragStartY = 0;
-        this.dragStartOffset = 0;
-        this.draggedIndex = -1;
-
+        
+        this._boundMouseMove = (e) => this.onMouseMove(e);
+        this._boundMouseUp = (e) => this.onMouseUp(e);
+        
         this.setupEventListeners();
     }
 
+    setEnabled(val) { this.isEnabled = val; }
+
     setupEventListeners() {
-        this.content.addEventListener('mousedown', (e) => this.onMouseDown(e));
-        document.addEventListener('mousemove', (e) => this.onMouseMove(e));
-        document.addEventListener('mouseup', (e) => this.onMouseUp(e));
-    }
-    
-    async onMouseDown(e) {
-        const itemElement = e.target.closest('.item');
-        if(!itemElement) return;
-        const index = parseInt(itemElement.dataset.index);
-        // selectItem also does a zero sized drag of this column,
-        // so we need to be set up for it.
-        this.draggedIndex = index;
-        this.dragStartY = e.clientY;
-        this.dragStartOffset = this.scrollOffset;
-        this.content.classList.add('dragging');
-        this.isDragging = true;
-        await this.selectItem(index);
-        e.preventDefault();
-    }
-    
-    onMouseUp(e) {
-        if(!this.isDragging) return;
-        this.isDragging = false;
-        this.content.classList.remove('dragging');
+        this.el.addEventListener('mousedown', (e) => this.onMouseDown(e));
+        this.el.addEventListener('mouseleave', (e) => this.onMouseUp(e));
     }
 
-    // The new onMouseMove
+    onMouseDown(e) {
+        if (!this.isEnabled) return;
+        this.isDragging = true;
+        this.dragStartY = e.clientY;
+        this.dragStartPos = this.getInternalScrollPos();
+        
+        window.addEventListener('mousemove', this._boundMouseMove);
+        window.addEventListener('mouseup', this._boundMouseUp);
+        e.preventDefault();
+    }
+
     onMouseMove(e) {
-        if(!this.isDragging) return;
+        if (!this.isDragging) return;
         const delta = e.clientY - this.dragStartY;
-        this.scrollOffset = this.dragStartOffset + delta;
         
-        this.render(); // Local update
-        
-        // BROADCAST: Get visual bounds of the dragged item and tell others
-        const bounds = this.getDraggedItemBounds();
+        // Update local scroll
+        this.setInternalScrollPos(this.dragStartPos - delta);
+
+        // Broadcast to others
+        const bounds = this.getBounds(this.orch.activeCursor);
         this.orch.broadcastSync(this.level, bounds);
     }
 
-    updateScrollPosition(val) {
-        // Logic to translate absolute scrollTop to this.scrollOffset
-        // and calling this.render()
+    onMouseUp() {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        window.removeEventListener('mousemove', this._boundMouseMove);
+        window.removeEventListener('mouseup', this._boundMouseUp);
+    }
+
+    applySync(refBounds) {
+        const targetScroll = ScrollMath.calculateTargetScroll(
+            refBounds.top, refBounds.height,
+            this.el.clientHeight, this.el.scrollHeight
+        );
+        this.setInternalScrollPos(targetScroll);
+    }
+
+    // --- Abstract methods to be implemented by subclasses ---
+    getInternalScrollPos() { throw "Not Implemented"; }
+    setInternalScrollPos(val) { throw "Not Implemented"; }
+    getBounds(cursor) { throw "Not Implemented"; }
+}
+
+// For existing DOM elements (Match Explorer)
+class AttachedPanel extends SyncTarget {
+    getInternalScrollPos() { return this.el.scrollTop; }
+    setInternalScrollPos(val) { this.el.scrollTop = val; }
+
+    getBounds(cursor) {
+        // 1. Translate cursor to THIS level (e.g., [5] becomes [5, 0])
+        const translated = this.orch.nav.translateCursor(cursor, this.level);
+        
+        // 2. Identify the local index within this panel
+        const localIndex = translated[translated.length - 1];
+        
+        // 3. Find the item.
+        let item = this.el.querySelector(`[data-index="${localIndex}"]`);
+        
+        // Fallback: If this is level 1 and it's a giant detail block, use the first child
+        if (!item && this.level === 1) {
+            item = this.el.firstElementChild;
+        }
+
+        if (!item) return { top: 0, height: 100 };
+        
+        // FIX: Using getBoundingClientRect for reliability across different layouts
+        const itemRect = item.getBoundingClientRect();
+        const containerRect = this.el.getBoundingClientRect();
+        
+        return { 
+            top: itemRect.top - containerRect.top, 
+            height: itemRect.height 
+        };
     }
 }
+
+// For procedurally generated Miller Columns
+class ManagedColumn extends SyncTarget {
+    constructor(el, level, orch, renderer) {
+        super(el, level, orch);
+        this.scrollOffset = 0;
+        this.renderer = renderer;
+        this.items = []; // List of {cursor, element}
+    }
+
+    getInternalScrollPos() { return -this.scrollOffset; }
+    setInternalScrollPos(val) { 
+        this.scrollOffset = -val; 
+        this.render(); 
+    }
+
+    getBounds(cursor) {
+        const translated = this.orch.nav.translateCursor(cursor, this.level);
+        
+        const index = this.items.findIndex(it => 
+            JSON.stringify(it.cursor) === JSON.stringify(translated)
+        );
+        
+        if (index === -1 || this.items.length === 0) {
+             return { top: 0, height: this.el.clientHeight };
+        }
+        
+        const item = this.items[index];
+        const itemRect = item.element.getBoundingClientRect();
+        const containerRect = this.el.getBoundingClientRect();
+
+        return {
+            top: itemRect.top - containerRect.top,
+            height: itemRect.height
+        };
+    }
+}
+
 
 //3. Migration Plan (Step-by-Step)Step 1: Centralize the Math (No breaking changes)Add the ScrollMath class to your project.In match_explorer.js, modify syncRightPanel to use ScrollMath.calculateTargetScroll. This confirms the "Golden Standard" works for your existing data.Step 2: The "Attached" WrapperImplement Multiscroller and AttachedPanel.In match_explorer.js, instead of manual sync functions, call:
 
@@ -413,6 +456,14 @@ window.initializeApp = async function() {
 
         // Handle URL Params
         handleUrlParams();
+
+        // Initialize the new orchestrator instead of the old manual listeners
+        await initOrchestratedMultiscroller();
+        
+        // Sync UI state if needed
+        if (typeof updateMultiscrollUI === 'function') {
+            updateMultiscrollUI();
+        }        
 
     } catch (error) {
         console.error('Error during app initialization:', error);
@@ -741,21 +792,7 @@ function copyDetail() {
  * handleDrag, and sync functions.
  */
 
-// 1. Define the Navigator for Match Explorer
-// Level 0: Findings List [index]
-// Level 1: Details View [index, 0]
-class FindingsNavigator {
-    constructor(data) {
-        this.data = data;
-    }
-    
-    // Maps a finding selection to its detail view equivalent
-    translateCursor(cursor, targetLevel) {
-        if (targetLevel === 0) return [cursor[0]];
-        if (targetLevel === 1) return [cursor[0], 0];
-        return cursor;
-    }
-}
+
 
 let orchestrator = null;
 let isMultiscrollerEnabled = false;
@@ -800,34 +837,10 @@ async function initOrchestratedMultiscroller() {
 if (document.querySelector('.explorer-layout')) {
     window.addEventListener('DOMContentLoaded', async () => {
         await window.initializeApp(); // Load data first
-        
-        // Initialize the new orchestrator instead of the old manual listeners
-        await initOrchestratedMultiscroller();
-        
-        // Sync UI state if needed
-        if (typeof updateMultiscrollUI === 'function') {
-            updateMultiscrollUI();
-        }
     });
 }
 
-/**
- * NOTE: Inside selectEntry(index) in match_explorer.js, 
- * you should add a call to update the orchestrator's state:
- * * async function selectEntry(index) {
- * ... existing logic ...
- * if (orchestrator) {
- * orchestrator.activeCursor = [index];
- * // Trigger an initial sync once the details are loaded
- * orchestrator.broadcastSync(0, orchestrator.targets[0].getBounds([index]));
- * }
- * }
- */
-
-
 /*
-
-
 
 // If loaded directly, init
 if (document.querySelector('.explorer-layout')) {
