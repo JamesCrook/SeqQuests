@@ -1,3 +1,3 @@
 # Tooltip Text Index
 
-* [Tooltips](../tooltips.md)
+* [Tooltips](./tooltips.md)

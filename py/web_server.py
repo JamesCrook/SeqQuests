@@ -18,6 +18,8 @@ import sequences
 import sw_align
 import os
 from pathlib import Path
+import re
+
 
 """
 FastAPI web server acting as a thin wrapper over the raw job functions and static html.
@@ -70,10 +72,24 @@ class JobCreationRequest(BaseModel):
 class JobConfigRequest(BaseModel):
     config: Dict[str, Any]
 
+# Only allow safe filename characters
+SAFE_FILENAME_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9._\-]*$')
+
+def safe_filename(filename: str) -> str:
+    """
+    Validate filename contains only safe characters.
+    Allowlist approach: alphanumeric, dots, dashes, underscores.
+    Must start with alphanumeric (prevents dotfiles and hidden files).
+    """
+    if not filename or not SAFE_FILENAME_RE.match(filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    return filename
+
 # --- REST Endpoints ---
 """ The order in which these functions appear determines the order in 
 the API /docs, so take some care to group and order the items logically.
 """
+
 
 @app.get("/api/job_types")
 async def get_job_types():
@@ -271,39 +287,34 @@ async def get_document_list():
     
     return FileResponse(doclist_path, media_type="application/javascript")
 
-@app.get("/docs/{file}")
-async def get_document(file: str):
-    """Serve documentation files."""
-    # Security: prevent directory traversal
-    if ".." in file:
-        raise HTTPException(status_code=400, detail="Invalid filename")
-    
-    file_path = PROJECT_ROOT / "static/docs" / file
-    
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    return FileResponse(file_path)
-
 @app.get("/")
 async def read_root():
     """Serve the main index page."""
     return FileResponse(PROJECT_ROOT / 'static/lcars.html')
-
-@app.get("/{page}")
-async def read_page(page: str):
-    """Serve the main index page."""
-    return FileResponse(PROJECT_ROOT / f'static/{page}')
 
 @app.get("/favicon.ico")
 async def get_favicon():
     """Serve the job selection page."""
     return FileResponse(PROJECT_ROOT / 'static/wheel.ico')
 
+@app.get("/{page}")
+async def read_page(page: str):
+    page = safe_filename(page)
+    return FileResponse(PROJECT_ROOT / f'static/{page}')
+
 @app.get("/panels/{file}")
-async def get_part_for_html_page( file ):
-    """Serve the job selection page."""
+async def get_part_for_html_page(file: str):
+    file = safe_filename(file)
     return FileResponse(PROJECT_ROOT / f'static/panels/{file}')
+
+@app.get("/docs/{file}")
+async def get_document(file: str):
+    file = safe_filename(file)
+    file_path = PROJECT_ROOT / "static/docs" / file
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FastAPI Web Server")

@@ -44,7 +44,7 @@ Start the web dashboard to manage jobs:
 ```bash
 python py/web_server.py
 ```
-Access the dashboard at `http://localhost:8000`.
+Access the dashboard at `http://localhost:8006`.
 
 ## 4. Running Tools via CLI
 

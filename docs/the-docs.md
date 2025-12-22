@@ -26,10 +26,10 @@ The [Getting Started](tutorials/getting-started.md) doc is the best place to sta
 Developers have a separate [index of explanations](./explanations/for-developers/index-of-why.md)
 
 * [Overview](./explanations/overview.md) - An overview of the whole SeqQuest system, explaining what it can do and the existing pipelines.
-* [Why Smith-Waterman alignment?](./explanations/why-sw.md) - What kinds of similarities it does and does not find. 
-* [Exploring the Twilight Zone](./explanations/twilight-zone.md) - How some scores are 'boosted'. Looks at proteins with biassed sequence composition, and sequences with repetitive motifs. 
-* [Using AI to help interpret results](./explanations/ai-interpret.md) - Why AI struggles to make discoveries. What it is good for, and where relying on it gets in the way.
-* [Why Star Trek?](./explanations/why-star-trek.md) - Why does SeqQuest have a star-trek (TNG) like UI?
+* [Why Smith-Waterman alignment?](./explanations/for-users/why-sw.md) - What kinds of similarities it does and does not find. 
+* [Exploring the Twilight Zone](./explanations/for-users/twilight-zone.md) - How some scores are 'boosted'. Looks at proteins with biassed sequence composition, and sequences with repetitive motifs. 
+* [Using AI to help interpret results](./explanations/for-users/ai-interpret.md) - Why AI struggles to make discoveries. What it is good for, and where relying on it gets in the way.
+* [Why Star Trek?](./explanations/for-users/why-star-trek.md) - Why does SeqQuest have a star-trek (TNG) like UI?
 
 ## How To
 
