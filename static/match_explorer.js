@@ -445,6 +445,7 @@ async function loadSequenceDetails(finding, index) {
     // Build detail view
     if (detailViewer) {
         detailViewer.innerHTML = `
+            <div data-index="${index}">
             <div class="stats-bar">
                 <div class="stat-item">
                     <div class="stat-label">Match Score</div>
@@ -472,6 +473,7 @@ async function loadSequenceDetails(finding, index) {
             <div class="sequence-section">
                 <div class="sequence-label">Sequence 2 (ID: ${id2})</div>
                 <div class="sequence-text" id="details2">${seq2Details}</div>
+            </div>
             </div>
         `;
     }

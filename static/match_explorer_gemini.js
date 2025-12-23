@@ -18,15 +18,24 @@ class FindingsNavigator {
 }
 
 class ScrollMath {
-    static calculateTargetScroll(itemTop, itemHeight, viewportHeight, targetScrollHeight) {
-        const travel = viewportHeight - itemHeight;
-        const maxScroll = targetScrollHeight - viewportHeight;
-        if (travel <= 0 || maxScroll <= 0) return 0;
+    /* @param {number} itemTop Current visual Y of the source item
+     * @param {number} itemHeight Height of the source item
+     * @param {number} viewportHeight Height of the visible box
+     * @param {number} targetItemHeight Height of the item in the destination panel
+     */
+    static calculateTargetVisualTop(itemTop, itemHeight, viewportHeight, targetItemHeight) {
+        const sourceTravel = viewportHeight - itemHeight;
+        const targetTravel = viewportHeight - targetItemHeight;
 
-        // Ratio: 0.0 (top) to 1.0 (bottom)
-        const ratio = Math.max(0, Math.min(1, itemTop / travel));
-        return ratio * maxScroll;
-    }
+        console.log( `${itemTop}/${itemHeight} ${viewportHeight}/${targetItemHeight}`)
+
+        // Ratio: 0.0 (top of viewport) to 1.0 (bottom of viewport)
+        const ratio = Math.max(0, Math.min(itemTop / sourceTravel, 1));
+        console.log( `ratio:${ratio} Maxscroll:${targetTravel}`)
+
+        // Map that ratio to the target's travel zone
+        return ratio * targetTravel;
+    }    
 }
 
 class Multiscroller {
@@ -113,11 +122,24 @@ class SyncTarget {
     }
 
     applySync(refBounds) {
-        const targetScroll = ScrollMath.calculateTargetScroll(
+        // 1. Identify the 'Focal Item' for this panel
+        const translated = this.orch.nav.translateCursor(this.orch.activeCursor, this.level);
+        const localIndex = translated[translated.length - 1];
+        const item = this.el.querySelector(`[data-index="${localIndex}"]`) || this.el.firstElementChild;
+
+        if (!item) return;
+
+        // 2. Calculate the "Target Visual Top"
+        // This is the pixel position (0 to Travel) where the item should sit in the viewport
+        const targetVisualTop = ScrollMath.calculateTargetVisualTop(
             refBounds.top, refBounds.height,
-            this.el.clientHeight, this.el.scrollHeight
+            this.el.clientHeight, item.offsetHeight
         );
-        this.setInternalScrollPos(targetScroll);
+
+        // 3. Perform the Scroll
+        // To put the item at 'targetVisualTop', we scroll to: (Item's Absolute Position) - (Desired Visual Position)
+        const absoluteItemTop = item.offsetTop; 
+        this.setInternalScrollPos( absoluteItemTop - targetVisualTop - this.el.offsetTop);
     }
 
     // --- Implementation Details ---
@@ -129,20 +151,23 @@ class SyncTarget {
 
 class AttachedPanel extends SyncTarget {
     getInternalScrollPos() { return this.el.scrollTop; }
-    setInternalScrollPos(val) { this.el.scrollTop = val; }
+    setInternalScrollPos(val) { this.el.scrollTop = val }
 
     getCursorFromIndex(index) {
-        // Simple mapping: level 0 is index, level 1 is index 0 of current parent
-        if (this.level === 0) return [index];
-        return [this.orch.activeCursor[0], 0]; 
+        return [index];
     }
 
     getBounds(cursor) {
         const translated = this.orch.nav.translateCursor(cursor, this.level);
         const localIndex = translated[translated.length - 1];
+        // the 'first child' alternative is for a style where we place a containing 'holder' inside
+        // the scroller, rather than rely on data-index existing. 
         const item = this.el.querySelector(`[data-index="${localIndex}"]`) || this.el.firstElementChild;
         
-        if (!item) return null;
+        if (!item) {
+            console.log("Item not found")
+            return null;
+        }
         const itemRect = item.getBoundingClientRect();
         const containerRect = this.el.getBoundingClientRect();
         return { top: itemRect.top - containerRect.top, height: itemRect.height };
@@ -165,26 +190,6 @@ class ManagedColumn extends SyncTarget {
         return { top: itemRect.top - containerRect.top, height: itemRect.height };
     }
 }
-
-
-
-//3. Migration Plan (Step-by-Step)Step 1: Centralize the Math (No breaking changes)Add the ScrollMath class to your project.In match_explorer.js, modify syncRightPanel to use ScrollMath.calculateTargetScroll. This confirms the "Golden Standard" works for your existing data.Step 2: The "Attached" WrapperImplement Multiscroller and AttachedPanel.In match_explorer.js, instead of manual sync functions, call:
-
-//const orch = new Multiscroller(new FindingsNavigator(parsedFindings));
-//orch.attach(document.getElementById('findingsList'), 0);
-//orch.attach(document.getElementById('pairViewer'), 1);
-
-//Step 3: Refactor Column.jsChange Column to ManagedColumn and make it extend SyncTarget.Update onMouseMove to call this.orch.broadcastSync.Old function scrollToProportional is deleted; its logic is now the shared applySync method in the base class.
-// 4. Summary of Function Changes
-//Function Destination Change Note
-//Column.onMouseMove ManagedColumn.onMouseMove Still exists; now calls orch.broadcastSync instead of onDrag.
-//Column.scrollToProportional REMOVED Replaced by SyncTarget.applySync (the logic is identical but generalized).
-//match_explorer.syncRightPanel REMOVED Replaced by orch.broadcastSync.Column.getBoundsManaged
-//Column.getBoundsLogic stays mostly the same but returns the "Visual Rect".
-//tree.cols[i].render ManagedColumn (via constructor) Passed in as a dependency instead of being hardcoded to the tree.
-
-
-
 
 
 // API Configuration
