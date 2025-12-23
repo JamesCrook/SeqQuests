@@ -197,8 +197,8 @@ async def stream_link_data():
 
 @app.get("/api/comparison/{id1}/{id2}")
 async def get_sequence_alignment(id1: str, id2: str):
-    s1 = sequences.get_protein( int(id1) )
-    s2 = sequences.get_protein( int(id2) )
+    s1 = sequences.get_protein( id1 )
+    s2 = sequences.get_protein( id2 )
     alignment = sw_align.align_local_swissprot( s1.full.sequence, s2.full.sequence)
 
     parts = alignment['visual_text'].split('\n')

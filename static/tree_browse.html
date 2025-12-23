@@ -511,7 +511,7 @@ function parseLine(index) {
   // Depth is now simply the number of 3-character blocks
   const depth = Math.floor(treeChars.length / 3);
   
-  const nodeMatch = afterTree.match(/^(Node\s+\d+)\s+([A-Z0-9]+)\s+Length:(\d+)(?:\s+\(s:(\d+)\))?\s*(?:\[([^\]]+)\])?\s*(.*)$/);
+  const nodeMatch = afterTree.match(/^\s*([A-Z0-9]+)\s+Length:(\d+)(?:\s+\(s:(\d+)\))?\s*(?:\[([^\]]+)\])?\s*(.*)$/);
   
   if (!nodeMatch) {
     parsedCache[index] = {
@@ -522,7 +522,7 @@ function parseLine(index) {
     return parsedCache[index];
   }
   
-  const [, nodeId, accession, length, score, rootInfo, remainder] = nodeMatch;
+  const [, accession, length, score, rootInfo, remainder] = nodeMatch;
   
   let name = '', organism = '';
   const semicolonIdx = remainder.indexOf(';');
@@ -535,7 +535,7 @@ function parseLine(index) {
   
   parsedCache[index] = {
     raw, depthPrefix, treeChars, depth,
-    accession, nodeId,
+    accession, 
     length: parseInt(length, 10),
     score: score ? parseInt(score, 10) : null,
     rootInfo, name, organism
@@ -566,7 +566,7 @@ function renderLineHtml(index) {
   let html = `<span class="tree-chars">${escapeHtml(fullTreeChars)}</span>`;
   
   if (line.accession) {
-    html += `<span class="node-accession">${escapeHtml(line.nodeId)} ${escapeHtml(line.accession)}</span>`;
+    html += `<span class="node-accession">${escapeHtml(line.accession)}</span>`;
     html += ` <span class="node-length">Length:${line.length}</span>`;
     if (line.score !== null) {
       html += ` <span class="node-score">(s:${line.score})</span>`;
@@ -686,10 +686,9 @@ function updateBreadcrumbs(index, fromBreadcrumbClick = false, clickedBreadcrumb
   }
   
   // Helper to extract node number from nodeId like "Node 492055"
-  function getNodeNumber(line) {
-    if (!line || !line.nodeId) return '?';
-    const match = line.nodeId.match(/Node\s+(\d+)/);
-    return match ? match[1] : '?';
+  function getNodeId(line) {
+    if (!line || !line.accession) return '?';
+    return line.accession;
   }
   
   // Add ancestors
@@ -705,8 +704,8 @@ function updateBreadcrumbs(index, fromBreadcrumbClick = false, clickedBreadcrumb
     
     // Separator with tooltip - connects this ancestor to the next node
     const nextLine = (i < ancestors.length - 1) ? ancestors[i + 1].line : currentLine;
-    const parentNodeNum = getNodeNumber(anc.line);
-    const childNodeNum = getNodeNumber(nextLine);
+    const parentNodeNum = getNodeId(anc.line);
+    const childNodeNum = getNodeId(nextLine);
     const childScore = nextLine?.score;
     
     const sep = document.createElement('span');
@@ -741,8 +740,8 @@ function updateBreadcrumbs(index, fromBreadcrumbClick = false, clickedBreadcrumb
   let prevLine = currentLine;
   forwardHistory.forEach((fwd, i) => {
     const fwdLine = parseLine(fwd.index);
-    const parentNodeNum = getNodeNumber(prevLine);
-    const childNodeNum = getNodeNumber(fwdLine);
+    const parentNodeNum = getNodeId(prevLine);
+    const childNodeNum = getNodeId(fwdLine);
     const childScore = fwdLine?.score;
     
     const sep = document.createElement('span');

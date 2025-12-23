@@ -98,20 +98,20 @@ class TwilightEntry:
         self.raw_protein1 = protein1_line
         self.raw_protein2 = protein2_line
         
+        # e.g: P0C6Y0-P0C6X9 s(36047) Length: 7180/7176
         header_match = re.match(
-            r'(\d+)-(\d+)\s+s\((\d+)\)\s+([A-Z0-9]+)-([A-Z0-9]+)\s+Length:\s+(\d+)/(\d+)',
+            r'\s*([A-Z0-9]+)-([A-Z0-9]+)\s+s\((\d+)\)\s+Length:\s+(\d+)/(\d+)',
             header_line
         )
         if not header_match:
             raise ValueError(f"Could not parse header: {header_line}")
         
-        self.num1, self.num2 = int(header_match.group(1)), int(header_match.group(2))
         self.score = int(header_match.group(3))
-        self.id1, self.id2 = header_match.group(4), header_match.group(5)
-        self.len1, self.len2 = int(header_match.group(6)), int(header_match.group(7))
+        self.id1, self.id2 = header_match.group(1), header_match.group(2)
+        self.len1, self.len2 = int(header_match.group(4)), int(header_match.group(5))
         
-        protein1_match = re.match(r'\s+\d+:\s+(.+)', protein1_line)
-        protein2_match = re.match(r'\s+\d+:\s+(.+)', protein2_line)
+        protein1_match = re.match(r'\s+(.+)', protein1_line)
+        protein2_match = re.match(r'\s+(.+)', protein2_line)
         
         if not protein1_match or not protein2_match:
             raise ValueError("Could not parse protein lines")
@@ -135,7 +135,7 @@ def parse_twilight_file(filepath: str) -> List[TwilightEntry]:
             i += 1
             continue
         
-        if re.match(r'^\d+-\d+\s+s\(', line):
+        if re.match(r'^[A-Z0-9]+-[A-Z0-9]+\s+s\(', line):
             if i + 2 < len(lines):
                 try:
                     entries.append(TwilightEntry(line, lines[i+1], lines[i+2]))
@@ -346,8 +346,8 @@ def phase1_filter(entry: TwilightEntry, stopwords: Set[str]) -> Optional[List[st
 def phase2_filter(entry: TwilightEntry) -> Optional[str]:
     """Phase 2: Full record analysis."""
     try:
-        r1 = sequences.get_protein(entry.num1)
-        r2 = sequences.get_protein(entry.num2)
+        r1 = sequences.get_protein(entry.id1)
+        r2 = sequences.get_protein(entry.id2)
         
         if not r1 or not r2:
             return None
@@ -381,7 +381,7 @@ def phase2_filter(entry: TwilightEntry) -> Optional[str]:
                 return f"{prefix}{match}"
 
     except Exception as e:
-        print(f"Warning: Phase 2 failed for {entry.num1}-{entry.num2}: {e}")
+        print(f"Warning: Phase 2 failed for {entry.id1}-{entry.id2}: {e}")
 
     return None
 
@@ -389,8 +389,8 @@ def phase2_filter(entry: TwilightEntry) -> Optional[str]:
 def phase_compositional_bias(entry: TwilightEntry, threshold: float = 0.5) -> Optional[str]:
     """Phase for compositional bias detection."""
     try:
-        r1 = sequences.get_protein(entry.num1)
-        r2 = sequences.get_protein(entry.num2)
+        r1 = sequences.get_protein(entry.id1)
+        r2 = sequences.get_protein(entry.id2)
         
         result = align_local_swissprot(r1.full.sequence, r2.full.sequence,
                                        weights='PAM250', gap_extend=-10)
@@ -403,7 +403,7 @@ def phase_compositional_bias(entry: TwilightEntry, threshold: float = 0.5) -> Op
             return f"Compositional: {bias_result['reason']}"
         
     except Exception as e:
-        print(f"Warning: Compositional bias check failed for {entry.num1}-{entry.num2}: {e}")
+        print(f"Warning: Compositional bias check failed for {entry.id1}-{entry.id2}: {e}")
     
     return None
 
@@ -469,6 +469,9 @@ def filter_twilight(input_file: str, output_file: str, reasons_file: str,
     print(f"Parsing {input_file}...")
     entries = parse_twilight_file(input_file)
     print(f"Found {len(entries)} comparisons")
+    if entries == 0:
+        print("Nothing to do.")
+        return
     
     filtered_counts = {'phase0': 0, 'phase1': 0, 'phase2': 0, 'bias': 0}
     kept_entries = []

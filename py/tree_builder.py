@@ -330,6 +330,7 @@ class MaxSpanningTree:
     def report_twilight(self, f):
 
         def should_skip(r1, r2):
+            # -------- Nowadays we skip nothing in this stage ---------------------
             return None
             if 'toxin' in r1.name.lower() and 'toxin' in r2.name.lower():
                 return 'toxins'
@@ -364,6 +365,9 @@ class MaxSpanningTree:
         skip_counts = {'toxins': 0, 'uncharacterized': 0, 'seed storage':0, 'similar names':0}
         total_skip_counts = {'toxins': 0, 'uncharacterized': 0, 'seed storage':0, 'similar names':0}
 
+        # Legacy format has internal numbers in the hits file.
+        legacy = False;
+
         for node_id in sorted_twilight_indices:
             parent_id = parents[node_id]
             r1 = self.get_renumbered_protein(node_id)
@@ -381,9 +385,16 @@ class MaxSpanningTree:
                 skip_string = f" [...skipped {' and '.join(skip_parts)}]"
                 skip_counts = {key: 0 for key in skip_counts}
 
-            f.write(f"{r1.number}-{r2.number} s({scores[node_id]}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
-            f.write(f" {r1.number}: {r1.name}\n")
-            f.write(f" {r2.number}: {r2.name}\n")
+
+            if legacy:
+                f.write(f"{r1.number}-{r2.number} s({scores[node_id]}) {r1.id}-{r2.id} Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
+                f.write(f" {r1.number}: {r1.name}\n")
+                f.write(f" {r2.number}: {r2.name}\n")
+            else:
+                f.write(f"{r1.id}-{r2.id} s({scores[node_id]}) Length: {r1.sequence_length}/{r2.sequence_length}{skip_string}\n")
+                f.write(f" {r1.name}\n")
+                f.write(f" {r2.name}\n")
+
 
         grand_total = sum(total_skip_counts.values())
         if grand_total > 0:
@@ -432,10 +443,19 @@ class MaxSpanningTree:
                 if node_id%1000 == 0:
                     print(f"tree: {node_id}")
 
-                if depth == 0:
-                    f.write(f"{short_prefix}{connector}Node {record.number} {record.id} Length:{record.sequence_length} [ROOT {component}] {record.name} \n")
+                # Legacy format has internal numbers in the hits file.
+                legacy = False;
+
+                if legacy:
+                    if depth == 0:
+                        f.write(f"{short_prefix}{connector}Node {record.number} {record.id} Length:{record.sequence_length} [ROOT {component}] {record.name} \n")
+                    else:
+                        f.write(f"{short_prefix}{connector}Node {record.number} {record.id} Length:{record.sequence_length} (s:{self.scores[node_id]}) {record.name}\n")
                 else:
-                    f.write(f"{short_prefix}{connector}Node {record.number} {record.id} Length:{record.sequence_length} (s:{self.scores[node_id]}) {record.name}\n")
+                    if depth == 0:
+                        f.write(f"{short_prefix}{connector}{record.id} Length:{record.sequence_length} [ROOT {component}] {record.name} \n")
+                    else:
+                        f.write(f"{short_prefix}{connector}{record.id} Length:{record.sequence_length} (s:{self.scores[node_id]}) {record.name}\n")
 
                 sorted_children = get_sorted_children(node_id)
 

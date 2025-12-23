@@ -27,11 +27,11 @@ class ScrollMath {
         const sourceTravel = viewportHeight - itemHeight;
         const targetTravel = viewportHeight - targetItemHeight;
 
-        console.log( `${itemTop}/${itemHeight} ${viewportHeight}/${targetItemHeight}`)
+        //console.log( `${itemTop}/${itemHeight} ${viewportHeight}/${targetItemHeight}`)
 
         // Ratio: 0.0 (top of viewport) to 1.0 (bottom of viewport)
         const ratio = Math.max(0, Math.min(itemTop / sourceTravel, 1));
-        console.log( `ratio:${ratio} Maxscroll:${targetTravel}`)
+        //console.log( `ratio:${ratio} Maxscroll:${targetTravel}`)
 
         // Map that ratio to the target's travel zone
         return ratio * targetTravel;
@@ -359,7 +359,7 @@ function parseFindings(data) {
     
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line.match(/^\d+-\d+/)) {
+        if (line.match(/^[A-Z0-9]+-[A-Z0-9]+/)) {
             const header = line;
             const details = [];
             
@@ -563,7 +563,7 @@ async function loadSequenceDetails(finding, index) {
     }
     
     // Extract IDs and lengths from header
-    const headerMatch = finding.header.match(/(\d+)-(\d+).*Length: (\d+)\/(\d+)/);
+    const headerMatch = finding.header.match(/([A-Z0-9]+)-([A-Z0-9]+).*Length: (\d+)\/(\d+)/);
     if (!headerMatch) {
         isLoadingSequence = false;
         return;

@@ -146,6 +146,7 @@ class PickledSequenceCache(SequenceCache):
         format_suffix = f"_{file_format}" if file_format else ""
         self.cache_file = self.cache_dir / f"{self.data_file.stem}{format_suffix}.pkl"
         """Load from pickle if available, otherwise parse the data file"""
+        print(f"DEBUG: Looking for cache at: {self.cache_file.absolute()}")
         # Check if cache exists and is newer than the data file
         if (self.cache_file.exists() and 
             self.cache_file.stat().st_mtime > self.data_file.stat().st_mtime):
@@ -177,39 +178,53 @@ class SwissIndexCache(PickledSequenceCache):
         self.handle = None  # File handle for the data file
 
     def load_sequences(self, data_file, file_format):
+
         start_time = time.time()
         self.sequences = OrderedDict()
         self.seq_list = []
 
-        with open(data_file, 'r', encoding='latin-1') as f:
-            # Pass 1: Find the start of every record
+        # Use binary mode to ensure tell() is accurate
+        with open(data_file, 'rb') as f:
             record_starts = []
-            f.seek(0)
             while True:
+                pos = f.tell()
                 line = f.readline()
-                if not line:
-                    break
-                if line.startswith('ID'):
-                    record_starts.append(f.tell() - len(line))
+                if not line: break
+                if line.startswith(b'ID'):
+                    record_starts.append(pos)
 
-            # Pass 2: Create the index from the discovered record starts
             for i in range(len(record_starts)):
                 f.seek(record_starts[i])
-                id_line = f.readline()
-                # The id is the second word on the ID line, and might have a trailing ';'
+                # Read first few lines to get ID and AC
+                chunk = f.read(1024).decode('latin-1')
+                lines = chunk.splitlines()
+                
+                # Extract ID (Entry Name)
+                id_line = lines[0]
                 seq_id = id_line.split()[1].strip(';')
+                
+                # Extract Accession (Optional but recommended)
+                # AC line usually follows ID line
+                ac_id = None
+                for line in lines:
+                    if line.startswith('AC'):
+                        ac_id = line.split()[1].strip(';')
+                        break
 
                 start_pos = record_starts[i]
-
-                if i + 1 < len(record_starts):
-                    end_pos = record_starts[i+1]
-                else:
-                    # For the last record, the end is the end of the file
+                end_pos = record_starts[i+1] if i+1 < len(record_starts) else None
+                if end_pos is None:
                     f.seek(0, 2)
                     end_pos = f.tell()
 
                 record_info = (seq_id, start_pos, end_pos)
+                
+                # Store by Entry Name
                 self.sequences[seq_id] = record_info
+                # Store by Accession if found
+                if ac_id:
+                    self.sequences[ac_id] = record_info
+                    
                 self.seq_list.append(record_info)
 
         self.load_time = time.time() - start_time
@@ -372,9 +387,12 @@ def get_sequence_by_identifier(identifier, db_name='swissprot'):
                 return record
     return None
 
-def get_protein( number ):
+def get_protein( identifier ):
     cache = DataManager().get_swissprot_cache(file_format='swiss_index')
-    record = cache.get_record_by_index(number)
+    record = cache.get_record( identifier )
+
+    # Later I may add back the old alternative that gets a record by a number
+    #record = cache.get_record_by_index(number)
 
     pattern = r"RecName:\s*Full=([^;]+)"
     # Search for the pattern in the string
@@ -386,7 +404,6 @@ def get_protein( number ):
         full_name = match.group(1)
 
     result = SimpleNamespace()
-    result.number = number        
     result.name = f"{full_name}; {record.organism}"
     result.id = record.accessions[0]
     result.entry = record.entry_name
