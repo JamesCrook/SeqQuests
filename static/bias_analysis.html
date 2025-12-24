@@ -4,153 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protein Texture Map: Ribbon & Composition</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #e0e0e0; padding: 20px; color: #333; }
-        h2 { margin-top: 0; color: #444; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        
-        .controls { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 6px; }
-        textarea { width: 100%; height: 60px; padding: 10px; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin-bottom: 10px; }
-        button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0056b3; }
-
-        .canvas-wrapper { 
-            position: relative; 
-            overflow-x: auto; 
-            border: 1px solid #555; 
-            background: #333; /* Dark background */
-            padding: 20px 10px; 
-            border-radius: 4px; 
-        }
-        canvas { display: block; margin-bottom: 5px; }
-        
-        .label { color: #aaa; font-size: 11px; margin-bottom: 2px; font-family: sans-serif; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
-        .label:first-child { margin-top: 0; }
-
-        .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; font-size: 12px; }
-        .legend-item { display: flex; align-items: center; gap: 5px; background: #eee; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; }
-        .color-box { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.2); }
-
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: #fff;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            display: none;
-            z-index: 9999;
-            white-space: pre-wrap;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border: 1px solid #777;
-            max-width: 300px;
-        }
-        
-        .settings { font-size: 13px; color: #666; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;}
-        .toggles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: #444; border-top: 1px solid #ddd; padding-top: 10px;}
-        label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        .period-box { width: 10px; height: 10px; display: inline-block; border-radius: 50%; }
-        
-        /* Slider styling */
-        input[type=range] { width: 100px; vertical-align: middle; }
-    </style>
+    <link rel="stylesheet" href="proteins.css">
+    <script src="proteins.js"></script>
 </head>
-<body>
+<body class="bias-body">
 
-<div class="container">
-    <h2>Protein Texture Map</h2>
+<div class="bias-container">
+    <h2 class="bias-h2">Protein Texture Map</h2>
     
-    <div class="controls">
-        <label for="sequenceInput">Protein Sequence:</label>
+    <div class="bias-controls">
+        <label for="sequenceInput" class="bias-input-label">Protein Sequence:</label>
         <!-- Added oninput for immediate rendering -->
-        <textarea id="sequenceInput" spellcheck="false" oninput="updateVisualization()">SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK</textarea>
+        <textarea id="sequenceInput" class="bias-textarea" spellcheck="false" oninput="updateVisualization()">SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK</textarea>
         
-        <div class="settings">
-            <button onclick="updateVisualization()">Render Sequence</button>
-            <label><input type="checkbox" id="showSeparators" checked onchange="updateVisualization()"> Show Ribbon Separators</label>
-            <label title="Matches residues based on proximity in the canonical list (G A T S D E...)"><input type="checkbox" id="useChemicalSim" checked onchange="updateVisualization()"> Use Chemical Similarity</label>
+        <div class="bias-settings">
+            <button class="bias-button" onclick="updateVisualization()">Render Sequence</button>
+            <label class="bias-input-label"><input type="checkbox" id="showSeparators" checked onchange="updateVisualization()"> Show Ribbon Separators</label>
+            <label class="bias-input-label" title="Matches residues based on proximity in the canonical list (G A T S D E...)"><input type="checkbox" id="useChemicalSim" checked onchange="updateVisualization()"> Use Chemical Similarity</label>
             
-            <label title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
+            <label class="bias-input-label" title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
                 Mosaic Smoothing: 
                 <!-- Slider extended to 24 -->
-                <input type="range" id="mosaicWindow" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
+                <input type="range" id="mosaicWindow" class="bias-slider" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
                 <span id="mosaicVal" style="font-weight:bold; width:20px;">5</span>
             </label>
         </div>
 
-        <div class="toggles">
+        <div class="bias-toggles">
             <strong>Detect Periods:</strong>
-            <label><input type="checkbox" class="period-toggle" value="2" checked onchange="updateVisualization()"> 2</label>
-            <label><input type="checkbox" class="period-toggle" value="3" checked onchange="updateVisualization()"> 3</label>
-            <label><input type="checkbox" class="period-toggle" value="4" checked onchange="updateVisualization()"> 4</label>
-            <label><input type="checkbox" class="period-toggle" value="5" checked onchange="updateVisualization()"> 5</label>
-            <label><input type="checkbox" class="period-toggle" value="6" checked onchange="updateVisualization()"> 6</label>
-            <label><input type="checkbox" class="period-toggle" value="7" checked onchange="updateVisualization()"> 7</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="2" checked onchange="updateVisualization()"> 2</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="3" checked onchange="updateVisualization()"> 3</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="4" checked onchange="updateVisualization()"> 4</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="5" checked onchange="updateVisualization()"> 5</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="6" checked onchange="updateVisualization()"> 6</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="7" checked onchange="updateVisualization()"> 7</label>
         </div>
     </div>
 
-    <div class="canvas-wrapper" id="canvasContainer">
-        <div class="label">Literal Sequence (1:1)</div>
-        <canvas id="literalCanvas" height="15"></canvas>
+    <div class="bias-canvas-wrapper" id="canvasContainer">
+        <div class="bias-label">Literal Sequence (1:1)</div>
+        <canvas id="literalCanvas" class="bias-canvas" height="15"></canvas>
         
-        <div class="label">Texture Map (Ribbon / Sorted Stack)</div>
-        <canvas id="textureCanvas" height="40"></canvas>
+        <div class="bias-label">Texture Map (Ribbon / Sorted Stack)</div>
+        <canvas id="textureCanvas" class="bias-canvas" height="40"></canvas>
 
-        <div class="label">Detected Periodicity (0-7)</div>
-        <canvas id="periodCanvas" height="15"></canvas>
+        <div class="bias-label">Detected Periodicity (0-7)</div>
+        <canvas id="periodCanvas" class="bias-canvas" height="15"></canvas>
     </div>
 
-    <div class="legend" id="legendContainer"></div>
+    <div class="protein-legend" id="legendContainer"></div>
 </div>
 
 <!-- Tooltip moved outside container to avoid clipping -->
-<div id="tooltip" class="tooltip"></div>
+<div id="tooltip" class="bias-tooltip"></div>
 
 <script>
     // --- Configuration ---
+    // Now using ProteinStyle from proteins.js
 
-    // 1. Color Palette 
-    const aaColors = {
-        'G': '#FFFFFF', // White
-        'A': '#CCCCCC', // Light Grey
-        'T': '#ADD8E6', // Light Blue
-        'S': '#9292FE', // Dark Blue
-        'D': '#FF6666', // Red 
-        'E': '#FF0000', // Red (Darker)
-        'Q': '#800080', // Purple
-        'N': '#FF00FF', // Magenta
-        'V': '#A2CA2E', // Green
-        'L': '#32CD32', // Lime Green
-        'I': '#ACF1AC', // Forest Green
-        'K': '#00FFFF', // Cyan
-        'R': '#00BFFF', // Deep Sky Blue
-        'M': '#00FF70', // Sea Green
-        'C': '#EEFF00', // Lime Yellow
-        'F': '#D2691E', // Chocolate
-        'Y': '#A0522D', // Sienna
-        'W': '#FFA18A', // Salmon
-        'H': '#4682B4', // Steel Blue
-        'P': '#ffd142', // Gold
-        'X': '#666666'  // Unknown
-    };
-
-    // Periodicity Colors (Rainbow)
-    const periodColors = {
-        0: '#444444', // Grey (None)
-        2: '#FF4136', // Red
-        3: '#FF851B', // Orange
-        4: '#FFDC00', // Yellow
-        5: '#2ECC40', // Green
-        6: '#0074D9', // Blue
-        7: '#B10DC9'  // Violet
-    };
-
-    // 2. Canonical Sort Order 
-    const canonicalOrderStr = "G A T S D E Q N V L I K R M C F Y W H P";
-    const canonicalOrder = canonicalOrderStr.split(' ');
-    const aaRank = {};
-    canonicalOrder.forEach((aa, i) => aaRank[aa] = i);
+    // Define canonicalOrder for compatibility or use ProteinStyle.canonicalOrderStr
+    const canonicalOrder = ProteinStyle.canonicalOrderStr.split(' ');
 
     const canvas = document.getElementById('textureCanvas');
     const ctx = canvas.getContext('2d');
@@ -166,7 +79,7 @@
         // Translate amino acids to acids 'in order'
         let translated = ""
         for (let char of subseq) {
-            let r = aaRank[char] ?? 0;
+            let r = ProteinStyle.aaRank[char] ?? 0;
             translated += String.fromCharCode('@'.charCodeAt(0)+r);
         }
 
@@ -186,8 +99,8 @@
     }
 
     function getChemicalDistance(aa1, aa2) {
-        let r1 = aaRank[aa1];
-        let r2 = aaRank[aa2];
+        let r1 = ProteinStyle.aaRank[aa1];
+        let r2 = ProteinStyle.aaRank[aa2];
         if (r1 === undefined || r2 === undefined) return 100;
         return Math.abs(r1 - r2);
     }
@@ -272,7 +185,7 @@
         for (let i = 0; i < seq.length; i++) {
             const x = i * widthPerResidue;
             const aa = seq[i];
-            const color = aaColors[aa] || '#666';
+            const color = ProteinStyle.aaColors[aa] || '#666';
 
             // --- 1. Literal Bar (Top) ---
             litCtx.fillStyle = color;
@@ -290,7 +203,7 @@
 
             // --- 3. Periodicity Bar (Bottom) ---
             // Visual feedback of what period was detected
-            let pColor = isRibbon ? periodColors[period] : periodColors[0];
+            let pColor = isRibbon ? ProteinStyle.periodColors[period] : ProteinStyle.periodColors[0];
             perCtx.fillStyle = pColor;
             perCtx.fillRect(x, 0, widthPerResidue, perHeight);
             // Slight separator
@@ -308,7 +221,7 @@
                 
                 for (let s = 0; s < period; s++) {
                     let stripeAA = canonicalUnit[s];
-                    ctx.fillStyle = aaColors[stripeAA] || '#666';
+                    ctx.fillStyle = ProteinStyle.aaColors[stripeAA] || '#666';
                     ctx.fillRect(x, s * stripeHeight, widthPerResidue, stripeHeight);
                     
                     if (showLines && s > 0) {
@@ -335,13 +248,13 @@
                 }
                 
                 // Sort by Canonical Order (Light -> Heavy)
-                localAA.sort((a, b) => (aaRank[a]??100) - (aaRank[b]??100));
+                localAA.sort((a, b) => (ProteinStyle.aaRank[a]??100) - (ProteinStyle.aaRank[b]??100));
                 
                 // Draw stack
                 if (localAA.length > 0) {
                     let blockHeight = texHeight / localAA.length;
                     for (let s = 0; s < localAA.length; s++) {
-                        ctx.fillStyle = aaColors[localAA[s]] || '#666';
+                        ctx.fillStyle = ProteinStyle.aaColors[localAA[s]] || '#666';
                         // Draw +1 height to prevent sub-pixel gaps
                         ctx.fillRect(x, s * blockHeight, widthPerResidue, blockHeight + 0.5);
                     }
@@ -410,11 +323,11 @@
         leg.innerHTML = '';
         
         // AA Legend
-        for (let [aa, color] of Object.entries(aaColors)) {
+        for (let [aa, color] of Object.entries(ProteinStyle.aaColors)) {
             if (aa === 'X') continue;
             let div = document.createElement('div');
-            div.className = 'legend-item';
-            div.innerHTML = `<div class="color-box" style="background:${color}"></div> <span>${aa}</span>`;
+            div.className = 'protein-legend-item bias-legend-item';
+            div.innerHTML = `<div class="color-box-indicator" style="background:${color}"></div> <span>${aa}</span>`;
             leg.appendChild(div);
         }
 
@@ -427,11 +340,11 @@
         pHeader.innerText = "PERIODICITY KEY (Bottom Bar):";
         leg.appendChild(pHeader);
 
-        for (let [p, color] of Object.entries(periodColors)) {
+        for (let [p, color] of Object.entries(ProteinStyle.periodColors)) {
             let label = p == 0 ? "None" : p;
             let div = document.createElement('div');
-            div.className = 'legend-item';
-            div.innerHTML = `<div class="color-box" style="background:${color}"></div> <span>${label}</span>`;
+            div.className = 'protein-legend-item bias-legend-item';
+            div.innerHTML = `<div class="color-box-indicator" style="background:${color}"></div> <span>${label}</span>`;
             leg.appendChild(div);
         }
     }
