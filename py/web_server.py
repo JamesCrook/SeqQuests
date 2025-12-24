@@ -16,6 +16,7 @@ import json
 from job_manager import JobManager, JOB_TYPES
 import sequences
 import sw_align
+import uniprot_mapper
 import os
 from pathlib import Path
 import re
@@ -241,6 +242,25 @@ async def get_sequence(identifier: str):
     if not sequence_data:
         raise HTTPException(status_code=404, detail="Sequence not found")
     return {"header": sequence_data.description, "sequence": str( sequence_data.seq )}
+
+@app.get("/api/uniprot/{accession}")
+async def get_uniprot_json(accession: str):
+    """
+    Get protein data in UniProt JSON format.
+    Uses the local SwissProt cache.
+    """
+    try:
+        # sequences.get_protein handles retrieval from SwissIndexCache
+        result = sequences.get_protein(accession)
+        if not result or not result.full:
+             raise HTTPException(status_code=404, detail="Protein not found")
+
+        record = result.full
+        return uniprot_mapper.map_record_to_json(record)
+
+    except Exception as e:
+        logger.error(f"Error retrieving uniprot data for {accession}: {e}")
+        raise HTTPException(status_code=404, detail=f"Protein not found or error processing: {str(e)}")
 
 # --- Web UI Routes ---
 
