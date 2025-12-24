@@ -177,6 +177,22 @@ class SwissIndexCache(PickledSequenceCache):
         super().__init__(data_file, cache_dir)
         self.handle = None  # File handle for the data file
 
+    # An alternative init, intended to put the cache in a specific
+    # place relative to the source file.
+    def __init_unused__(self, data_file, cache_dir=".cache"):
+        # Convert data_file to a Path object immediately
+        self.data_file = Path(data_file).absolute()
+        
+        # Ensure cache_dir is absolute, relative to the data file's parent
+        self.cache_dir = self.data_file.parent / cache_dir
+        
+        # Create the directory if it doesn't exist
+        self.cache_dir.mkdir(exist_ok=True)
+        
+        super().__init__(str(self.data_file), str(self.cache_dir))
+        self.handle = None  # File handle for the data file
+
+
     def load_sequences(self, data_file, file_format):
 
         start_time = time.time()

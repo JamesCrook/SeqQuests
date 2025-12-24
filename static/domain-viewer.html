@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protein Alignment Viewer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 1.4rem; margin-bottom: 8px; }
+.subtitle { font-size: 0.85rem; color: #666; margin-bottom: 16px; }
+.panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.controls { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.controls label { font-size: 0.85rem; font-weight: 500; }
+.controls input[type="range"] { width: 120px; }
+.zoom-val { font-size: 0.75rem; color: #888; min-width: 40px; }
+.btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: background 0.15s; }
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-secondary { background: #e5e7eb; color: #333; }
+.btn-secondary:hover { background: #d1d5db; }
+.canvas-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 4px; background: #fafafa; }
+canvas { display: block; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 0.75rem; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-color { width: 14px; height: 14px; border-radius: 2px; }
+#tables-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+@media (max-width: 800px) { #tables-container { grid-template-columns: 1fr; } }
+.table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.table-selector { display: flex; align-items: center; gap: 8px; }
+.table-selector select { 
+  font-size: 0.9rem; font-weight: 600; color: #333; 
+  background: #fff; border: 1px solid #e5e7eb; cursor: pointer;
+  padding: 5px 28px 5px 8px; margin: 0;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+  border-radius: 6px; transition: all 0.15s;
+}
+.table-selector select:hover { border-color: #3b82f6; background-color: #f8fafc; }
+.table-selector select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+.table-size { font-size: 0.75rem; color: #888; font-weight: 400; }
+.nav-arrows { display: flex; gap: 2px; }
+.nav-arrow { 
+  width: 24px; height: 24px; border: 1px solid #e5e7eb; background: #fff; 
+  border-radius: 4px; cursor: pointer; display: flex; align-items: center; 
+  justify-content: center; color: #666; font-size: 0.75rem; transition: all 0.15s;
+}
+.nav-arrow:hover { background: #f3f4f6; border-color: #3b82f6; color: #3b82f6; }
+.nav-arrow:active { background: #e5e7eb; }
+.feature-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.feature-table th, .feature-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; }
+.feature-table th { background: #f9fafb; font-weight: 600; position: sticky; top: 0; }
+.feature-table tr { cursor: pointer; transition: background 0.15s; }
+.feature-table tr:hover { background: #f0f7ff; }
+.feature-table tr.selected { background: #dbeafe; }
+.table-scroll { max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 4px; }
+.type-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; color: #fff; font-size: 0.7rem; }
+.info { font-size: 0.8rem; color: #555; margin-top: 8px; }
+.loading { color: #666; font-style: italic; padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Protein Alignment Viewer</h1>
+  <p class="subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
+  
+  <div class="panel">
+    <div class="controls">
+      <label>Zoom:</label>
+      <input type="range" id="zoom" min="0.01" max="0.8" step="0.005" value="0.35">
+      <span class="zoom-val" id="zoomVal">35%</span>
+      <label><input type="checkbox" id="showLabels" checked> Labels</label>
+      <div style="flex:1"></div>
+      <span style="font-size:0.8rem;color:#666">Load:</span>
+      <button class="btn btn-secondary" onclick="loadExample('default')">Pair</button>
+      <button class="btn btn-secondary" onclick="loadExample('titin')">Titin</button>
+      <button class="btn btn-secondary" onclick="loadExample('polyprotein')">SARS-CoV-2</button>
+      <button class="btn btn-primary" onclick="loadExample('all')">All 4</button>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="legend" id="legend"></div>
+    <p class="info">Proteins aligned by padding. Click a feature below to highlight it on the canvas.</p>
+  </div>
+  
+  <div id="tables-container"></div>
+</div>
+
+<script>
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+const CONFIG = {
+  colors: {
+    CHAIN: '#d1d5db', DOMAIN: '#3b82f6', REGION: '#f59e0b', COILED: '#22c55e',
+    COMPBIAS: '#a855f7', MOD_RES: '#ef4444', TRANSMEM: '#06b6d4', REPEAT: '#ec4899',
+    ZN_FING: '#8b5cf6', MOTIF: '#14b8a6', BINDING: '#f97316', ACT_SITE: '#dc2626',
+    CONFLICT: '#6b7280', SIGNAL: '#84cc16', PROPEP: '#a3a3a3', ALIGN: '#93c5fd'
+  },
+  displayTypes: ['DOMAIN', 'REGION', 'COILED', 'COMPBIAS', 'MOD_RES', 'TRANSMEM', 'REPEAT', 'ZN_FING', 'MOTIF', 'BINDING', 'ACT_SITE'],
+  margin: { left: 110, right: 80, top: 25 },
+  trackHeight: 24,
+  trackGap: 45,
+  featureHeight: 12
+};
+
+// ============================================================================
+// PROTEIN DATABASE
+// ============================================================================
+const PROTEIN_DB = {
+  'UDS1_SCHPO': {
+    id: 'UDS1_SCHPO', length: 1052,
+    features: [
+      { type: 'CHAIN', start: 1, end: 1052, note: 'Up-regulated during septation protein 1' },
+      { type: 'REGION', start: 616, end: 687, note: 'Disordered' },
+      { type: 'REGION', start: 726, end: 760, note: 'Disordered' },
+      { type: 'REGION', start: 788, end: 820, note: 'Disordered' },
+      { type: 'COMPBIAS', start: 631, end: 669, note: 'Polar residues' },
+      { type: 'COMPBIAS', start: 670, end: 679, note: 'Basic/acidic' },
+      { type: 'COMPBIAS', start: 750, end: 760, note: 'Basic/acidic' },
+      { type: 'COMPBIAS', start: 791, end: 812, note: 'Basic/acidic' },
+      { type: 'MOD_RES', start: 51, end: 51, note: 'Phosphoserine' },
+      { type: 'MOD_RES', start: 52, end: 52, note: 'Phosphoserine' },
+      { type: 'MOD_RES', start: 53, end: 53, note: 'Phosphoserine' },
+      { type: 'MOD_RES', start: 57, end: 57, note: 'Phosphoserine' },
+      { type: 'MOD_RES', start: 59, end: 59, note: 'Phosphoserine' },
+      { type: 'MOD_RES', start: 60, end: 60, note: 'Phosphothreonine' },
+    ]
+  },
+  'FKBP5_DICDI': {
+    id: 'FKBP5_DICDI', length: 1622,
+    features: [
+      { type: 'CHAIN', start: 1, end: 1622, note: 'FK506-binding protein 5' },
+      { type: 'DOMAIN', start: 178, end: 269, note: 'PPIase FKBP-type' },
+      { type: 'REGION', start: 268, end: 306, note: 'Disordered' },
+      { type: 'REGION', start: 320, end: 432, note: 'Disordered' },
+      { type: 'REGION', start: 518, end: 538, note: 'Disordered' },
+      { type: 'REGION', start: 1043, end: 1097, note: 'Disordered' },
+      { type: 'REGION', start: 1122, end: 1622, note: 'Disordered' },
+      { type: 'COILED', start: 607, end: 827, note: 'Coiled coil' },
+      { type: 'COILED', start: 854, end: 961, note: 'Coiled coil' },
+      { type: 'COMPBIAS', start: 277, end: 303, note: 'Polar residues' },
+      { type: 'COMPBIAS', start: 335, end: 432, note: 'Low complexity' },
+      { type: 'COMPBIAS', start: 1050, end: 1093, note: 'Acidic residues' },
+      { type: 'COMPBIAS', start: 1152, end: 1168, note: 'Acidic residues' },
+      { type: 'MOD_RES', start: 314, end: 314, note: 'Omega-N-methylarginine' },
+    ]
+  },
+  'TITIN_HUMAN': {
+    id: 'TITIN_HUMAN', length: 34350,
+    features: [
+      { type: 'SIGNAL', start: 1, end: 23, note: 'Signal peptide' },
+      ...Array.from({length: 132}, (_, i) => ({ 
+        type: 'REPEAT', start: 2200 + i * 230, end: 2200 + i * 230 + 89, note: `Ig-like ${i+1}` 
+      })),
+      ...Array.from({length: 15}, (_, i) => ({ 
+        type: 'REPEAT', start: 100 + i * 120, end: 100 + i * 120 + 95, note: `FN3 ${i+1}` 
+      })),
+      { type: 'DOMAIN', start: 33800, end: 34100, note: 'Kinase domain' },
+      { type: 'REGION', start: 33000, end: 33700, note: 'Disordered' },
+    ]
+  },
+  'R1AB_SARS2': {
+    id: 'R1AB_SARS2', length: 7096,
+    features: [
+      { type: 'CHAIN', start: 1, end: 7096, note: 'Replicase polyprotein 1ab' },
+      { type: 'REGION', start: 1, end: 180, note: 'Nsp1' },
+      { type: 'REGION', start: 181, end: 818, note: 'Nsp2' },
+      { type: 'DOMAIN', start: 819, end: 1927, note: 'Nsp3 (PLpro)' },
+      { type: 'TRANSMEM', start: 1928, end: 2763, note: 'Nsp4' },
+      { type: 'DOMAIN', start: 2764, end: 3263, note: 'Nsp5 (3CLpro)' },
+      { type: 'TRANSMEM', start: 3264, end: 3569, note: 'Nsp6' },
+      { type: 'REGION', start: 3570, end: 3859, note: 'Nsp7-8' },
+      { type: 'DOMAIN', start: 3860, end: 4392, note: 'Nsp9' },
+      { type: 'ZN_FING', start: 4393, end: 4405, note: 'Zinc finger' },
+      { type: 'DOMAIN', start: 4393, end: 5324, note: 'Nsp12 (RdRp)' },
+      { type: 'DOMAIN', start: 5325, end: 5925, note: 'Nsp13 (Helicase)' },
+      { type: 'DOMAIN', start: 5926, end: 6452, note: 'Nsp14 (ExoN)' },
+      { type: 'DOMAIN', start: 6453, end: 6798, note: 'Nsp15 (EndoU)' },
+      { type: 'DOMAIN', start: 6799, end: 7096, note: 'Nsp16 (2-O-MT)' },
+      { type: 'ACT_SITE', start: 1945, end: 1945, note: 'PLpro catalytic Cys' },
+      { type: 'ACT_SITE', start: 3108, end: 3108, note: '3CLpro catalytic Cys' },
+    ]
+  }
+};
+
+// ============================================================================
+// STATE
+// ============================================================================
+let state = {
+  proteins: [],
+  alignments: [],
+  scale: 0.35,
+  showLabels: true,
+  selected: null,
+  tablePanels: [0, 1]
+};
+
+// ============================================================================
+// PADDING CALCULATION
+// ============================================================================
+function calculatePadding(proteins, alignments) {
+  proteins.forEach(p => { p.padding = { left: 0, right: 0 }; });
+  if (alignments.length === 0 || proteins.length < 2) return;
+  
+  alignments.forEach(al => {
+    const [i, j] = al.indices;
+    const [r1, r2] = al.regions;
+    const targetX = proteins[i].padding.left + r1[0];
+    proteins[j].padding.left = Math.max(0, targetX - r2[0]);
+  });
+  
+  const maxExtent = Math.max(...proteins.map(p => p.padding.left + p.length));
+  proteins.forEach(p => { p.padding.right = maxExtent - (p.padding.left + p.length); });
+}
+
+function getCanvasWidth() {
+  if (state.proteins.length === 0) return 400;
+  return CONFIG.margin.left + Math.max(...state.proteins.map(p => 
+    (p.padding.left + p.length) * state.scale)) + CONFIG.margin.right;
+}
+
+// ============================================================================
+// RENDERING
+// ============================================================================
+function render() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const { proteins, alignments, scale, showLabels, selected } = state;
+  
+  if (proteins.length === 0) {
+    canvas.width = 400; canvas.height = 100;
+    ctx.fillStyle = '#666'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No proteins loaded', 200, 50);
+    return;
+  }
+  
+  calculatePadding(proteins, alignments);
+  
+  const width = getCanvasWidth();
+  const height = CONFIG.margin.top + proteins.length * (CONFIG.trackHeight + CONFIG.trackGap) + 20;
+  canvas.width = width; canvas.height = height;
+  ctx.clearRect(0, 0, width, height);
+  
+  // Draw alignment backgrounds
+  alignments.forEach(al => {
+    const [i, j] = al.indices;
+    const [r1] = al.regions;
+    const p1 = proteins[i];
+    const x = CONFIG.margin.left + (p1.padding.left + r1[0]) * scale;
+    const w = (r1[1] - r1[0]) * scale;
+    const y1 = CONFIG.margin.top + i * (CONFIG.trackHeight + CONFIG.trackGap);
+    const y2 = CONFIG.margin.top + j * (CONFIG.trackHeight + CONFIG.trackGap);
+    ctx.fillStyle = CONFIG.colors.ALIGN; ctx.globalAlpha = 0.25;
+    ctx.fillRect(x - 3, y1 - 5, w + 6, y2 - y1 + CONFIG.trackHeight + 10);
+    ctx.globalAlpha = 1;
+  });
+  
+  // Draw each protein track
+  proteins.forEach((protein, idx) => {
+    const y = CONFIG.margin.top + idx * (CONFIG.trackHeight + CONFIG.trackGap);
+    const x = CONFIG.margin.left + protein.padding.left * scale;
+    const w = protein.length * scale;
+    
+    ctx.fillStyle = '#e5e7eb'; ctx.beginPath(); ctx.roundRect(x, y + 8, w, 8, 3); ctx.fill();
+    
+    ctx.fillStyle = '#333'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(protein.id, CONFIG.margin.left - 8, y + 15);
+    ctx.fillStyle = '#888'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`${protein.length.toLocaleString()} aa`, x + w + 5, y + 15);
+    
+    const features = protein.features.filter(f => CONFIG.displayTypes.includes(f.type));
+    const rows = assignRows(features);
+    
+    features.forEach((f, fi) => {
+      const fx = x + f.start * scale;
+      const fw = Math.max((f.end - f.start) * scale, 4);
+      const fy = y + (rows[fi] % 2 === 0 ? 0 : 16);
+      const isSelected = selected?.proteinIndex === idx && 
+                         selected?.featureIndex === protein.features.indexOf(f);
+      
+      ctx.fillStyle = CONFIG.colors[f.type] || '#999';
+      ctx.globalAlpha = isSelected ? 1 : 0.8;
+      ctx.beginPath(); ctx.roundRect(fx, fy, fw, CONFIG.featureHeight, 2); ctx.fill();
+      
+      if (isSelected) { ctx.strokeStyle = '#1e40af'; ctx.lineWidth = 2; ctx.stroke(); }
+      ctx.globalAlpha = 1;
+      
+      if (showLabels && fw > 35) {
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(f.note.length > 12 ? f.note.slice(0,10)+'..' : f.note, fx + fw/2, fy + 9);
+      }
+    });
+  });
+}
+
+function assignRows(features) {
+  const rows = [], ends = [0, 0];
+  features.forEach(f => { const row = ends[0] <= ends[1] ? 0 : 1; rows.push(row); ends[row] = f.end; });
+  return rows;
+}
+
+// ============================================================================
+// TABLE GENERATION
+// ============================================================================
+function buildTables() {
+  const container = document.getElementById('tables-container');
+  container.innerHTML = '';
+  
+  [0, 1].forEach(tableIdx => {
+    const proteinIdx = state.tablePanels[tableIdx];
+    const protein = state.proteins[proteinIdx];
+    if (!protein) return;
+    
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = buildTableHeader(tableIdx, proteinIdx);
+    
+    const scrollDiv = document.createElement('div');
+    scrollDiv.className = 'table-scroll';
+    
+    const table = document.createElement('table');
+    table.className = 'feature-table';
+    table.innerHTML = '<thead><tr><th>Type</th><th>Range</th><th>Note</th></tr></thead>';
+    
+    const tbody = document.createElement('tbody');
+    protein.features.forEach((f, fIdx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="type-badge" style="background:${CONFIG.colors[f.type]||'#999'}">${f.type}</span></td>
+        <td>${f.start.toLocaleString()}${f.end !== f.start ? '..'+f.end.toLocaleString() : ''}</td>
+        <td>${f.note}</td>`;
+      tr.onclick = () => selectFeature(proteinIdx, fIdx, tr);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    scrollDiv.appendChild(table);
+    panel.appendChild(scrollDiv);
+    container.appendChild(panel);
+  });
+  
+  // Attach event listeners
+  document.querySelectorAll('.protein-select').forEach(sel => {
+    sel.onchange = e => {
+      const tableIdx = parseInt(e.target.dataset.table);
+      state.tablePanels[tableIdx] = parseInt(e.target.value);
+      state.selected = null;
+      buildTables();
+    };
+  });
+  
+  document.querySelectorAll('.nav-arrow').forEach(btn => {
+    btn.onclick = e => {
+      const tableIdx = parseInt(e.currentTarget.dataset.table);
+      const dir = parseInt(e.currentTarget.dataset.dir);
+      const n = state.proteins.length;
+      state.tablePanels[tableIdx] = (state.tablePanels[tableIdx] + dir + n) % n;
+      state.selected = null;
+      buildTables();
+    };
+  });
+}
+
+function buildTableHeader(tableIdx, proteinIdx) {
+  const protein = state.proteins[proteinIdx];
+  const options = state.proteins.map((p, i) => 
+    `<option value="${i}" ${i === proteinIdx ? 'selected' : ''}>${p.id}</option>`
+  ).join('');
+  
+  return `
+    <div class="table-header">
+      <div class="table-selector">
+        <select class="protein-select" data-table="${tableIdx}">${options}</select>
+        <span class="table-size">${protein.length.toLocaleString()} aa</span>
+      </div>
+      <div class="nav-arrows">
+        <button class="nav-arrow" data-table="${tableIdx}" data-dir="-1" title="Previous protein">◀</button>
+        <button class="nav-arrow" data-table="${tableIdx}" data-dir="1" title="Next protein">▶</button>
+      </div>
+    </div>`;
+}
+
+function selectFeature(proteinIndex, featureIndex, tr) {
+  document.querySelectorAll('.feature-table tr.selected').forEach(r => r.classList.remove('selected'));
+  tr.classList.add('selected');
+  state.selected = { proteinIndex, featureIndex };
+  render();
+  
+  const protein = state.proteins[proteinIndex];
+  const feature = protein.features[featureIndex];
+  const x = CONFIG.margin.left + (protein.padding.left + feature.start) * state.scale;
+  const wrap = document.getElementById('canvasWrap');
+  wrap.scrollTo({ left: Math.max(0, x - wrap.clientWidth / 3), behavior: 'smooth' });
+}
+
+// ============================================================================
+// LEGEND
+// ============================================================================
+function buildLegend() {
+  const activeTypes = new Set();
+  state.proteins.forEach(p => p.features.forEach(f => {
+    if (CONFIG.displayTypes.includes(f.type)) activeTypes.add(f.type);
+  }));
+  document.getElementById('legend').innerHTML = [...activeTypes].map(t => 
+    `<div class="legend-item"><div class="legend-color" style="background:${CONFIG.colors[t]}"></div>${t}</div>`
+  ).join('') + (state.alignments.length ? 
+    `<div class="legend-item"><div class="legend-color" style="background:${CONFIG.colors.ALIGN}"></div>Aligned</div>` : '');
+}
+
+// ============================================================================
+// DATA LOADING
+// ============================================================================
+function cloneProtein(id) {
+  const p = PROTEIN_DB[id];
+  return { ...p, features: [...p.features], padding: { left: 0, right: 0 } };
+}
+
+async function loadExample(type) {
+  document.getElementById('tables-container').innerHTML = '<div class="panel loading">Loading...</div>';
+  state.selected = null;
+  
+  await new Promise(r => setTimeout(r, 80));
+  
+  if (type === 'default') {
+    state.proteins = [cloneProtein('UDS1_SCHPO'), cloneProtein('FKBP5_DICDI')];
+    state.alignments = [{ indices: [0, 1], regions: [[147, 991], [572, 1410]] }];
+    state.tablePanels = [0, 1];
+    setZoom(0.35);
+    document.getElementById('subtitle').textContent = 'UDS1_SCHPO vs FKBP5_DICDI — Aligned pair';
+    
+  } else if (type === 'titin') {
+    state.proteins = [cloneProtein('TITIN_HUMAN')];
+    state.alignments = [];
+    state.tablePanels = [0, 0];
+    setZoom(0.02);
+    document.getElementById('subtitle').textContent = 'Titin — Largest known human protein (34,350 aa)';
+    
+  } else if (type === 'polyprotein') {
+    state.proteins = [cloneProtein('R1AB_SARS2')];
+    state.alignments = [];
+    state.tablePanels = [0, 0];
+    setZoom(0.1);
+    document.getElementById('subtitle').textContent = 'SARS-CoV-2 Replicase polyprotein 1ab (7,096 aa)';
+    
+  } else if (type === 'all') {
+    state.proteins = [
+      cloneProtein('UDS1_SCHPO'),
+      cloneProtein('FKBP5_DICDI'),
+      cloneProtein('R1AB_SARS2'),
+      cloneProtein('TITIN_HUMAN')
+    ];
+    state.alignments = [{ indices: [0, 1], regions: [[147, 991], [572, 1410]] }];
+    state.tablePanels = [0, 1];
+    setZoom(0.018);
+    document.getElementById('subtitle').textContent = 'All 4 proteins — Use dropdowns below to browse feature tables';
+  }
+  
+  buildTables();
+  buildLegend();
+  render();
+}
+
+function setZoom(val) {
+  state.scale = val;
+  document.getElementById('zoom').value = val;
+  document.getElementById('zoomVal').textContent = Math.round(val * 100) + '%';
+}
+
+// ============================================================================
+// CONTROLS
+// ============================================================================
+document.getElementById('zoom').oninput = e => {
+  state.scale = parseFloat(e.target.value);
+  document.getElementById('zoomVal').textContent = Math.round(state.scale * 100) + '%';
+  render();
+};
+document.getElementById('showLabels').onchange = e => { state.showLabels = e.target.checked; render(); };
+
+// ============================================================================
+// INIT
+// ============================================================================
+loadExample('default');
+</script>
+</body>
+</html>
