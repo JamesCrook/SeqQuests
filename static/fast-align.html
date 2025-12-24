@@ -57,7 +57,7 @@
     </header>
 
     <div class="container">
-        <div class="panel">
+        <div class="lcar-panel">
             <div class="panel-header">
                 <span class="panel-title">Sequence Input</span>
             </div>
@@ -99,22 +99,24 @@
         let wasmMemory = null;
         let wasmExports = null;
 
+        // Load the Emscripten-generated module
         async function initWasm() {
             try {
-                const response = await fetch('sw_align.wasm');
-                if (!response.ok) throw new Error("WASM file not found");
 
-                const bytes = await response.arrayBuffer();
-                const module = await WebAssembly.instantiate(bytes, {
-                    env: {
-                        // Minimal imports if needed, e.g. for memory growth or debug
-                        memory: new WebAssembly.Memory({ initial: 256 }),
-                    }
+                // Dynamically load the WASM module script
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'sw_align_module.js';
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('WASM module not found'));
+                    document.head.appendChild(script);
                 });
 
-                wasmExports = module.instance.exports;
-                wasmMemory = wasmExports.memory;
-                console.log("WASM Initialized");
+                wasmModule = await createWasmModule();
+                console.log("WASM Module keys:", Object.keys(wasmModule)); // Debug
+        
+                wasmExports = wasmModule;
+                console.log("WASM Initialized successfully");
                 return true;
             } catch (e) {
                 console.warn("WASM Init failed:", e);
@@ -204,57 +206,24 @@
         }
 
         function runWasmAlign(seqA, seqB) {
-            // Encode strings
             const encoder = new TextEncoder();
             const bytesA = encoder.encode(seqA);
             const bytesB = encoder.encode(seqB);
 
-            // Allocate memory in WASM
-            // We need: seqA, seqB, matrix (1024 floats), output buffers
-            // Since we don't have malloc exported, we might need to manage memory manually
-            // or assume we can write to offset 0 if the module is simple.
-            // But sw_align_core.cpp uses calloc.
-            // If I compiled with Emscripten, I'd use Module._malloc.
+            // Use Emscripten's _malloc
+            const ptrA = wasmModule._malloc(bytesA.length + 1);
+            const ptrB = wasmModule._malloc(bytesB.length + 1);
 
-            // For this demo code to work with a hypothetical build, I'll assume standard Emscripten exports:
-            // _malloc, _free, _align_local_core
-
-            if (!wasmExports._malloc) {
-                throw new Error("WASM module does not export _malloc (requires Emscripten build)");
-            }
-
-            const ptrA = wasmExports._malloc(bytesA.length + 1);
-            const ptrB = wasmExports._malloc(bytesB.length + 1);
-
-            // Copy strings
-            const mem8 = new Uint8Array(wasmMemory.buffer);
-            mem8.set(bytesA, ptrA);
-            mem8[ptrA + bytesA.length] = 0;
-            mem8.set(bytesB, ptrB);
-            mem8[ptrB + bytesB.length] = 0;
+            // Use Emscripten's HEAPU8 view directly
+            wasmModule.HEAPU8.set(bytesA, ptrA);
+            wasmModule.HEAPU8[ptrA + bytesA.length] = 0;
+            wasmModule.HEAPU8.set(bytesB, ptrB);
+            wasmModule.HEAPU8[ptrB + bytesB.length] = 0;
 
             // Matrix
-            const matrixPtr = wasmExports._malloc(1024 * 4);
-            const memFloat = new Float32Array(wasmMemory.buffer);
-            // We need to copy PAM250 values. We have them in JS.
-            // We need to flatten the PAM250 matrix to 32x32 floats.
-
-            // Use the map logic from JS implementation
+            const matrixPtr = wasmModule._malloc(1024 * 4);
             const flatMatrix = new Float32Array(1024);
-            for (let i = 0; i < 32; i++) flatMatrix[i] = -99; // Default? Or 0? C code uses 0 init?
-            // Actually C code accesses [idx_a * 32 + idx_b].
-            // We should fill it properly.
-
-            // JS implementation:
-            // const idxA = ALPHABET_MAP[a];
-
-            // We need to map ASCII chars to 0-31 indices.
-            // char & 31.
-            // 'A' is 65. 65 & 31 = 1.
-
-            // We iterate over the alphabet in PAM250_DATA and populate the matrix.
-            // NOTE: This MUST match the C code's expectation of (char & 31).
-
+            
             for (let i = 0; i < PAM250_DATA.alphabet.length; i++) {
                 const charA = PAM250_DATA.alphabet[i];
                 const idxA = charA.charCodeAt(0) & 31;
@@ -262,29 +231,24 @@
                 for (let j = 0; j < PAM250_DATA.alphabet.length; j++) {
                     const charB = PAM250_DATA.alphabet[j];
                     const idxB = charB.charCodeAt(0) & 31;
-
                     const score = PAM250_DATA.values[i][j];
                     flatMatrix[idxA * 32 + idxB] = score;
                 }
             }
 
-            // Copy matrix to WASM
-            // Need to find offset in Float32Array view corresponding to matrixPtr
-            const matrixOffset = matrixPtr / 4;
-            memFloat.set(flatMatrix, matrixOffset);
+            // Copy matrix to WASM memory
+            wasmModule.HEAPF32.set(flatMatrix, matrixPtr / 4);
 
             // Output pointers
-            const scorePtr = wasmExports._malloc(4);
-            const lenPtr = wasmExports._malloc(4);
+            const scorePtr = wasmModule._malloc(4);
+            const lenPtr = wasmModule._malloc(4);
 
-            // Index buffers (max length = lenA + lenB)
             const maxLen = bytesA.length + bytesB.length;
-            const indicesAPtr = wasmExports._malloc(maxLen * 4);
-            const indicesBPtr = wasmExports._malloc(maxLen * 4);
+            const indicesAPtr = wasmModule._malloc(maxLen * 4);
+            const indicesBPtr = wasmModule._malloc(maxLen * 4);
 
-            // Call C function
-            // void align_local_core(seq_a, len_a, seq_b, len_b, matrix, gap_extend, out_score, out_len, out_idx_a, out_idx_b)
-            wasmExports._align_local_core(
+            // Call function
+            wasmModule._align_local_core(
                 ptrA, bytesA.length,
                 ptrB, bytesB.length,
                 matrixPtr, -10.0,
@@ -292,24 +256,33 @@
                 indicesAPtr, indicesBPtr
             );
 
-            // Read results
-            const score = memFloat[scorePtr / 4];
-            const len = new Int32Array(wasmMemory.buffer)[lenPtr / 4];
+            // Read results using Emscripten's HEAP views
+            const score = wasmModule.HEAPF32[scorePtr / 4];
+            const len = wasmModule.HEAP32[lenPtr / 4];
 
-            // Read indices
-            const indicesA = new Int32Array(wasmMemory.buffer, indicesAPtr, len);
-            const indicesB = new Int32Array(wasmMemory.buffer, indicesBPtr, len);
+            // Copy indices out before freeing
+            const indicesA = new Int32Array(len);
+            const indicesB = new Int32Array(len);
+            for (let k = 0; k < len; k++) {
+                indicesA[k] = wasmModule.HEAP32[indicesAPtr / 4 + k];
+                indicesB[k] = wasmModule.HEAP32[indicesBPtr / 4 + k];
+            }
 
-            // Reconstruct alignment strings (traceback is reversed)
-            // C code returns raw traceback (end to start). JS wrapper reverses them.
-            // Let's construct strings.
+            // Free memory
+            wasmModule._free(ptrA);
+            wasmModule._free(ptrB);
+            wasmModule._free(matrixPtr);
+            wasmModule._free(scorePtr);
+            wasmModule._free(lenPtr);
+            wasmModule._free(indicesAPtr);
+            wasmModule._free(indicesBPtr);
 
+            // Build alignment strings (reverse order from traceback)
             let alignedA = "";
             let alignedB = "";
             const realIndicesA = [];
             const realIndicesB = [];
 
-            // Iterate backwards to go Start -> End
             for (let k = len - 1; k >= 0; k--) {
                 const ia = indicesA[k];
                 const ib = indicesB[k];
@@ -329,15 +302,6 @@
                 }
             }
 
-            // Free memory
-            wasmExports._free(ptrA);
-            wasmExports._free(ptrB);
-            wasmExports._free(matrixPtr);
-            wasmExports._free(scorePtr);
-            wasmExports._free(lenPtr);
-            wasmExports._free(indicesAPtr);
-            wasmExports._free(indicesBPtr);
-
             // Generate match string
             let matches = '';
             for (let k = 0; k < alignedA.length; k++) {
@@ -356,7 +320,7 @@
                 seq1_start: realIndicesA.length > 0 ? realIndicesA[0] : 0,
                 seq2_start: realIndicesB.length > 0 ? realIndicesB[0] : 0
             };
-        }
+        }      
 
         function renderResult(data) {
             const viewer = document.getElementById('alignmentViewer');

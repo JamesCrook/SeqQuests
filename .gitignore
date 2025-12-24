@@ -6,6 +6,10 @@ __pycache__/
 # Obsidian
 .obsidian/
 
+# Wasm
+*.wasm
+sw_align_module.js
+
 # Jules
 verification/
 
