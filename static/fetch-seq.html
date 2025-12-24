@@ -9,8 +9,8 @@
     <style>
         body {
             font-family: 'LCARS', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
             margin: 0;
             padding: 20px;
         }
@@ -18,15 +18,15 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            border: 2px solid var(--accent-primary);
+            border: 2px solid var(--color-accent-primary);
             border-radius: 20px;
             padding: 20px;
             background-color: rgba(0, 0, 0, 0.7);
         }
 
         .lcars-header {
-            background-color: var(--accent-primary);
-            color: var(--bg-primary);
+            background-color: var(--color-accent-primary);
+            color: var(--color-bg-primary);
             padding: 10px 20px;
             border-radius: 10px;
             margin-bottom: 20px;
@@ -44,14 +44,14 @@
         }
 
         label {
-            color: var(--accent-secondary);
+            color: var(--color-accent-secondary);
             font-weight: bold;
         }
 
         input[type="text"] {
             background-color: #000;
-            border: 1px solid var(--accent-tertiary);
-            color: var(--text-primary);
+            border: 1px solid var(--color-accent-tertiary);
+            color: var(--color-text-primary);
             padding: 8px;
             font-size: 1em;
             border-radius: 5px;
@@ -59,7 +59,7 @@
         }
 
         button {
-            background-color: var(--accent-secondary);
+            background-color: var(--color-accent-secondary);
             color: black;
             border: none;
             padding: 10px 20px;
@@ -71,7 +71,7 @@
         }
 
         button:hover {
-            background-color: var(--accent-primary);
+            background-color: var(--color-accent-primary);
         }
 
         .toggle-container {
@@ -122,11 +122,11 @@
         }
 
         input:checked + .slider {
-            background-color: var(--accent-tertiary);
+            background-color: var(--color-accent-tertiary);
         }
 
         input:focus + .slider {
-            box-shadow: 0 0 1px var(--accent-tertiary);
+            box-shadow: 0 0 1px var(--color-accent-tertiary);
         }
 
         input:checked + .slider:before {
@@ -139,7 +139,7 @@
             width: 100%;
             height: 400px;
             background-color: #111;
-            border: 1px solid var(--accent-primary);
+            border: 1px solid var(--color-accent-primary);
             color: #0f0;
             font-family: monospace;
             padding: 10px;
@@ -151,7 +151,7 @@
         .status-message {
             margin-top: 10px;
             font-style: italic;
-            color: var(--accent-secondary);
+            color: var(--color-accent-secondary);
         }
     </style>
 </head>
@@ -168,8 +168,10 @@
     <div class="toggle-container">
         <label>Source:</label>
         <div class="switch">
-            <input type="checkbox" id="source-toggle">
-            <span class="slider round"></span>
+            <label>
+                <input type="checkbox" id="source-toggle">
+                <span class="slider round"></span>
+            </label>
         </div>
         <span id="source-label" style="margin-left: 10px; color: var(--text-primary);">External (UniProt)</span>
     </div>
@@ -194,10 +196,10 @@
     sourceToggle.addEventListener('change', () => {
         if (sourceToggle.checked) {
             sourceLabel.textContent = "Internal (FastAPI)";
-            sourceLabel.style.color = "var(--accent-tertiary)";
+            sourceLabel.style.color = "var(--color-accent-tertiary)";
         } else {
             sourceLabel.textContent = "External (UniProt)";
-            sourceLabel.style.color = "var(--text-primary)";
+            sourceLabel.style.color = "var(--color-text-primary)";
         }
     });
 
