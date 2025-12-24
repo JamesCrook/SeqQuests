@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Sequence</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="./wheel.ico">
+    <style>
+        body {
+            font-family: 'LCARS', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid var(--accent-primary);
+            border-radius: 20px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .lcars-header {
+            background-color: var(--accent-primary);
+            color: var(--bg-primary);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: right;
+            font-size: 1.5em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            color: var(--accent-secondary);
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            background-color: #000;
+            border: 1px solid var(--accent-tertiary);
+            color: var(--text-primary);
+            padding: 8px;
+            font-size: 1em;
+            border-radius: 5px;
+            flex-grow: 1;
+        }
+
+        button {
+            background-color: var(--accent-secondary);
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background-color: var(--accent-primary);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-left: 10px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-tertiary);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--accent-tertiary);
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        #result-area {
+            width: 100%;
+            height: 400px;
+            background-color: #111;
+            border: 1px solid var(--accent-primary);
+            color: #0f0;
+            font-family: monospace;
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 10px;
+            resize: vertical;
+        }
+
+        .status-message {
+            margin-top: 10px;
+            font-style: italic;
+            color: var(--accent-secondary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="lcars-header">Sequence Fetcher</div>
+
+    <div class="control-group">
+        <label for="accession-input">Accession:</label>
+        <input type="text" id="accession-input" value="Q6GZX4" placeholder="e.g. Q9Y6K9 or Q6GZX4">
+    </div>
+
+    <div class="toggle-container">
+        <label>Source:</label>
+        <div class="switch">
+            <input type="checkbox" id="source-toggle">
+            <span class="slider round"></span>
+        </div>
+        <span id="source-label" style="margin-left: 10px; color: var(--text-primary);">External (UniProt)</span>
+    </div>
+
+    <div class="control-group">
+        <button id="fetch-btn">Fetch Sequence</button>
+    </div>
+
+    <div id="status" class="status-message"></div>
+    <textarea id="result-area" readonly></textarea>
+</div>
+
+<script>
+    const accessionInput = document.getElementById('accession-input');
+    const sourceToggle = document.getElementById('source-toggle');
+    const sourceLabel = document.getElementById('source-label');
+    const fetchBtn = document.getElementById('fetch-btn');
+    const resultArea = document.getElementById('result-area');
+    const statusDiv = document.getElementById('status');
+
+    // Toggle Label Update
+    sourceToggle.addEventListener('change', () => {
+        if (sourceToggle.checked) {
+            sourceLabel.textContent = "Internal (FastAPI)";
+            sourceLabel.style.color = "var(--accent-tertiary)";
+        } else {
+            sourceLabel.textContent = "External (UniProt)";
+            sourceLabel.style.color = "var(--text-primary)";
+        }
+    });
+
+    fetchBtn.addEventListener('click', async () => {
+        const accession = accessionInput.value.trim();
+        if (!accession) {
+            statusDiv.textContent = "Please enter an accession.";
+            return;
+        }
+
+        const useInternal = sourceToggle.checked;
+        let url;
+
+        if (useInternal) {
+            url = `/api/uniprot/${accession}`;
+        } else {
+            url = `https://rest.uniprot.org/uniprotkb/${accession}.json`;
+        }
+
+        statusDiv.textContent = `Fetching from ${useInternal ? 'Internal API' : 'UniProt'}...`;
+        resultArea.value = "Loading...";
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            resultArea.value = JSON.stringify(data, null, 2);
+            statusDiv.textContent = "Success.";
+        } catch (error) {
+            console.error('Fetch error:', error);
+            resultArea.value = `Error fetching data:\n${error.message}`;
+            statusDiv.textContent = "Error occurred.";
+        }
+    });
+</script>
+
+</body>
+</html>
