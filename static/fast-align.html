@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Align Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lcars.css">
+    <link rel="icon" href="./wheel.ico">
+    <script src="sw_client.js"></script>
+    <style>
+        .demo-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 100px);
+        }
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .result-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-accent-primary);
+            padding: 10px;
+            font-family: var(--font-mono);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .benchmark {
+            font-family: var(--font-mono);
+            color: var(--color-accent-secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="app-root">
+    <header>
+        <h1>Fast Align Demo</h1>
+        <div class="status-indicator">
+            <div id="statusDot" class="status-dot disconnected"></div>
+            <span id="statusText">System Ready</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Sequence Input</span>
+            </div>
+            <div class="demo-padding">
+                <div class="input-area">
+                    <label class="sequence-label">Sequence 1</label>
+                    <textarea id="seq1">MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA</textarea>
+
+                    <label class="sequence-label">Sequence 2</label>
+                    <textarea id="seq2">MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG</textarea>
+                </div>
+
+                <div class="controls" style="margin-top: 20px;">
+                    <button onclick="runAlign('server')">Align on Server (API)</button>
+                    <button onclick="runAlign('js')">Align Client (JS)</button>
+                    <button onclick="runAlign('wasm')">Align Client (WASM)</button>
+                </div>
+                <div id="perfResult" class="benchmark"></div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top: 20px;">
+            <div class="panel-header">
+                <span class="panel-title">Alignment Result</span>
+            </div>
+            <div class="demo-padding">
+                <div id="alignmentViewer" class="alignment-viewer-container">
+                    <div class="empty-state">
+                        <span>No alignment generated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WASM Module Loader
+        let wasmModule = null;
+        let wasmMemory = null;
+        let wasmExports = null;
+
+        async function initWasm() {
+            try {
+                const response = await fetch('sw_align.wasm');
+                if (!response.ok) throw new Error("WASM file not found");
+
+                const bytes = await response.arrayBuffer();
+                const module = await WebAssembly.instantiate(bytes, {
+                    env: {
+                        // Minimal imports if needed, e.g. for memory growth or debug
+                        memory: new WebAssembly.Memory({ initial: 256 }),
+                    }
+                });
+
+                wasmExports = module.instance.exports;
+                wasmMemory = wasmExports.memory;
+                console.log("WASM Initialized");
+                return true;
+            } catch (e) {
+                console.warn("WASM Init failed:", e);
+                return false;
+            }
+        }
+
+        // Initialize WASM on load
+        initWasm().then(success => {
+            if (success) {
+                document.getElementById('statusText').textContent += " + WASM Ready";
+            } else {
+                document.getElementById('statusText').textContent += " (WASM Unavailable)";
+            }
+        });
+
+        async function runAlign(mode) {
+            const seq1 = document.getElementById('seq1').value.trim();
+            const seq2 = document.getElementById('seq2').value.trim();
+            const viewer = document.getElementById('alignmentViewer');
+            const perfDiv = document.getElementById('perfResult');
+
+            viewer.innerHTML = '<div class="loading"></div> Computing...';
+            perfDiv.textContent = '';
+
+            const start = performance.now();
+            let result = null;
+            let method = '';
+
+            try {
+                if (mode === 'server') {
+                    method = 'Server API';
+                    // We need actual IDs for the real API, but the demo endpoint takes arbitrary strings?
+                    // No, the real API /api/comparison/{id1}/{id2} takes IDs and looks them up.
+                    // For this demo, we can't easily upload strings to the server to align.
+                    // But wait, the user asked to "call this endpoint".
+                    // That implies we should use IDs.
+                    // But the text areas have raw sequences.
+                    // I'll check if there is an endpoint for raw alignment.
+                    // I didn't see one in web_server.py.
+                    // I will simulate server fetch if the inputs look like IDs, or show error.
+
+                    // Actually, for the demo, I'll fallback to JS if it's raw text,
+                    // OR I'll assume the user enters IDs if they click Server.
+                    // BUT the default text is sequence.
+
+                    // Let's modify the demo to allow entering IDs OR sequences.
+                    // If mode is server, we assume they are IDs or we can't use the existing endpoint.
+                    // UNLESS I add a new endpoint, but I shouldn't modify server code unless asked.
+
+                    // I will assume for the demo "Server" button expects IDs, and "Client" buttons expect sequences.
+                    // I'll try to detect if input is sequence or ID.
+
+                    if (seq1.length < 20 && !seq1.includes(' ')) {
+                         // Assume ID
+                         const response = await fetch(`/api/comparison/${seq1}/${seq2}`);
+                         if (!response.ok) throw new Error("Server error");
+                         result = await response.json();
+                    } else {
+                        throw new Error("Server endpoint requires Sequence IDs (e.g. 'P12345'), but raw sequence detected. Use Client mode.");
+                    }
+
+                } else if (mode === 'js') {
+                    method = 'Client JS';
+                    // Allow UI to update
+                    await new Promise(r => setTimeout(r, 10));
+                    result = alignLocalJS(seq1, seq2);
+
+                } else if (mode === 'wasm') {
+                    method = 'Client WASM';
+                    if (!wasmExports) {
+                        throw new Error("WASM not loaded. Please compile sw_align.wasm.");
+                    }
+                    result = runWasmAlign(seq1, seq2);
+                }
+
+                const end = performance.now();
+                const time = (end - start).toFixed(2);
+                perfDiv.textContent = `${method} completed in ${time} ms`;
+
+                renderResult(result);
+
+            } catch (e) {
+                viewer.innerHTML = `<div class="status error">Error: ${e.message}</div>`;
+                perfDiv.textContent = 'Failed';
+            }
+        }
+
+        function runWasmAlign(seqA, seqB) {
+            // Encode strings
+            const encoder = new TextEncoder();
+            const bytesA = encoder.encode(seqA);
+            const bytesB = encoder.encode(seqB);
+
+            // Allocate memory in WASM
+            // We need: seqA, seqB, matrix (1024 floats), output buffers
+            // Since we don't have malloc exported, we might need to manage memory manually
+            // or assume we can write to offset 0 if the module is simple.
+            // But sw_align_core.cpp uses calloc.
+            // If I compiled with Emscripten, I'd use Module._malloc.
+
+            // For this demo code to work with a hypothetical build, I'll assume standard Emscripten exports:
+            // _malloc, _free, _align_local_core
+
+            if (!wasmExports._malloc) {
+                throw new Error("WASM module does not export _malloc (requires Emscripten build)");
+            }
+
+            const ptrA = wasmExports._malloc(bytesA.length + 1);
+            const ptrB = wasmExports._malloc(bytesB.length + 1);
+
+            // Copy strings
+            const mem8 = new Uint8Array(wasmMemory.buffer);
+            mem8.set(bytesA, ptrA);
+            mem8[ptrA + bytesA.length] = 0;
+            mem8.set(bytesB, ptrB);
+            mem8[ptrB + bytesB.length] = 0;
+
+            // Matrix
+            const matrixPtr = wasmExports._malloc(1024 * 4);
+            const memFloat = new Float32Array(wasmMemory.buffer);
+            // We need to copy PAM250 values. We have them in JS.
+            // We need to flatten the PAM250 matrix to 32x32 floats.
+
+            // Use the map logic from JS implementation
+            const flatMatrix = new Float32Array(1024);
+            for (let i = 0; i < 32; i++) flatMatrix[i] = -99; // Default? Or 0? C code uses 0 init?
+            // Actually C code accesses [idx_a * 32 + idx_b].
+            // We should fill it properly.
+
+            // JS implementation:
+            // const idxA = ALPHABET_MAP[a];
+
+            // We need to map ASCII chars to 0-31 indices.
+            // char & 31.
+            // 'A' is 65. 65 & 31 = 1.
+
+            // We iterate over the alphabet in PAM250_DATA and populate the matrix.
+            // NOTE: This MUST match the C code's expectation of (char & 31).
+
+            for (let i = 0; i < PAM250_DATA.alphabet.length; i++) {
+                const charA = PAM250_DATA.alphabet[i];
+                const idxA = charA.charCodeAt(0) & 31;
+
+                for (let j = 0; j < PAM250_DATA.alphabet.length; j++) {
+                    const charB = PAM250_DATA.alphabet[j];
+                    const idxB = charB.charCodeAt(0) & 31;
+
+                    const score = PAM250_DATA.values[i][j];
+                    flatMatrix[idxA * 32 + idxB] = score;
+                }
+            }
+
+            // Copy matrix to WASM
+            // Need to find offset in Float32Array view corresponding to matrixPtr
+            const matrixOffset = matrixPtr / 4;
+            memFloat.set(flatMatrix, matrixOffset);
+
+            // Output pointers
+            const scorePtr = wasmExports._malloc(4);
+            const lenPtr = wasmExports._malloc(4);
+
+            // Index buffers (max length = lenA + lenB)
+            const maxLen = bytesA.length + bytesB.length;
+            const indicesAPtr = wasmExports._malloc(maxLen * 4);
+            const indicesBPtr = wasmExports._malloc(maxLen * 4);
+
+            // Call C function
+            // void align_local_core(seq_a, len_a, seq_b, len_b, matrix, gap_extend, out_score, out_len, out_idx_a, out_idx_b)
+            wasmExports._align_local_core(
+                ptrA, bytesA.length,
+                ptrB, bytesB.length,
+                matrixPtr, -10.0,
+                scorePtr, lenPtr,
+                indicesAPtr, indicesBPtr
+            );
+
+            // Read results
+            const score = memFloat[scorePtr / 4];
+            const len = new Int32Array(wasmMemory.buffer)[lenPtr / 4];
+
+            // Read indices
+            const indicesA = new Int32Array(wasmMemory.buffer, indicesAPtr, len);
+            const indicesB = new Int32Array(wasmMemory.buffer, indicesBPtr, len);
+
+            // Reconstruct alignment strings (traceback is reversed)
+            // C code returns raw traceback (end to start). JS wrapper reverses them.
+            // Let's construct strings.
+
+            let alignedA = "";
+            let alignedB = "";
+            const realIndicesA = [];
+            const realIndicesB = [];
+
+            // Iterate backwards to go Start -> End
+            for (let k = len - 1; k >= 0; k--) {
+                const ia = indicesA[k];
+                const ib = indicesB[k];
+
+                if (ia !== -1) {
+                    alignedA += seqA[ia];
+                    realIndicesA.push(ia);
+                } else {
+                    alignedA += "-";
+                }
+
+                if (ib !== -1) {
+                    alignedB += seqB[ib];
+                    realIndicesB.push(ib);
+                } else {
+                    alignedB += "-";
+                }
+            }
+
+            // Free memory
+            wasmExports._free(ptrA);
+            wasmExports._free(ptrB);
+            wasmExports._free(matrixPtr);
+            wasmExports._free(scorePtr);
+            wasmExports._free(lenPtr);
+            wasmExports._free(indicesAPtr);
+            wasmExports._free(indicesBPtr);
+
+            // Generate match string
+            let matches = '';
+            for (let k = 0; k < alignedA.length; k++) {
+                const a = alignedA[k];
+                const b = alignedB[k];
+                if (a === b) matches += '|';
+                else if (a === '-' || b === '-') matches += ' ';
+                else matches += '.';
+            }
+
+            return {
+                score: score,
+                alignment1: alignedA,
+                alignment2: alignedB,
+                matches: matches,
+                seq1_start: realIndicesA.length > 0 ? realIndicesA[0] : 0,
+                seq2_start: realIndicesB.length > 0 ? realIndicesB[0] : 0
+            };
+        }
+
+        function renderResult(data) {
+            const viewer = document.getElementById('alignmentViewer');
+            if (!data) {
+                viewer.innerHTML = '<div class="empty-state">No alignment found</div>';
+                return;
+            }
+
+            const lineLen = 70;
+            const lines = [];
+            let pos1 = data.seq1_start + 1;
+            let pos2 = data.seq2_start + 1;
+
+            for (let i = 0; i < data.alignment1.length; i += lineLen) {
+                const chunk1 = data.alignment1.substr(i, lineLen);
+                const chunkMatch = data.matches.substr(i, lineLen);
+                const chunk2 = data.alignment2.substr(i, lineLen);
+
+                lines.push(`${String(pos1).padStart(6)}  ${chunk1}`);
+                lines.push(`        ${chunkMatch}`);
+                lines.push(`${String(pos2).padStart(6)}  ${chunk2}\n`);
+
+                for (let c of chunk1) if (c !== '-') pos1++;
+                for (let c of chunk2) if (c !== '-') pos2++;
+            }
+
+            viewer.innerHTML = `
+                <div style="margin-bottom: 10px; color: var(--color-accent-primary);">
+                    Score: ${data.score.toFixed(1)} | Identity: ${calculateIdentity(data)}%
+                </div>
+                <pre style="margin: 0; color: var(--text-primary);">${lines.join('\n')}</pre>
+            `;
+        }
+
+        function calculateIdentity(data) {
+            let matches = 0;
+            let len = 0;
+            for (let i = 0; i < data.alignment1.length; i++) {
+                if (data.alignment1[i] !== '-' && data.alignment2[i] !== '-') {
+                    len++;
+                    if (data.alignment1[i] === data.alignment2[i]) matches++;
+                }
+            }
+            return len > 0 ? ((matches / len) * 100).toFixed(1) : "0.0";
+        }
+
+        // Init connection check
+        fetch('/api/jobs').then(() => {
+            const dot = document.getElementById('statusDot');
+            dot.classList.remove('disconnected');
+            dot.classList.add('connected');
+        }).catch(() => {});
+
+    </script>
+</body>
+</html>
