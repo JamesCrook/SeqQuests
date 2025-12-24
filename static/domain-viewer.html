@@ -4,90 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Protein Alignment Viewer</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; padding: 20px; }
-.container { max-width: 1400px; margin: 0 auto; }
-h1 { font-size: 1.4rem; margin-bottom: 8px; }
-.subtitle { font-size: 0.85rem; color: #666; margin-bottom: 16px; }
-.panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.controls { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
-.controls label { font-size: 0.85rem; font-weight: 500; }
-.controls input[type="range"] { width: 120px; }
-.zoom-val { font-size: 0.75rem; color: #888; min-width: 40px; }
-.btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: background 0.15s; }
-.btn-primary { background: #3b82f6; color: #fff; }
-.btn-primary:hover { background: #2563eb; }
-.btn-secondary { background: #e5e7eb; color: #333; }
-.btn-secondary:hover { background: #d1d5db; }
-.canvas-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 4px; background: #fafafa; cursor: grab; }
-.canvas-wrap:active { cursor: grabbing; }
-canvas { display: block; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 0.75rem; }
-.legend-item { display: flex; align-items: center; gap: 4px; }
-.legend-color { width: 14px; height: 14px; border-radius: 2px; }
-#tables-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-@media (max-width: 800px) { #tables-container { grid-template-columns: 1fr; } }
-.table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.table-selector { display: flex; align-items: center; gap: 8px; }
-.table-selector select { 
-  font-size: 0.9rem; font-weight: 600; color: #333; 
-  background: #fff; border: 1px solid #e5e7eb; cursor: pointer;
-  padding: 5px 28px 5px 8px; margin: 0;
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 8px center;
-  border-radius: 6px; transition: all 0.15s;
-}
-.table-selector select:hover { border-color: #3b82f6; background-color: #f8fafc; }
-.table-selector select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-.table-size { font-size: 0.75rem; color: #888; font-weight: 400; }
-.nav-arrows { display: flex; gap: 2px; }
-.nav-arrow { 
-  width: 24px; height: 24px; border: 1px solid #e5e7eb; background: #fff; 
-  border-radius: 4px; cursor: pointer; display: flex; align-items: center; 
-  justify-content: center; color: #666; font-size: 0.75rem; transition: all 0.15s;
-}
-.nav-arrow:hover { background: #f3f4f6; border-color: #3b82f6; color: #3b82f6; }
-.nav-arrow:active { background: #e5e7eb; }
-.feature-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-.feature-table th, .feature-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; }
-.feature-table th { background: #f9fafb; font-weight: 600; position: sticky; top: 0; }
-.feature-table tr { cursor: pointer; transition: background 0.15s; }
-.feature-table tr:hover { background: #f0f7ff; }
-.feature-table tr.selected { background: #dbeafe; }
-.table-scroll { max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 4px; }
-.type-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; color: #fff; font-size: 0.7rem; }
-.info { font-size: 0.8rem; color: #555; margin-top: 8px; }
-.loading { color: #666; font-style: italic; padding: 20px; text-align: center; }
-</style>
+<link rel="stylesheet" href="proteins.css">
+<script src="proteins.js"></script>
 </head>
-<body>
-<div class="container">
-  <h1>Protein Alignment Viewer</h1>
-  <p class="subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
+<body class="dv-body">
+<div class="dv-container">
+  <h1 class="dv-h1">Protein Alignment Viewer</h1>
+  <p class="dv-subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
   
-  <div class="panel">
-    <div class="controls">
+  <div class="dv-panel">
+    <div class="dv-controls">
       <label>Zoom:</label>
       <input type="range" id="zoom" min="0.01" max="0.8" step="0.005" value="0.35">
-      <span class="zoom-val" id="zoomVal">35%</span>
+      <span class="dv-zoom-val" id="zoomVal">35%</span>
       <label><input type="checkbox" id="showLabels" checked> Labels</label>
       <div style="flex:1"></div>
       <span style="font-size:0.8rem;color:#666">Load:</span>
-      <button class="btn btn-secondary" onclick="loadExample('default')">Pair</button>
-      <button class="btn btn-secondary" onclick="loadExample('titin')">Titin</button>
-      <button class="btn btn-secondary" onclick="loadExample('polyprotein')">SARS-CoV-2</button>
-      <button class="btn btn-primary" onclick="loadExample('all')">All 4</button>
+      <button class="dv-btn dv-btn-secondary" onclick="loadExample('default')">Pair</button>
+      <button class="dv-btn dv-btn-secondary" onclick="loadExample('titin')">Titin</button>
+      <button class="dv-btn dv-btn-secondary" onclick="loadExample('polyprotein')">SARS-CoV-2</button>
+      <button class="dv-btn dv-btn-primary" onclick="loadExample('all')">All 4</button>
     </div>
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="canvas"></canvas>
+    <div class="dv-canvas-wrap" id="canvasWrap">
+      <canvas id="canvas" class="dv-canvas"></canvas>
     </div>
-    <div class="legend" id="legend"></div>
-    <p class="info">Proteins aligned by padding. Click a feature below to highlight it on the canvas.</p>
+    <div class="dv-legend" id="legend"></div>
+    <p class="dv-info">Proteins aligned by padding. Click a feature below to highlight it on the canvas.</p>
   </div>
   
-  <div id="tables-container"></div>
+  <div id="tables-container" class="dv-tables-container"></div>
 </div>
 
 <script>
@@ -95,12 +40,8 @@ canvas { display: block; }
 // CONFIGURATION
 // ============================================================================
 const CONFIG = {
-  colors: {
-    CHAIN: '#d1d5db', DOMAIN: '#3b82f6', REGION: '#f59e0b', COILED: '#22c55e',
-    COMPBIAS: '#a855f7', MOD_RES: '#ef4444', TRANSMEM: '#06b6d4', REPEAT: '#ec4899',
-    ZN_FING: '#8b5cf6', MOTIF: '#14b8a6', BINDING: '#f97316', ACT_SITE: '#dc2626',
-    CONFLICT: '#6b7280', SIGNAL: '#84cc16', PROPEP: '#a3a3a3', ALIGN: '#93c5fd'
-  },
+  // Using ProteinStyle from proteins.js
+  colors: ProteinStyle.featureColors,
   displayTypes: ['DOMAIN', 'REGION', 'COILED', 'COMPBIAS', 'MOD_RES', 'TRANSMEM', 'REPEAT', 'ZN_FING', 'MOTIF', 'BINDING', 'ACT_SITE'],
   margin: { left: 110, right: 80, top: 25 },
   trackHeight: 24,
@@ -317,21 +258,21 @@ function buildTables() {
     if (!protein) return;
     
     const panel = document.createElement('div');
-    panel.className = 'panel';
+    panel.className = 'dv-panel';
     panel.innerHTML = buildTableHeader(tableIdx, proteinIdx);
     
     const scrollDiv = document.createElement('div');
-    scrollDiv.className = 'table-scroll';
+    scrollDiv.className = 'dv-table-scroll';
     
     const table = document.createElement('table');
-    table.className = 'feature-table';
+    table.className = 'dv-feature-table';
     table.innerHTML = '<thead><tr><th>Type</th><th>Range</th><th>Note</th></tr></thead>';
     
     const tbody = document.createElement('tbody');
     protein.features.forEach((f, fIdx) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><span class="type-badge" style="background:${CONFIG.colors[f.type]||'#999'}">${f.type}</span></td>
+        <td><span class="dv-type-badge" style="background:${CONFIG.colors[f.type]||'#999'}">${f.type}</span></td>
         <td>${f.start.toLocaleString()}${f.end !== f.start ? '..'+f.end.toLocaleString() : ''}</td>
         <td>${f.note}</td>`;
       tr.onclick = () => selectFeature(proteinIdx, fIdx, tr);
@@ -353,7 +294,7 @@ function buildTables() {
     };
   });
   
-  document.querySelectorAll('.nav-arrow').forEach(btn => {
+  document.querySelectorAll('.dv-nav-arrow').forEach(btn => {
     btn.onclick = e => {
       const tableIdx = parseInt(e.currentTarget.dataset.table);
       const dir = parseInt(e.currentTarget.dataset.dir);
@@ -372,20 +313,20 @@ function buildTableHeader(tableIdx, proteinIdx) {
   ).join('');
   
   return `
-    <div class="table-header">
-      <div class="table-selector">
+    <div class="dv-table-header">
+      <div class="dv-table-selector">
         <select class="protein-select" data-table="${tableIdx}">${options}</select>
-        <span class="table-size">${protein.length.toLocaleString()} aa</span>
+        <span class="dv-table-size">${protein.length.toLocaleString()} aa</span>
       </div>
-      <div class="nav-arrows">
-        <button class="nav-arrow" data-table="${tableIdx}" data-dir="-1" title="Previous protein">◀</button>
-        <button class="nav-arrow" data-table="${tableIdx}" data-dir="1" title="Next protein">▶</button>
+      <div class="dv-nav-arrows">
+        <button class="dv-nav-arrow" data-table="${tableIdx}" data-dir="-1" title="Previous protein">◀</button>
+        <button class="dv-nav-arrow" data-table="${tableIdx}" data-dir="1" title="Next protein">▶</button>
       </div>
     </div>`;
 }
 
 function selectFeature(proteinIndex, featureIndex, tr) {
-  document.querySelectorAll('.feature-table tr.selected').forEach(r => r.classList.remove('selected'));
+  document.querySelectorAll('.dv-feature-table tr.selected').forEach(r => r.classList.remove('selected'));
   tr.classList.add('selected');
   state.selected = { proteinIndex, featureIndex };
   render();
@@ -406,9 +347,9 @@ function buildLegend() {
     if (CONFIG.displayTypes.includes(f.type)) activeTypes.add(f.type);
   }));
   document.getElementById('legend').innerHTML = [...activeTypes].map(t => 
-    `<div class="legend-item"><div class="legend-color" style="background:${CONFIG.colors[t]}"></div>${t}</div>`
+    `<div class="dv-legend-item"><div class="dv-legend-color" style="background:${CONFIG.colors[t]}"></div>${t}</div>`
   ).join('') + (state.alignments.length ? 
-    `<div class="legend-item"><div class="legend-color" style="background:${CONFIG.colors.ALIGN}"></div>Aligned</div>` : '');
+    `<div class="dv-legend-item"><div class="dv-legend-color" style="background:${CONFIG.colors.ALIGN}"></div>Aligned</div>` : '');
 }
 
 // ============================================================================
@@ -420,7 +361,7 @@ function cloneProtein(id) {
 }
 
 async function loadExample(type) {
-  document.getElementById('tables-container').innerHTML = '<div class="panel loading">Loading...</div>';
+  document.getElementById('tables-container').innerHTML = '<div class="dv-panel dv-loading">Loading...</div>';
   state.selected = null;
   
   await new Promise(r => setTimeout(r, 80));
