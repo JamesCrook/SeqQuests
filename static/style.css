@@ -1,24 +1,98 @@
-/* static/style.css */
+/* =============================================================================
+   STYLE.CSS - With Structural/Aesthetic Separation
+   =============================================================================
+   
+   ORGANIZATION:
+   1. Variables (structural, then aesthetic)
+   2. Reset & Base (structural)
+   3. Structural Utilities (layout, flex, scroll, z-index)
+   4. Component Structure (panels, modals, forms)
+   5. Aesthetic Base (typography, colors)
+   6. Component Aesthetics (themed styling)
+   7. Interactive States (hover, active, focus)
+   8. Animations
+   
+   ============================================================================= */
+
+/* =============================================================================
+   1. VARIABLES
+   ============================================================================= */
+
+:root {
+    /* --- STRUCTURAL: Spacing Scale --- */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 15px;
+    --space-lg: 20px;
+    --space-xl: 30px;
+    
+    /* --- STRUCTURAL: Z-Index Scale --- */
+    --z-base: 1;
+    --z-dropdown: 10;
+    --z-sticky: 20;
+    --z-modal: 100;
+    --z-overlay: 1000;
+    
+    /* --- STRUCTURAL: Sizing --- */
+    --sidebar-width: 190px;
+    --header-height: auto;
+    --panel-border-width: 3px;
+    --scrollbar-size: 10px;
+    
+    /* --- AESTHETIC: Colors --- */
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #1a1a2e;
+    --color-bg-tertiary: #2d2d44;
+    
+    --color-accent-primary: #ff9966;
+    --color-accent-secondary: #cc99ff;
+    --color-accent-tertiary: #ffcc99;
+    --color-accent-alert: #ff6666;
+    --color-accent-success: #99ccff;
+    
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cccccc;
+    --color-text-muted: #999999;
+    
+    --color-border: #ff9966;
+    --color-hover-bg: rgba(255, 153, 102, 0.1);
+    --color-accent-primary-20: rgba(255, 153, 102, 0.2);
+    --color-accent-primary-30: rgba(255, 153, 102, 0.3);
+    --color-accent-primary-05: rgba(255, 153, 102, 0.05);
+    
+    /* --- AESTHETIC: Typography --- */
+    --font-body: 'Work Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-size-xs: 0.7rem;
+    --font-size-sm: 0.75rem;
+    --font-size-base: 0.85rem;
+    --font-size-md: 0.9rem;
+    --font-size-lg: 1.1rem;
+    --font-size-h3: 1.1rem;
+    --font-size-h2: 1.4rem;
+    --font-size-h1: 1.8rem;
+    
+    /* --- AESTHETIC: Decorative --- */
+    --radius-sm: 5px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-round: 50%;
+    --shadow-default: 0 4px 20px rgba(0, 0, 0, 0.6);
+    --shadow-hover: 0 2px 8px rgba(255, 153, 102, 0.3);
+    
+    /* --- AESTHETIC: Transitions --- */
+    --transition-fast: 0.2s ease;
+    --transition-medium: 0.3s ease;
+    --transition-bounce: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Import fonts */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Work+Sans:wght@400;500;600&display=swap');
 
-:root {
-    --bg-primary: #000000;
-    --bg-secondary: #1a1a2e;
-    --bg-tertiary: #2d2d44;
-    --accent-primary: #ff9966;
-    --accent-secondary: #cc99ff;
-    --accent-tertiary: #ffcc99;
-    --accent-alert: #ff6666;
-    --accent-success: #99ccff;
-    --text-primary: #ffffff;
-    --text-secondary: #cccccc;
-    --text-muted: #999999;
-    --border-color: #ff9966;
-    --panel-border: 3px;
-    --hover-bg: rgba(255, 153, 102, 0.1);
-    --shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-}
+
+/* =============================================================================
+   2. RESET & BASE (Structural)
+   ============================================================================= */
 
 * {
     margin: 0;
@@ -27,16 +101,364 @@
 }
 
 body {
-    font-family: 'Work Sans', sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
+    /* Structural */
     min-height: 100vh;
     overflow-x: hidden;
     margin: 0;
+    /* Aesthetic */
+    font-family: var(--font-body);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
 }
 
 
-/* Decorative corner elements */
+/* =============================================================================
+   3. STRUCTURAL UTILITIES
+   ============================================================================= */
+
+/* --- Display & Visibility --- */
+.hidden { display: none !important; }
+
+/* --- Flex Containers --- */
+.flex-row { display: flex; flex-direction: row; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-center { align-items: center; justify-content: center; }
+
+/* --- Flex Items --- */
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.flex-shrink-0 { flex-shrink: 0; }
+.flex-fill { flex: 1 1 0; min-height: 0; }
+
+/* --- Scroll Regions --- */
+.scroll-y { overflow-y: auto; }
+.scroll-x { overflow-x: auto; }
+.scroll-both { overflow: auto; }
+.no-scroll { overflow: hidden; }
+
+/* --- Positioning --- */
+.pos-relative { position: relative; }
+.pos-absolute { position: absolute; }
+.pos-fixed { position: fixed; }
+
+/* --- Z-Index Layers --- */
+.z-base { z-index: var(--z-base); }
+.z-dropdown { z-index: var(--z-dropdown); }
+.z-sticky { z-index: var(--z-sticky); }
+.z-modal { z-index: var(--z-modal); }
+.z-overlay { z-index: var(--z-overlay); }
+
+/* --- Min-height fix for flex scroll --- */
+.min-h-0 { min-height: 0; }
+
+
+/* =============================================================================
+   4. COMPONENT STRUCTURE
+   ============================================================================= */
+
+/* --- App Shell --- */
+.app-root {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* --- Container --- */
+.container {
+    max-width: 2000px;
+    margin: var(--space-lg) auto;
+    padding: var(--space-lg);
+    position: relative;
+}
+
+/* --- Explorer Layout (Flex-based) --- */
+.container.explorer-layout {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+    height: calc(100vh - 100px);
+    padding: 0;
+}
+
+.findings-panel {
+    flex: 1 1 400px;
+    min-width: 400px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-panel-container {
+    flex: 0 0 700px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.alignment-panel {
+    flex: 1 1 100%;
+    width: 100%;
+    order: 3;
+    height: 480px;
+    min-height: 0;
+    margin-top: var(--space-sm);
+}
+
+/* --- Panel --- */
+.panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    position: relative;
+}
+
+/* --- Panel Header --- */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding: var(--space-md) 24px;
+}
+
+/* --- Header Bar --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding: var(--space-md) var(--space-xl);
+    margin-bottom: var(--space-lg);
+}
+
+header h1 {
+    padding: 0;
+    margin: 0;
+}
+
+/* --- Scrollable Content Areas --- */
+.findings-list,
+.pair-container {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-lg);
+}
+
+#log {
+    height: 200px;
+    overflow-y: auto;
+}
+
+#detailDiv {
+    overflow: scroll;
+}
+
+/* --- Modal Structure --- */
+#config-modal {
+    display: none;
+    position: fixed;
+    z-index: var(--z-modal);
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+#modal-content {
+    margin: 5% auto;
+    width: 80%;
+    min-height: 90%;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-lg);
+}
+
+#config-iframe {
+    width: 100%;
+    height: 100%;
+    flex-grow: 1;
+    border: none;
+}
+
+.modal-footer {
+    padding: var(--space-sm);
+    text-align: right;
+}
+
+/* --- Center Container --- */
+.center-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+.centered-panel-content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: var(--space-xl);
+    min-height: 0;
+}
+
+/* --- Stats Bar --- */
+.stats-bar {
+    display: flex;
+    gap: var(--space-lg);
+    padding: 16px var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.stats-bar-wrap {
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+/* --- Progress Bar Structure --- */
+.progress-bar-container {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 30px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Status Indicator --- */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+}
+
+/* --- Hamburger Menu Structure --- */
+.hamburger-menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 24px;
+    padding: 0;
+    z-index: var(--z-dropdown);
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.hamburger-menu span {
+    display: block;
+    width: 100%;
+    height: 3px;
+}
+
+/* --- Empty State --- */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+}
+
+/* --- Sequence Label Structure --- */
+.sequence-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.sequence-label::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+}
+
+/* --- Sequence Text Structure --- */
+.sequence-text {
+    word-break: break-all;
+    white-space: pre-wrap;
+    width: 100%;
+    max-width: 84ch;
+    padding: 1px;
+}
+
+/* --- Alignment Viewer Structure --- */
+.alignment-viewer {
+    white-space: pre;
+    overflow-x: auto;
+}
+
+/* --- Mol Container --- */
+.mol-container {
+    width: 100%;
+    height: 600px;
+    position: relative;
+}
+
+/* --- Loading Spinner Structure --- */
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+}
+
+
+/* =============================================================================
+   5. AESTHETIC BASE
+   ============================================================================= */
+
+/* --- Typography --- */
+h1, h2, h3 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--color-accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: var(--space-md);
+}
+
+h1 { font-size: var(--font-size-h1); padding: var(--space-lg); }
+h2 { font-size: var(--font-size-h2); }
+h3 { font-size: var(--font-size-h3); }
+
+a {
+    color: var(--color-accent-success);
+    text-decoration: none;
+}
+
+/* --- Decorative Corner Elements --- */
 body::before {
     content: '';
     position: fixed;
@@ -44,7 +466,7 @@ body::before {
     left: 0;
     width: 200px;
     height: 200px;
-    background: linear-gradient(135deg, var(--accent-primary) 0%, transparent 70%);
+    background: linear-gradient(135deg, var(--color-accent-primary) 0%, transparent 70%);
     opacity: 0.1;
     pointer-events: none;
     z-index: -1;
@@ -57,606 +479,421 @@ body::after {
     right: 0;
     width: 200px;
     height: 200px;
-    background: linear-gradient(-135deg, var(--accent-secondary) 0%, transparent 70%);
+    background: linear-gradient(-135deg, var(--color-accent-secondary) 0%, transparent 70%);
     opacity: 0.1;
     pointer-events: none;
     z-index: -1;
 }
 
-h1, h2, h3 {
-    font-family: 'Work Sans', sans-serif;
-    font-weight: 600;
-    color: var(--accent-primary);
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    margin-bottom: 15px;
+/* --- Scrollbar Aesthetics --- */
+::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
 }
 
-h1 { font-size: 1.8rem; padding: 20px; }
-h2 { font-size: 1.4rem; }
-h3 { font-size: 1.1rem; }
-
-a {
-    color: var(--accent-success);
-    text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
+::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
 }
 
-/* Panel Styling (Used by match_explorer and adopted by others) */
-.panel,
-#controls, #pollControl, #jobList, #currentJob, #log-container,
-.container,
-#config-form
-{
-    background: var(--bg-secondary);
-    border: var(--panel-border) solid var(--border-color);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-    position: relative;
-    min-height: 0; 
-    /* box-shadow: var(--shadow); */
+::-webkit-scrollbar-thumb {
+    background: var(--color-accent-primary);
+    border-radius: var(--scrollbar-size);
 }
 
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-tertiary);
+}
+
+
+/* =============================================================================
+   6. COMPONENT AESTHETICS
+   ============================================================================= */
+
+/* --- Container Aesthetics --- */
 .container {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.container.explorer-layout {
+    background: none;
     border: none;
 }
 
-/* Reset specific panels if needed */
+/* --- Panel Aesthetics --- */
+.panel,
+#controls, #pollControl, #jobList, #currentJob, #log-container,
+#config-form {
+    background: var(--color-bg-secondary);
+    border: var(--panel-border-width) solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+/* Panel structure override - no padding in flex panel */
 .panel {
     padding: 0;
-    display: flex;
-    flex: 1;   
-    flex-direction: column;
-    min-height: 0;    
-    height: 100%;
 }
 
-.container {
-    max-width: 2000px;
-    margin: 20px auto;
+/* --- Panel Header Aesthetics --- */
+.panel-header {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-lg);
+    border-bottom: 2px solid var(--color-border);
 }
 
-.center-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    /*height: 80vh;*/
-    min-height: 0;     
-}
-
-.centered-panel-content {
-    padding: 30px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    min-height: 0; 
-}
-
-.modal-footer {
-    padding: 10px;
-    text-align: right;
-}
-
-#detailDiv {
-    overflow:scroll;
-}
-
-/* Buttons */
-button, .copy-button, .job-button {
-    background: rgba(255, 153, 102, 0.2);
-    color: var(--accent-primary);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 0.75rem;
+.panel-title {
+    font-family: var(--font-body);
+    font-size: var(--font-size-base);
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-    border: 1px solid var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--color-accent-primary);
+}
+
+.panel-badge {
+    background: var(--color-accent-primary-20);
+    color: var(--color-accent-primary);
+    padding: var(--space-xs) 14px;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    border: 1px solid var(--color-accent-primary);
+}
+
+/* --- Header Aesthetics --- */
+header {
+    background: var(--color-bg-secondary);
+    border-bottom: var(--panel-border-width) solid var(--color-accent-primary);
+}
+
+/* --- Log/Output Area Aesthetics --- */
+#log, .log-output, .findings-list,
+.alignment-viewer-container, .sequence-viewer {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-bg-secondary);
+}
+
+#log, .log-output {
+    min-height: 100px;
+}
+
+.findings-list,
+.pair-container {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.8;
+    color: var(--color-text-secondary);
+}
+
+/* --- Button Aesthetics --- */
+button, .copy-button, .job-button {
+    background: var(--color-accent-primary-20);
+    color: var(--color-accent-primary);
+    padding: var(--space-xs) 14px;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    border: 1px solid var(--color-accent-primary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-button:hover, .copy-button:hover, .job-button:hover {
-    background: rgba(255, 153, 102, 0.3);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(255, 153, 102, 0.3);
-}
-
-button:active, .copy-button:active, .job-button:active {
-    transform: translateY(0);
-}
-
 button:disabled {
-    background: var(--bg-tertiary);
-    border-color: var(--text-muted);
-    color: var(--text-muted);
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-text-muted);
+    color: var(--color-text-muted);
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
-/* Logs and Output Areas */
-#log, .log-output, .findings-list {
-    background: var(--bg-tertiary);
-    border-radius: 12px;
-    padding: 15px;
-    overflow-y: auto;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-    border: 1px solid var(--bg-secondary);
-    min-height: 100px;
+/* --- Form Input Aesthetics --- */
+input[type="text"], input[type="number"], select {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-accent-primary);
+    color: var(--color-text-primary);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
 }
 
-.alignment-viewer-container, .sequence-viewer {
-    background: var(--bg-tertiary);
-    border-radius: 12px;
-    padding: 15px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-    border: 1px solid var(--bg-secondary);
-    /* No overflow - always show full alignment */
+input[type="checkbox"] {
+    accent-color: var(--color-accent-primary);
 }
 
-#log {
-    height: 200px;
-}
-
-/* Scrollbars */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--accent-primary);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-tertiary);
-}
-
-/* Job Items & Findings */
-.job-item, .finding-entry {
-    margin-bottom: 10px;
-    padding: 12px 15px;
-    border-radius: 12px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border-left: 4px solid transparent;
-    background: rgba(255, 153, 102, 0.05);
-    color: var(--text-secondary);
-    font-family: 'JetBrains Mono', monospace;
-}
-
-.job-item:hover, .finding-entry:hover {
-    background: var(--hover-bg);
-    border-left-color: var(--accent-primary);
-    transform: translateX(4px);
-}
-
-.job-item.active-job, .finding-entry.active {
-    background: rgba(255, 153, 102, 0.2);
-    border-left-color: var(--accent-primary);
-    /*box-shadow: 0 0 15px rgba(255, 153, 102, 0.3);*/
-    font-weight: normal;
-}
-
-/* Modal */
+/* --- Modal Aesthetics --- */
 #config-modal {
-    display: none;
-    position: fixed;
-    z-index: 100;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    /*overflow: auto;*/
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
     padding: 0;
     border: none;
     border-radius: 0;
-    min-height: 0;     
 }
 
 #modal-content {
-    background-color: var(--bg-secondary);
-    margin: 5% auto;
-    padding: 20px;
-    border: var(--panel-border) solid var(--accent-primary);
-    width: 80%;
-    min-height: 90%;
-    border-radius: 20px;
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
+    background-color: var(--color-bg-secondary);
+    border: var(--panel-border-width) solid var(--color-accent-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-default);
 }
 
 #config-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
     background: transparent;
-    flex-grow: 1;
 }
 
-/* Form Inputs */
-input[type="text"], input[type="number"], select {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--accent-primary);
-    color: var(--text-primary);
-    padding: 8px;
-    border-radius: 5px;
-    font-family: 'JetBrains Mono', monospace;
+/* --- Job/Finding Item Aesthetics --- */
+.job-item, .finding-entry {
+    margin-bottom: var(--space-sm);
+    padding: 12px var(--space-md);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-bounce);
+    cursor: pointer;
+    border-left: 4px solid transparent;
+    background: var(--color-accent-primary-05);
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
 }
 
-input[type="checkbox"] {
-    accent-color: var(--accent-primary);
+.finding-header {
+    color: var(--color-accent-tertiary);
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
 }
 
-/* Status colors */
-.error { color: var(--accent-alert); }
-.success { color: var(--accent-success); }
-.status.loading { color: var(--accent-tertiary); }
-.status.complete { color: var(--accent-success); }
-.status.error { color: var(--accent-alert); }
-
-
-/* Match Explorer Specific Layout */
-.container.explorer-layout {
-    display: grid;
-    grid-template-columns: minmax(400px, 1fr) 700px;
-    grid-template-rows: 1fr;
-    gap: 20px;
-    height: calc(100vh - 100px);
-    background: none;
-    border: none;
-    padding: 0;
+.finding-detail {
+    color: var(--color-text-secondary);
+    padding-left: var(--space-sm);
+    transition: color var(--transition-fast);
 }
 
-header {
-    background: var(--bg-secondary);
-    border-bottom: var(--panel-border) solid var(--accent-primary);
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+/* --- Stats Bar Aesthetics --- */
+.stats-bar {
+    background: var(--color-accent-primary-05);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-accent-primary-30);
 }
 
-header h1 {
-    padding: 0;
-    margin: 0;
+.stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
+.stat-value {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-accent-primary);
+    font-family: var(--font-mono);
+}
+
+/* --- Progress Bar Aesthetics --- */
+.progress-bar {
+    background-color: var(--color-bg-tertiary);
+    border-radius: 15px;
+    border: 1px solid var(--color-accent-secondary);
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+    transition: width var(--transition-medium);
+    color: var(--color-bg-primary);
+    font-weight: bold;
+}
+
+/* --- Status Colors --- */
+.error { color: var(--color-accent-alert); }
+.success { color: var(--color-accent-success); }
+.status.loading { color: var(--color-accent-tertiary); }
+.status.complete { color: var(--color-accent-success); }
+.status.error { color: var(--color-accent-alert); }
+
+/* --- Status Indicator Aesthetics --- */
 .status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .status-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--accent-alert);
-    transition: background 0.3s ease;
+    border-radius: var(--radius-round);
+    background: var(--color-accent-alert);
+    transition: background var(--transition-medium);
 }
 
 .status-dot.connected {
-    background: var(--accent-success);
+    background: var(--color-accent-success);
     animation: blink 2s ease-in-out infinite;
 }
 
 .status-dot.disconnected {
-    background: var(--accent-alert);
+    background: var(--color-accent-alert);
     animation: none;
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+/* --- Hamburger Menu Aesthetics --- */
+.hamburger-menu span {
+    background-color: var(--color-accent-primary);
+    border-radius: 2px;
+    transition: all var(--transition-medium);
 }
 
-.alignment-panel {
-    grid-column: 1 / -1;
-    margin-top: 10px;
-    height: 480px;
-    min-height: 0;    
+/* --- Empty State Aesthetics --- */
+.empty-state {
+    color: var(--color-text-muted);
 }
 
-.findings-panel {
-    grid-column: 1;
-    margin-top: 0;
-    /*overflow: auto; /* Add scrollbar when content overflows */
-    max-height: 100%;
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-lg);
+    opacity: 0.3;
 }
 
-.detail-panel-container {
-    grid-column: 2;
-    margin-top: 0;
-    /* overflow: auto; /* Add scrollbar when content overflows */
-    max-height: 100%;
-}
-
-.panel-header {
-    padding: 15px 24px;
-    background: var(--bg-tertiary);
-    border-radius: 20px;
-    border-bottom: 2px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.panel-title {
-    font-family: 'Work Sans', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--accent-primary);
-}
-
-.panel-badge {
-    background: rgba(255, 153, 102, 0.2);
-    color: var(--accent-primary);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-    border: 1px solid var(--accent-primary);
-}
-
-.copy-button.copied {
-    background: rgba(153, 204, 255, 0.2);
-    color: var(--accent-success);
-    border-color: var(--accent-success);
-}
-
-.finding-header {
-    color: var(--accent-tertiary);
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.finding-detail {
-    color: var(--text-secondary);
-    padding-left: 8px;
-    transition: color 0.2s;
-}
-
-.finding-entry:hover .finding-detail {
-    color: var(--text-primary);
-}
-
+/* --- Sequence Aesthetics --- */
 .sequence-label {
-    color: var(--accent-secondary);
+    color: var(--color-accent-secondary);
     font-weight: 600;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
     text-transform: uppercase;
     letter-spacing: 1px;
     font-size: 0.8rem;
 }
 
 .sequence-label::before {
-    content: '';
-    width: 3px;
-    height: 14px;
-    background: var(--accent-secondary);
+    background: var(--color-accent-secondary);
     border-radius: 2px;
 }
 
 .sequence-text {
-    color: var(--text-primary);
-    word-break: break-all;
-    padding: 1px;
+    color: var(--color-text-primary);
     background: rgba(0, 0, 0, 0.4);
-    border-radius: 8px;
-    border-left: 3px solid var(--accent-primary);
-    white-space: pre-wrap;
-    width: 100%; /* Adjusted from 84ch to fit container */
-    max-width: 84ch;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-accent-primary);
 }
 
+/* --- Alignment Viewer Aesthetics --- */
 .alignment-viewer {
-    color: var(--text-primary);
-    white-space: pre;
-    overflow-x: auto;
+    color: var(--color-text-primary);
 }
 
-.aa-match { color: var(--accent-primary); font-weight: 600; }
-.aa-mismatch { color: var(--text-muted); }
-.aa-gap { color: var(--accent-secondary); }
+.aa-match { color: var(--color-accent-primary); font-weight: 600; }
+.aa-mismatch { color: var(--color-text-muted); }
+.aa-gap { color: var(--color-accent-secondary); }
 
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-muted);
-    text-align: center;
-    padding: 40px;
-}
-
-.empty-state-icon {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    opacity: 0.3;
-}
-
+/* --- Loading Spinner Aesthetics --- */
 .loading {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--accent-primary);
-    border-radius: 50%;
+    border: 2px solid var(--color-accent-primary);
+    border-radius: var(--radius-round);
     border-top-color: transparent;
     animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+/* --- Demo Padding --- */
+.demo-padding {
+    padding: var(--space-lg);
 }
 
-.hamburger-menu {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 30px;
-  height: 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  z-index: 10;
+
+/* =============================================================================
+   7. INTERACTIVE STATES
+   ============================================================================= */
+
+a:hover {
+    text-decoration: underline;
+}
+
+button:hover, .copy-button:hover, .job-button:hover {
+    background: var(--color-accent-primary-30);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-hover);
+}
+
+button:active, .copy-button:active, .job-button:active {
+    transform: translateY(0);
+}
+
+button:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.job-item:hover, .finding-entry:hover {
+    background: var(--color-hover-bg);
+    border-left-color: var(--color-accent-primary);
+    transform: translateX(4px);
+}
+
+.job-item.active-job, .finding-entry.active {
+    background: var(--color-accent-primary-20);
+    border-left-color: var(--color-accent-primary);
+    font-weight: normal;
+}
+
+.finding-entry:hover .finding-detail {
+    color: var(--color-text-primary);
+}
+
+.copy-button.copied {
+    background: rgba(153, 204, 255, 0.2);
+    color: var(--color-accent-success);
+    border-color: var(--color-accent-success);
 }
 
 .hamburger-menu:hover {
-  opacity: 0.8;
+    opacity: 0.8;
 }
 
-.hamburger-menu span {
-  display: block;
-  width: 100%;
-  height: 3px;
-  background-color: var(--accent-primary, #ff9966);
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-/* Optional: Animated state when menu is open */
+/* Hamburger active state */
 .hamburger-menu.active span:nth-child(1) {
-  transform: translateY(10.5px) rotate(45deg);
+    transform: translateY(10.5px) rotate(45deg);
 }
 
 .hamburger-menu.active span:nth-child(2) {
-  opacity: 0;
+    opacity: 0;
 }
 
 .hamburger-menu.active span:nth-child(3) {
-  transform: translateY(-10.5px) rotate(-45deg);
+    transform: translateY(-10.5px) rotate(-45deg);
 }
 
-.stats-bar {
-    display: flex;
-    gap: 20px;
-    padding: 16px 20px;
-    background: rgba(255, 153, 102, 0.1);
-    border-radius: 10px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 153, 102, 0.3);
+/* Multiscroll button active */
+#multiscrollBtn.active {
+    background-color: var(--color-accent-primary);
+    color: var(--color-bg-primary);
 }
 
-.stat-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+/* --- Draggable --- */
+.draggable {
+    cursor: grab;
 }
 
-.stat-label {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.draggable:active {
+    cursor: grabbing;
+    user-select: none;
 }
 
-.stat-value {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--accent-primary);
-    font-family: 'JetBrains Mono', monospace;
+
+/* =============================================================================
+   8. ANIMATIONS
+   ============================================================================= */
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
 
-/* Stream Demo Specifics */
-.progress-bar-container {
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 30px;
-    background-color: var(--bg-tertiary);
-    border-radius: 15px;
-    overflow: hidden;
-    border: 1px solid var(--accent-secondary);
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-    width: 0%;
-    transition: width 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--bg-primary);
-    font-weight: bold;
-}
-
-.findings-list {
-    flex: 1 1 0;
-    overflow-y: auto;
-    padding: 20px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    line-height: 1.8;
-    color: var(--text-secondary);
-    min-height: 0;
-}
-
-.pair-container{
-    flex: 1 1 0;
-    overflow-y: auto;
-    padding: 20px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    line-height: 1.8;
-    color: var(--text-secondary);
-    min-height: 0;
-}
-
-.stats-bar-wrap {
-    flex-wrap: wrap;
-}
-
-/* Sequence Animations */
-.sequence-section {
-    margin-bottom: 28px;
-    opacity: 0;
-    animation: fadeInUp 0.4s ease-out forwards;
-}
-
-.sequence-section:nth-child(2) {
-    animation-delay: 0.1s;
-}
-
-.sequence-section:nth-child(3) {
-    animation-delay: 0.2s;
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 @keyframes fadeInUp {
@@ -670,27 +907,17 @@ header h1 {
     }
 }
 
-.mol-container {
-    width: 100%;
-    height: 600px;
-    position: relative;
+/* Sequence section animations */
+.sequence-section {
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeInUp 0.4s ease-out forwards;
 }
 
-.demo-padding {
-    padding: 20px;
+.sequence-section:nth-child(2) {
+    animation-delay: 0.1s;
 }
 
-/* Multiscroll Support */
-.draggable {
-    cursor: grab;
-}
-
-.draggable:active {
-    cursor: grabbing;
-    user-select: none;
-}
-
-#multiscrollBtn.active {
-    background-color: var(--accent-primary);
-    color: var(--bg-primary);
+.sequence-section:nth-child(3) {
+    animation-delay: 0.2s;
 }

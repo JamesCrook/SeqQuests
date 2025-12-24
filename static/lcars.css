@@ -1,29 +1,109 @@
-/* LCARS UI Specific Styles */
+/* =============================================================================
+   LCARS.CSS - With Structural/Aesthetic Separation
+   =============================================================================
+   
+   LCARS-SPECIFIC NOTE:
+   In LCARS, border-radius and negative margins are STRUCTURAL, not aesthetic.
+   They define the carve-out pattern where elements overlap. z-index controls
+   which element "wins" the overlap.
+   
+   ORGANIZATION:
+   1. Variables (structural overlap/z-index, then aesthetic colors)
+   2. App Shell (structural)
+   3. Panel & Sidebar Structure (flex, width, order)
+   4. Block Sizing (proportional flex values)
+   5. Corner Carve-Outs (STRUCTURAL: radius + negative margin + z-index)
+   6. Bar Structure (top/bottom bars)
+   7. Aesthetic: Colors
+   8. Responsive Breakpoints
+   
+   ============================================================================= */
+
+/* =============================================================================
+   1. VARIABLES
+   ============================================================================= */
+
+:root {
+    /* --- STRUCTURAL: LCARS Overlap System --- */
+    --lcars-overlap-h: 30px;      /* Horizontal overlap for bar corners */
+    --lcars-overlap-v: 10px;      /* Vertical overlap for sidebar corners */
+    --lcars-overlap-v2:36px;      /* Vertical overlap for deep cutout corners */
+    --lcars-central-overlap: 10px; /* Central panel overlaps sidebars */
+    
+    /* --- STRUCTURAL: LCARS Radii (defines carve-out shapes) --- */
+    --lcars-radius-large: 60px;   /* Sidebar corner curves */
+    --lcars-radius-small: 30px;   /* Bar corner curves */
+    
+    /* --- STRUCTURAL: Z-Index Stacking --- */
+    --lcars-z-sidebar: 1;         /* Base layer, gets carved */
+    --lcars-z-central: 3;         /* Carves through sidebars */
+    --lcars-z-bar: 10;            /* Carves through everything */
+    
+    /* --- STRUCTURAL: Sizing --- */
+    --lcars-sidebar-width: 190px;
+    --lcars-sidebar-block-width: 170px;
+    --lcars-bar-height: 60px;
+    --lcars-gap: 6px;
+    --lcars-shim-height: 6px;
+    
+    /* --- AESTHETIC: LCARS Color Palette --- */
+    --lcars-purple: #9999cc;
+    --lcars-tan: #ffcc99;
+    --lcars-rust: #cc6666;
+    --lcars-orange: #f39c12;
+    --lcars-beige: #be9a86;
+    --lcars-red: #e74c3c;
+    --lcars-blue: #8fc0e0;
+    --lcars-green: #2ecc71;
+    --lcars-yellow: #eed071;
+    --lcars-cyan: #46c6ad;
+    --lcars-pink: #e398bd;
+    
+    --lcars-bg: black;
+    --lcars-text: white;
+    --lcars-text-on-block: black;
+}
+
+
+/* =============================================================================
+   2. APP SHELL (Structural)
+   ============================================================================= */
 
 body {
-    background-color: black;
-    font-family: 'Oswald', sans-serif;
-    color: white;
+    /* Structural */
     height: 100vh;
     display: flex;
     flex-direction: column;
+    /* Aesthetic */
+    background-color: var(--lcars-bg);
+    font-family: 'Oswald', sans-serif;
+    color: var(--lcars-text);
 }
 
-/* Panel with sidebars */
+
+/* =============================================================================
+   3. PANEL & SIDEBAR STRUCTURE
+   ============================================================================= */
+
+/* Main horizontal container */
 .lcar-panel {
     display: flex;
+    flex-direction: row;
     width: 100%;
     flex: 1;
     min-height: 0;
 }
 
+/* Sidebar columns */
 .sidebar {
-    width: 190px;
+    width: var(--lcars-sidebar-width);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--lcars-gap);
     padding: 10px;
-    color:black;
+    flex-shrink: 0;
+    /* Aesthetic */
+    color: var(--lcars-text-on-block);
 }
 
 .sidebar.left {
@@ -36,182 +116,263 @@ body {
     padding-right: 10px;
 }
 
+/* When sidebar itself is a block */
+.sidebar.block {
+    width: var(--lcars-sidebar-block-width);
+}
+
+/* Central content area - CARVES THROUGH sidebars */
+.central {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 0px;
+    z-index: var(--lcars-z-central);
+    margin-left: calc(-1 * var(--lcars-central-overlap));
+    margin-right: calc(-1 * var(--lcars-central-overlap));
+}
+
+/* Panel content area */
+.panel-content {
+    flex: 1 1 auto;  /* grow, shrink, but basis=auto preserves content size */
+    overflow: auto;
+    padding: 20px;
+    /* Aesthetic */
+    background-color: var(--lcars-bg);
+}
+
+
+/* =============================================================================
+   4. BLOCK SIZING (Proportional flex values)
+   ============================================================================= */
+
 .block {
     display: flex;
     flex: 1;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s;
     cursor: pointer;
+    /* Aesthetic handled by color classes */
+    transition: background-color 0.2s;
 }
 
-.sssblock {
-    flex: 0.1;
-}
-.ssblock {
-    flex: 0.21;
-}
-.sblock {
-    flex: 0.43;
-}
-.mblock {
-    flex: 1;
+/* Size variants - smallest to largest */
+.sssblock { flex: 0.1; }
+.ssblock  { flex: 0.21; }
+.sblock   { flex: 0.43; }
+.mblock   { flex: 1; }
+.lblock   { flex: 2; }
+
+/* Shim - thin spacer */
+.shim {
+    height: var(--lcars-shim-height);
 }
 
-.lblock {
-    flex: 2;
-}
 
-.sidebar.block {
-    width: 170px;
-}
+/* =============================================================================
+   5. CORNER CARVE-OUTS (STRUCTURAL)
+   
+   These classes create the interlocking LCARS corners.
+   The pattern: negative margin creates overlap, z-index determines winner,
+   border-radius defines the curve, padding compensates for content.
+   ============================================================================= */
 
-.shim{
-    height:6px;
-}
-/* Sidebar blocks */
+/* --- Sidebar Corners (large radius) --- */
+
+/* Bottom-left corner */
 .bl {
-    border-bottom-left-radius: 60px;
-    margin-bottom: -10px;
+    border-bottom-left-radius: var(--lcars-radius-large);
+    margin-bottom: calc(-1 * var(--lcars-overlap-v));
 }
+
+/* Bottom-right corner */
 .br {
-    border-bottom-right-radius: 60px;
-    margin-bottom: -10px;
+    border-bottom-right-radius: var(--lcars-radius-large);
+    margin-bottom: calc(-1 * var(--lcars-overlap-v));
 }
+
+/* Top-left corner */
 .tl {
-    border-top-left-radius: 60px;
-    margin-top: -10px;
+    border-top-left-radius: var(--lcars-radius-large);
+    margin-top: calc(-1 * var(--lcars-overlap-v));
 }
+
+/* Top-right corner */
 .tr {
-    border-top-right-radius: 60px;
-    margin-top: -10px;
+    border-top-right-radius: var(--lcars-radius-large);
+    margin-top: calc(-1 * var(--lcars-overlap-v));
 }
 
-.blp, .blpo {
-    border-bottom-left-radius: 30px;
-    margin-left: -30px;
-    padding-left: 30px;
-}
-.brp, .brpo {
-    border-bottom-right-radius: 30px;
-    margin-right: -30px;
-}
-.tlp, .tlpo {
-    border-top-left-radius: 30px;
-    margin-left: -30px;
-    padding-left: 60px;
-}
-.trp, .trpo {
-    border-top-right-radius: 30px;
-    margin-right:-30px;
+/* --- Bar Corners (small radius, with padding compensation) --- */
+
+/* Bottom-left on bar - extends into central area */
+.blp {
+    border-bottom-left-radius: var(--lcars-radius-small);
+    margin-left: calc(-1 * var(--lcars-overlap-h));
+    padding-left: var(--lcars-overlap-h);
 }
 
-.central {
-    display:flex;
-    flex-direction:column;
-    flex:1;
-    padding: 0px;
-    z-index: 3;
-    margin-left:-10px;
-    margin-right:-10px;
-    min-height: 0;
-}
-/* Panel content area */
-.panel-content {
-    flex: 1;
-    padding: 20px;
-    background-color : black;
-    overflow: auto;
+/* Bottom-left overlapped - also extends vertically */
+.blpo {
+    border-bottom-left-radius: var(--lcars-radius-small);
+    margin-left: calc(-1 * var(--lcars-overlap-h));
+    padding-left: var(--lcars-overlap-h);
+    margin-bottom: calc(-1 * var(--lcars-overlap-v2));
 }
 
-/* Bottom bar */
+/* Bottom-right on bar */
+.brp {
+    border-bottom-right-radius: var(--lcars-radius-small);
+    margin-right: calc(-1 * var(--lcars-overlap-h));
+}
+
+/* Bottom-right overlapped - also extends vertically */
+.brpo {
+    border-bottom-right-radius: var(--lcars-radius-small);
+    margin-right: calc(-1 * var(--lcars-overlap-h));
+    margin-bottom: calc(-1 * var(--lcars-overlap-v2));
+}
+
+/* Top-left on bar - extra padding for content */
+.tlp {
+    border-top-left-radius: var(--lcars-radius-small);
+    margin-left: calc(-1 * var(--lcars-overlap-h));
+    padding-left: calc(1 * var(--lcars-overlap-h));
+}
+
+/* Top-left overlapped - also extends vertically */
+.tlpo {
+    border-top-left-radius: var(--lcars-radius-small);
+    margin-left: calc(-1 * var(--lcars-overlap-h));
+    padding-left: calc(1 * var(--lcars-overlap-h));
+    margin-top: calc(-1 * var(--lcars-overlap-v2));
+}
+
+/* Top-right on bar */
+.trp {
+    border-top-right-radius: var(--lcars-radius-small);
+    margin-right: calc(-1 * var(--lcars-overlap-h));
+}
+
+/* Top-right overlapped - also extends vertically */
+.trpo {
+    border-top-right-radius: var(--lcars-radius-small);
+    margin-right: calc(-1 * var(--lcars-overlap-h));
+    margin-top: calc(-1 * var(--lcars-overlap-v2));
+}
+
+
+/* =============================================================================
+   6. BAR STRUCTURE (Top/Bottom bars)
+   ============================================================================= */
+
 .bar {
-    flex: 0;
-    flex-direction: row;
-
-    height: 60px;
-    width: 100%;
-    background-color: transparent;
     display: flex;
-    gap: 6px;
+    flex-direction: row;
+    flex-shrink: 0;
+    height: var(--lcars-bar-height);
+    width: 100%;
+    gap: var(--lcars-gap);
     padding: 0px;
     position: relative;
-    z-index: 10;
-    color:black;
+    z-index: var(--lcars-z-bar);
+    /* Aesthetic */
+    background-color: transparent;
+    color: var(--lcars-text-on-block);
 }
 
+/* Bar alignment variants */
 .barbot {
-    display:flex;
+    display: flex;
     align-items: flex-end;
 }
 
 .bartop {
-    display:flex;
+    display: flex;
     align-items: flex-start;
 }
 
-/* Bar blocks */
+/* Bar blocks don't need special styling beyond .block */
 .bar.block {
+    /* Inherits from .block */
 }
 
 
-/* Color classes */
-.purple { background-color: #9999cc; }
-.tan { background-color: #ffcc99; }
-.rust { background-color: #cc6666; }
-.orange { background-color: #f39c12; }
-.beige { background-color: #be9a86 }
+/* =============================================================================
+   7. AESTHETIC: Color Classes
+   
+   These are purely visual. Apply alongside structural classes.
+   Example: <div class="block sblock bl purple">
+   ============================================================================= */
+
+.purple { background-color: var(--lcars-purple); }
+.tan    { background-color: var(--lcars-tan); }
+.rust   { background-color: var(--lcars-rust); }
+.orange { background-color: var(--lcars-orange); }
+.beige  { background-color: var(--lcars-beige); }
+.red    { background-color: var(--lcars-red); }
+.blue   { background-color: var(--lcars-blue); }
+.green  { background-color: var(--lcars-green); }
+.yellow { background-color: var(--lcars-yellow); }
+.cyan   { background-color: var(--lcars-cyan); }
+.pink   { background-color: var(--lcars-pink); }
 
 
+/* =============================================================================
+   8. RESPONSIVE BREAKPOINTS
+   ============================================================================= */
 
-.red { background-color: #e74c3c; }
-.blue { background-color: #8fc0e0 }
-.green { background-color: #2ecc71; }
-.yellow { background-color: #eed071; }
-.cyan { background-color: #46c6ad }
-.pink { background-color: #e398bd }
-
+/* Wide screens: horizontal layout */
 @media (min-width: 1200px) and (min-aspect-ratio: 16/9) {
     body {
         flex-direction: row;
     }
 }
 
+/* Medium screens: hide optional elements */
 @media (max-width: 680px) {
-  .optional {
-    display: none;
-  }
+    .optional {
+        display: none;
+    }
 }
 
-@media (max-width: 600px) or (max-aspect-ratio: 2/3) {
-  .optional2 {
-    display: none;
-  }
+/* Small/portrait screens: collapse LCARS corners */
+@media (max-width: 600px), (max-aspect-ratio: 2/3) {
+    .optional2 {
+        display: none;
+    }
+    
+    /* Remove corner carve-outs on small screens */
+    /* The 'o' suffix variants collapse to flat edges */
     .blpo {
         border-bottom-left-radius: 0px;
         margin-left: 0px;
-        padding-left: 30px;
+        padding-left: var(--lcars-overlap-h);
     }
+    
     .brpo {
         border-bottom-right-radius: 0px;
         margin-right: 0px;
-        padding-right: 30px;
+        padding-right: var(--lcars-overlap-h);
     }
+    
     .tlpo {
         border-top-left-radius: 0px;
         margin-left: 0px;
-        padding-left: 30px;
+        padding-left: var(--lcars-overlap-h);
     }
+    
     .trpo {
         border-top-right-radius: 0px;
         margin-right: 0px;
-        padding-right: 30px;
+        padding-right: var(--lcars-overlap-h);
     }
-
 }
 
+/* Very small screens */
 @media (max-width: 400px) {
-  .optional4 {
-    display: none;
-  }
+    .optional4 {
+        display: none;
+    }
 }
