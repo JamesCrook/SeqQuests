@@ -20,7 +20,8 @@ h1 { font-size: 1.4rem; margin-bottom: 8px; }
 .btn-primary:hover { background: #2563eb; }
 .btn-secondary { background: #e5e7eb; color: #333; }
 .btn-secondary:hover { background: #d1d5db; }
-.canvas-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 4px; background: #fafafa; }
+.canvas-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 4px; background: #fafafa; cursor: grab; }
+.canvas-wrap:active { cursor: grabbing; }
 canvas { display: block; }
 .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 0.75rem; }
 .legend-item { display: flex; align-items: center; gap: 4px; }
@@ -478,6 +479,73 @@ document.getElementById('zoom').oninput = e => {
   render();
 };
 document.getElementById('showLabels').onchange = e => { state.showLabels = e.target.checked; render(); };
+
+// ============================================================================
+// INTERACTION
+// ============================================================================
+const canvasWrap = document.getElementById('canvasWrap');
+
+// Drag to scroll
+let isDown = false;
+let startX;
+let scrollLeft;
+
+canvasWrap.addEventListener('mousedown', (e) => {
+  isDown = true;
+  canvasWrap.style.cursor = 'grabbing';
+  startX = e.pageX - canvasWrap.offsetLeft;
+  scrollLeft = canvasWrap.scrollLeft;
+});
+
+canvasWrap.addEventListener('mouseleave', () => {
+  isDown = false;
+  canvasWrap.style.cursor = 'grab';
+});
+
+canvasWrap.addEventListener('mouseup', () => {
+  isDown = false;
+  canvasWrap.style.cursor = 'grab';
+});
+
+canvasWrap.addEventListener('mousemove', (e) => {
+  if (!isDown) return;
+  e.preventDefault();
+  const x = e.pageX - canvasWrap.offsetLeft;
+  const walk = (x - startX);
+  canvasWrap.scrollLeft = scrollLeft - walk;
+});
+
+// Mousewheel zoom
+canvasWrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+
+  const factor = 1.1;
+  const oldScale = state.scale;
+  let newScale = e.deltaY < 0 ? oldScale * factor : oldScale / factor;
+
+  const zoomInput = document.getElementById('zoom');
+  const min = parseFloat(zoomInput.min);
+  const max = parseFloat(zoomInput.max);
+  newScale = Math.max(min, Math.min(max, newScale));
+
+  if (Math.abs(newScale - oldScale) < 0.00001) return;
+
+  const rect = canvasWrap.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const contentX = mouseX + canvasWrap.scrollLeft;
+
+  const ratio = newScale / oldScale;
+  const newScrollLeft = (contentX * ratio) - mouseX;
+
+  state.scale = newScale;
+  zoomInput.value = newScale;
+  document.getElementById('zoomVal').textContent = Math.round(newScale * 100) + '%';
+
+  render();
+
+  canvasWrap.scrollLeft = newScrollLeft;
+
+}, { passive: false });
 
 // ============================================================================
 // INIT
