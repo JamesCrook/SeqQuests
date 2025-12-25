@@ -1,5 +1,16 @@
+/* global Vector2D */
+
 class HelpOverlay {
-    constructor() {
+    /**
+     * @param {Array|Object} config - Configuration object or array of configuration objects for multi-step help.
+     * Each config object should have an 'items' array.
+     * Item structure: { text: string, targetId: string, color: string, arrow: { extendHead: number, extendTail: number, width: number, headSize: number, tailSize: number } }
+     */
+    constructor(config) {
+        this.config = Array.isArray(config) ? config : (config ? [config] : []);
+        this.currentStepIndex = 0;
+
+        // Canvas setup
         this.canvas = document.createElement('canvas');
         this.canvas.style.position = 'fixed';
         this.canvas.style.top = '0';
@@ -7,31 +18,216 @@ class HelpOverlay {
         this.canvas.style.pointerEvents = 'none';
         this.canvas.style.zIndex = '9999';
         this.ctx = this.canvas.getContext('2d');
+
         this.connections = [];
         this.animating = false;
 
         this.resizeCanvas = this.resizeCanvas.bind(this);
         this.draw = this.draw.bind(this);
+
+        this.initUI();
     }
 
-    init() {
-        if (!this.canvas.parentNode) {
-            document.body.appendChild(this.canvas);
+    initUI() {
+        // Inject styles if not present
+        if (!document.getElementById('help-overlay-styles')) {
+            const style = document.createElement('style');
+            style.id = 'help-overlay-styles';
+            style.textContent = `
+                .help-overlay-container {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    z-index: 9998;
+                    display: none;
+                }
+                .help-organizer {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(255, 255, 255, 0.95);
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                    width: 320px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                    pointer-events: auto;
+                }
+                .help-close-x {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    width: 24px;
+                    height: 24px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    color: #64748b;
+                    border-radius: 50%;
+                    transition: background 0.2s;
+                    font-family: sans-serif;
+                }
+                .help-close-x:hover {
+                    background: #e2e8f0;
+                    color: #ef4444;
+                }
+                .help-content {
+                    max-height: 60vh;
+                    overflow-y: auto;
+                }
+                .help-item {
+                    padding: 10px;
+                    border-bottom: 1px solid #e2e8f0;
+                    font-size: 14px;
+                    line-height: 1.4;
+                    color: #334155;
+                }
+                .help-item:last-child {
+                    border-bottom: none;
+                }
+                .help-footer {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+                .help-btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 13px;
+                }
+                .help-btn-close {
+                    background: #e2e8f0;
+                    color: #475569;
+                }
+                .help-btn-next {
+                    background: #3b82f6;
+                    color: white;
+                }
+                .help-btn-next:hover {
+                    background: #2563eb;
+                }
+                .help-btn-close:hover {
+                    background: #cbd5e1;
+                }
+            `;
+            document.head.appendChild(style);
         }
-        this.resizeCanvas();
+
+        // Create Container
+        this.container = document.createElement('div');
+        this.container.className = 'help-overlay-container';
+
+        // Create Organizer
+        this.organizer = document.createElement('div');
+        this.organizer.className = 'help-organizer';
+
+        // X Close Button
+        const xBtn = document.createElement('div');
+        xBtn.className = 'help-close-x';
+        xBtn.innerHTML = '×';
+        xBtn.onclick = () => this.stop();
+        this.organizer.appendChild(xBtn);
+
+        // Content Area
+        this.contentDiv = document.createElement('div');
+        this.contentDiv.className = 'help-content';
+        this.organizer.appendChild(this.contentDiv);
+
+        // Footer
+        this.footer = document.createElement('div');
+        this.footer.className = 'help-footer';
+
+        this.closeBtn = document.createElement('button');
+        this.closeBtn.className = 'help-btn help-btn-close';
+        this.closeBtn.textContent = 'Close';
+        this.closeBtn.onclick = () => this.stop();
+        this.footer.appendChild(this.closeBtn);
+
+        this.nextBtn = document.createElement('button');
+        this.nextBtn.className = 'help-btn help-btn-next';
+        this.nextBtn.textContent = 'Next';
+        this.nextBtn.onclick = () => this.nextStep();
+        this.footer.appendChild(this.nextBtn);
+
+        this.organizer.appendChild(this.footer);
+        this.container.appendChild(this.organizer);
+
+        document.body.appendChild(this.container);
+
+        // Make organizer draggable
+        this.makeDraggable(this.organizer);
+
+        // Add canvas
+        document.body.appendChild(this.canvas);
         window.addEventListener('resize', this.resizeCanvas);
+        this.resizeCanvas();
     }
 
-    addConnection(fromEl, toEl, color = '#64748b') {
-        this.connections.push({ from: fromEl, to: toEl, color });
-    }
+    renderStep(index) {
+        if (index < 0 || index >= this.config.length) return;
 
-    clearConnections() {
+        const stepConfig = this.config[index];
+        this.contentDiv.innerHTML = '';
         this.connections = [];
+
+        if (stepConfig.items) {
+            stepConfig.items.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'help-item';
+                el.innerHTML = item.text || '';
+                this.contentDiv.appendChild(el);
+
+                if (item.targetId) {
+                    const targetEl = document.getElementById(item.targetId);
+                    if (targetEl) {
+                        this.connections.push({
+                            from: el,
+                            to: targetEl,
+                            color: item.color || '#64748b',
+                            arrow: item.arrow || {}
+                        });
+                    }
+                }
+            });
+        }
+
+        // Handle Next Button visibility
+        if (index < this.config.length - 1) {
+            this.nextBtn.style.display = 'block';
+        } else {
+            this.nextBtn.style.display = 'none';
+        }
+    }
+
+    nextStep() {
+        if (this.currentStepIndex < this.config.length - 1) {
+            this.currentStepIndex++;
+            this.renderStep(this.currentStepIndex);
+        } else {
+            this.stop();
+        }
     }
 
     start() {
-        this.init();
+        this.container.style.display = 'block';
+        this.currentStepIndex = 0;
+        this.renderStep(0);
+
+        // Ensure canvas size is correct
+        this.resizeCanvas();
+
         if (!this.animating) {
             this.animating = true;
             this.draw();
@@ -39,12 +235,9 @@ class HelpOverlay {
     }
 
     stop() {
+        this.container.style.display = 'none';
         this.animating = false;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        if (this.canvas.parentNode) {
-            this.canvas.parentNode.removeChild(this.canvas);
-        }
-        window.removeEventListener('resize', this.resizeCanvas);
     }
 
     resizeCanvas() {
@@ -54,7 +247,7 @@ class HelpOverlay {
 
     getElementBox(el) {
         if (!el) return null;
-        if (el.offsetParent === null) return null;
+        if (el.offsetParent === null && el.style.position !== 'fixed') return null; // Simple visibility check
 
         const rect = el.getBoundingClientRect();
         return {
@@ -64,145 +257,133 @@ class HelpOverlay {
             bottom: rect.bottom,
             width: rect.width,
             height: rect.height,
-            centerX: rect.left + rect.width / 2,
-            centerY: rect.top + rect.height / 2
+            center: new Vector2D(rect.left + rect.width / 2, rect.top + rect.height / 2),
+            pos: new Vector2D(rect.left, rect.top),
+            size: new Vector2D(rect.width, rect.height)
         };
-    }
-
-    getTextBoundingBox(container, searchTerm) {
-        if (!searchTerm || searchTerm.length < 2) return null;
-
-        const text = container.textContent;
-        const index = text.toLowerCase().indexOf(searchTerm.toLowerCase());
-
-        if (index === -1) return null;
-
-        let charCount = 0;
-        let startNode = null;
-        let startOffset = 0;
-        let endNode = null;
-        let endOffset = 0;
-
-        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-
-        while (node = walker.nextNode()) {
-            const nodeLength = node.textContent.length;
-
-            if (!startNode && charCount + nodeLength > index) {
-                startNode = node;
-                startOffset = index - charCount;
-            }
-
-            if (startNode && charCount + nodeLength >= index + searchTerm.length) {
-                endNode = node;
-                endOffset = (index + searchTerm.length) - charCount;
-                break;
-            }
-
-            charCount += nodeLength;
-        }
-
-        if (startNode && endNode) {
-            try {
-                const range = document.createRange();
-                range.setStart(startNode, startOffset);
-                range.setEnd(endNode, endOffset);
-                const rects = range.getClientRects();
-
-                if (rects.length === 0) return null;
-
-                const rect = rects[0];
-
-                return {
-                    left: rect.left,
-                    top: rect.top,
-                    right: rect.right,
-                    bottom: rect.bottom,
-                    width: rect.width,
-                    height: rect.height,
-                    centerX: rect.left + rect.width / 2,
-                    centerY: rect.top + rect.height / 2
-                };
-            } catch (e) {
-                return null;
-            }
-        }
-        return null;
     }
 
     getNearestPoints(box1, box2) {
-        const p1 = {
-            x: Math.max(box1.left, Math.min(box2.centerX, box1.right)),
-            y: Math.max(box1.top, Math.min(box2.centerY, box1.bottom))
+        // Use Vector2D logic aggressively
+
+        // Clamp v to the bounds of box
+        const clampToBox = (v, box) => {
+            return new Vector2D(
+                Math.max(box.left, Math.min(v.x, box.right)),
+                Math.max(box.top, Math.min(v.y, box.bottom))
+            );
         };
 
-        const p2 = {
-            x: Math.max(box2.left, Math.min(p1.x, box2.right)),
-            y: Math.max(box2.top, Math.min(p1.y, box2.bottom))
-        };
+        // First approximation: clamp box2 center to box1
+        let p1 = clampToBox(box2.center, box1);
 
-        p1.x = Math.max(box1.left, Math.min(p2.x, box1.right));
-        p1.y = Math.max(box1.top, Math.min(p2.y, box1.bottom));
+        // Second: clamp p1 to box2 to get p2
+        let p2 = clampToBox(p1, box2);
+
+        // Refine p1: clamp p2 back to box1
+        p1 = clampToBox(p2, box1);
 
         return { p1, p2 };
     }
 
-    drawArrow(ctx, fromX, fromY, toX, toY, color = '#64748b') {
-        const headlen = 12;
-        const dx = toX - fromX;
-        const dy = toY - fromY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const angle = Math.atan2(dy, dx);
+    drawArrow(ctx, start, end, color = '#64748b', opts = {}) {
+        const { extendHead = 0, extendTail = 0, headSize = 12, tailSize = 0, width = 2.5 } = opts;
+
+        // start and end are Vector2D
+        let diff = end.sub(start);
+        const dist = diff.length;
 
         if (dist < 1) return;
 
+        const dir = diff.normalize();
+
+        // Calculate actual start and end points with extensions
+        // extendTail: extend backwards from start
+        // extendHead: extend forwards from end
+        const actualStart = start.sub(dir.scale(extendTail));
+        const actualEnd = end.add(dir.scale(extendHead));
+
+        // Re-calculate diff based on new points
+        const drawDiff = actualEnd.sub(actualStart);
+        const drawDist = drawDiff.length;
+
+        if (drawDist < 1) return;
+
+        // Draw Tail Blob
+        if (tailSize > 0) {
+            ctx.beginPath();
+            ctx.arc(actualStart.x, actualStart.y, tailSize, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        // Draw Line
         ctx.beginPath();
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(toX, toY);
+        ctx.moveTo(actualStart.x, actualStart.y);
+        ctx.lineTo(actualEnd.x, actualEnd.y);
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = width;
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.moveTo(toX, toY);
-        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 7), toY - headlen * Math.sin(angle - Math.PI / 7));
-        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 7), toY - headlen * Math.sin(angle + Math.PI / 7));
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-    }
+        // Draw Head
+        if (headSize > 0) {
+            const angle = drawDiff.angle;
+            // Tips of the arrow head
+            const p = actualEnd;
+            const arrowAngle = Math.PI / 7;
 
-    drawHighlightBox(ctx, box) {
-        if (!box) return;
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 2]);
-        ctx.strokeRect(box.left - 2, box.top - 2, box.width + 4, box.height + 4);
-        ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
-        ctx.fillRect(box.left - 2, box.top - 2, box.width + 4, box.height + 4);
+            // Using vector rotation would be:
+            // const back = dir.scale(-headSize);
+            // const left = back.rotate(arrowAngle).add(p);
+            // const right = back.rotate(-arrowAngle).add(p);
+            // But let's stick to standard trig if we want or vector methods
+
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+
+            // Using Vector2D for arrow head points
+            // Vector pointing back from tip
+            const vBack = dir.scale(-1);
+
+            // Rotate +angle
+            const vLeft = vBack.rotate(arrowAngle).scale(headSize).add(p);
+
+            // Rotate -angle
+            const vRight = vBack.rotate(-arrowAngle).scale(headSize).add(p);
+
+            ctx.lineTo(vLeft.x, vLeft.y);
+            ctx.lineTo(vRight.x, vRight.y);
+
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
     }
 
     makeDraggable(el) {
         let isDragging = false;
-        let startX, startY, initialLeft, initialTop;
+        let startPos = new Vector2D(0, 0);
+        let initialPos = new Vector2D(0, 0);
 
         el.addEventListener('mousedown', (e) => {
             isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
+            startPos = new Vector2D(e.clientX, e.clientY);
+
             const style = window.getComputedStyle(el);
-            initialLeft = parseInt(style.left) || 0;
-            initialTop = parseInt(style.top) || 0;
+            initialPos = new Vector2D(parseInt(style.left) || 0, parseInt(style.top) || 0);
+
             el.style.cursor = 'grabbing';
         });
 
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            el.style.left = `${initialLeft + (e.clientX - startX)}px`;
-            el.style.top = `${initialTop + (e.clientY - startY)}px`;
+            const currentPos = new Vector2D(e.clientX, e.clientY);
+            const delta = currentPos.sub(startPos);
+            const newPos = initialPos.add(delta);
+
+            el.style.left = `${newPos.x}px`;
+            el.style.top = `${newPos.y}px`;
         });
 
         window.addEventListener('mouseup', () => {
@@ -223,17 +404,11 @@ class HelpOverlay {
 
         for (const conn of this.connections) {
             let b1 = this.getElementBox(conn.from);
-
-            if (!b1 && conn.fromText && conn.container) {
-                b1 = this.getTextBoundingBox(conn.container, conn.fromText);
-                if (b1) this.drawHighlightBox(this.ctx, b1);
-            }
-
             const b2 = this.getElementBox(conn.to);
 
             if (isInViewport(b1) && isInViewport(b2)) {
                 const { p1, p2 } = this.getNearestPoints(b1, b2);
-                this.drawArrow(this.ctx, p1.x, p1.y, p2.x, p2.y, conn.color);
+                this.drawArrow(this.ctx, p1, p2, conn.color, conn.arrow);
             }
         }
 

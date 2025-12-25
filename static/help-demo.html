@@ -67,61 +67,6 @@
         input[type="range"] {
             width: 100%;
         }
-
-        /* Help Overlay Styles */
-        #help-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            z-index: 1000;
-            display: none;
-            pointer-events: auto; /* Allow clicking on overlay to close or interact */
-        }
-
-        #help-organizer {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            width: 300px;
-            z-index: 1001;
-            cursor: move;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .help-text {
-            padding: 10px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 14px;
-            line-height: 1.4;
-            color: #334155;
-        }
-
-        .help-text:last-child {
-            border-bottom: none;
-        }
-
-        .close-help {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            z-index: 1002;
-        }
-
     </style>
 </head>
 <body>
@@ -148,76 +93,79 @@
             <p>Be careful with these controls.</p>
             <button id="delete-btn" class="btn-danger">Delete All Data</button>
         </div>
-    </div>
 
-    <!-- Help Overlay Container -->
-    <div id="help-overlay">
-        <button class="close-help">Close Help</button>
-
-        <div id="help-organizer">
-            <!-- Explanatory Text Divs -->
-            <div id="help-volume" class="help-text">
-                <strong>Volume Control:</strong><br>
-                Adjust the system volume using this slider. Slide right to increase.
-            </div>
-
-            <div id="help-save" class="help-text">
-                <strong>Save Button:</strong><br>
-                Click here to persist your changes to the database.
-            </div>
-
-            <div id="help-delete" class="help-text">
-                <strong>Delete Button:</strong><br>
-                Warning! This permanently removes all data. Use with caution.
+        <div class="panel" style="grid-column: span 2;">
+            <h2>Advanced Features</h2>
+            <p>Additional controls available for power users.</p>
+            <div style="display: flex; gap: 15px;">
+                <button id="adv-btn-1" class="btn-primary">Optimize</button>
+                <button id="adv-btn-2" class="btn-primary">Analyze</button>
+                <button id="adv-btn-3" class="btn-primary">Report</button>
             </div>
         </div>
     </div>
 
+    <script src="vector2d.js"></script>
     <script src="help.js"></script>
     <script>
-        const helpOverlay = new HelpOverlay();
-        const overlayDiv = document.getElementById('help-overlay');
+        const helpConfig = [
+            {
+                items: [
+                    {
+                        text: '<strong>Volume Control:</strong><br>Adjust the system volume using this slider.',
+                        targetId: 'volume-slider',
+                        color: '#3b82f6',
+                        arrow: { extendHead: 5, headSize: 15 }
+                    },
+                    {
+                        text: '<strong>Save Button:</strong><br>Click here to persist your changes.',
+                        targetId: 'save-btn',
+                        color: '#3b82f6',
+                        arrow: { tailSize: 5 }
+                    },
+                    {
+                        text: '<strong>Delete Button:</strong><br>Warning! This permanently removes all data.',
+                        targetId: 'delete-btn',
+                        color: '#ef4444',
+                        arrow: { width: 4, headSize: 20, extendTail: 10 }
+                    }
+                ]
+            },
+            {
+                items: [
+                    {
+                        text: '<strong>Optimize:</strong><br>Run the optimization algorithm.',
+                        targetId: 'adv-btn-1',
+                        color: '#10b981',
+                        arrow: { extendTail: 20, tailSize: 8, width: 3 }
+                    },
+                    {
+                        text: '<strong>Analyze:</strong><br>Deep analysis of the data.',
+                        targetId: 'adv-btn-2',
+                        color: '#8b5cf6',
+                        arrow: { extendHead: 20 }
+                    },
+                    {
+                        text: '<strong>Report:</strong><br>Generate a PDF report.',
+                        targetId: 'adv-btn-3',
+                        color: '#f59e0b',
+                        arrow: { width: 1, headSize: 8, tailSize: 3 }
+                    }
+                ]
+            }
+        ];
+
+        const helpOverlay = new HelpOverlay(helpConfig);
         const helpBtn = document.getElementById('help-btn');
-        const closeBtn = document.querySelector('.close-help');
-
-        // Elements to explain
-        const volumeSlider = document.getElementById('volume-slider');
-        const saveBtn = document.getElementById('save-btn');
-        const deleteBtn = document.getElementById('delete-btn');
-
-        // Explanatory texts
-        const helpVolume = document.getElementById('help-volume');
-        const helpSave = document.getElementById('help-save');
-        const helpDelete = document.getElementById('help-delete');
-        const helpOrganizer = document.getElementById('help-organizer');
-
-        helpOverlay.makeDraggable(helpOrganizer);
 
         helpBtn.addEventListener('click', () => {
-            overlayDiv.style.display = 'block';
-
-            // Clear any existing connections to be safe
-            helpOverlay.clearConnections();
-
-            // Add connections
-            helpOverlay.addConnection(helpVolume, volumeSlider, '#3b82f6');
-            helpOverlay.addConnection(helpSave, saveBtn, '#3b82f6');
-            helpOverlay.addConnection(helpDelete, deleteBtn, '#ef4444');
-
             helpOverlay.start();
         });
 
-        const closeHelp = () => {
-            overlayDiv.style.display = 'none';
-            helpOverlay.stop();
-        };
-
-        closeBtn.addEventListener('click', closeHelp);
-
         // Close on escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && overlayDiv.style.display === 'block') {
-                closeHelp();
+            if (e.key === 'Escape') {
+                helpOverlay.stop();
             }
         });
     </script>
