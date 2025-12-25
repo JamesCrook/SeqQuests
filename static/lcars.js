@@ -257,4 +257,227 @@ class LcarsUI {
     }
 }
 
+class HamburgerMenu {
+    constructor(config) {
+        this.config = config;
+        this.isOpen = false;
+        this.init();
+    }
+
+    init() {
+        this.injectStyles();
+        this.createElements();
+        this.renderMenu();
+        this.attachListeners();
+    }
+
+    injectStyles() {
+        if (document.getElementById('hamburger-menu-style')) return;
+        const style = document.createElement('style');
+        style.id = 'hamburger-menu-style';
+        style.textContent = `
+            .hamburger-container {
+                position: relative;
+                display: inline-block;
+            }
+            .hamburger-menu {
+                /* Inherit existing styles from style.css but ensure positioning */
+                position: relative;
+                z-index: var(--z-dropdown);
+            }
+            .hamburger-dropdown {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                background: var(--color-bg-secondary);
+                border: 1px solid var(--color-accent-primary);
+                border-radius: var(--radius-md);
+                padding: var(--space-sm) 0;
+                min-width: 200px;
+                z-index: var(--z-dropdown);
+                box-shadow: var(--shadow-default);
+                margin-top: 10px;
+            }
+            .hamburger-dropdown.open {
+                display: block;
+            }
+            .menu-item {
+                display: block;
+                padding: 8px 16px;
+                color: var(--color-text-secondary);
+                text-decoration: none;
+                transition: all var(--transition-fast);
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            .menu-item:hover {
+                background: var(--color-accent-primary-20);
+                color: var(--color-accent-primary);
+            }
+            .menu-divider {
+                height: 1px;
+                background: var(--color-border);
+                margin: 4px 0;
+                opacity: 0.3;
+            }
+            /* Submenu support */
+            .menu-item-submenu {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: relative;
+            }
+            .menu-item-submenu::after {
+                content: '▸';
+                margin-left: 10px;
+            }
+            .submenu {
+                display: none;
+                position: absolute;
+                left: 100%;
+                top: 0;
+                background: var(--color-bg-secondary);
+                border: 1px solid var(--color-accent-primary);
+                border-radius: var(--radius-md);
+                padding: var(--space-sm) 0;
+                min-width: 180px;
+            }
+            .menu-item-submenu:hover .submenu {
+                display: block;
+            }
+            /* Checkbox support */
+            .menu-checkbox {
+                margin-right: 10px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    createElements() {
+        // Container
+        this.container = document.createElement('div');
+        this.container.className = 'hamburger-container';
+
+        // Button
+        this.button = document.createElement('button');
+        this.button.className = 'hamburger-menu';
+        this.button.setAttribute('aria-label', 'Menu');
+        this.button.innerHTML = '<span></span><span></span><span></span>';
+
+        // Menu
+        this.menu = document.createElement('div');
+        this.menu.className = 'hamburger-dropdown';
+
+        this.container.appendChild(this.button);
+        this.container.appendChild(this.menu);
+
+        // Mount
+        // Try to replace existing or append to header
+        const header = document.querySelector('header');
+        if (header) {
+            const existing = header.querySelector('.hamburger-menu');
+            if (existing && existing.parentNode !== this.container) {
+                existing.replaceWith(this.container);
+            } else {
+                header.prepend(this.container);
+            }
+        } else {
+            document.body.prepend(this.container);
+        }
+    }
+
+    renderMenu() {
+        this.renderItems(this.config, this.menu);
+    }
+
+    renderItems(items, container) {
+        items.forEach(item => {
+            if (item.type === 'divider') {
+                const divider = document.createElement('div');
+                divider.className = 'menu-divider';
+                container.appendChild(divider);
+                return;
+            }
+
+            const el = document.createElement(item.href ? 'a' : 'div');
+            el.className = 'menu-item';
+
+            if (item.href) {
+                el.href = item.href;
+            }
+
+            if (item.type === 'checkbox') {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'menu-checkbox';
+                checkbox.checked = item.checked;
+                checkbox.onclick = (e) => e.stopPropagation();
+                checkbox.onchange = (e) => {
+                    if (item.onChange) item.onChange(e.target.checked);
+                };
+                el.appendChild(checkbox);
+                el.appendChild(document.createTextNode(item.label));
+                // Prevent closing on click
+                el.onclick = (e) => {
+                    if (e.target !== checkbox) {
+                         checkbox.checked = !checkbox.checked;
+                         if (item.onChange) item.onChange(checkbox.checked);
+                    }
+                    e.stopPropagation();
+                };
+            } else {
+                el.textContent = item.label;
+                if (item.submenu) {
+                    el.classList.add('menu-item-submenu');
+                    const submenu = document.createElement('div');
+                    submenu.className = 'submenu';
+                    this.renderItems(item.submenu, submenu);
+                    el.appendChild(submenu);
+                } else if (item.action) {
+                    el.onclick = (e) => {
+                        this.toggle();
+                        if (typeof item.action === 'function') item.action();
+                        else if (typeof window[item.action] === 'function') window[item.action]();
+                    };
+                }
+            }
+
+            container.appendChild(el);
+        });
+    }
+
+    attachListeners() {
+        this.button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggle();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (this.isOpen && !this.container.contains(e.target)) {
+                this.close();
+            }
+        });
+    }
+
+    toggle() {
+        this.isOpen = !this.isOpen;
+        this.updateState();
+    }
+
+    close() {
+        this.isOpen = false;
+        this.updateState();
+    }
+
+    updateState() {
+        this.button.classList.toggle('active', this.isOpen);
+        this.menu.classList.toggle('open', this.isOpen);
+    }
+}
+
 const Lcars = new LcarsUI();
+
+function DoHelp() {
+    alert("Help Called");
+}

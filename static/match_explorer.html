@@ -12,11 +12,7 @@
 </head>
 <body>
     <header>
-        <button class="hamburger-menu" aria-label="Menu">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
+        <!-- Hamburger Menu Button Removed - Injected by HamburgerMenu class -->
         
         <h1>Protein Sequence Match Explorer</h1>
         <div class="status-indicator">
@@ -46,15 +42,22 @@
      
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
+            // Instantiate HamburgerMenu
+            const menuConfig = [
+                { label: 'Matches', href: 'match_explorer.html' },
+                { label: 'Streaming Demo', href: 'stream_demo.html' },
+                { label: 'Help Demo', href: 'help-demo.html' },
+                { label: 'Fetch', href: 'fetch-seq.html' },
+                { label: 'Bias', href: 'bias_analysis.html' },
+                { label: 'Domains', href: 'domain-viewer.html' },
+                { label: 'Tree', href: 'tree_browse.html' },
+                { label: 'Align', href: 'fast-align.html' },
+                { type: 'divider' },
+                { label: 'Help', action: DoHelp }
+            ];
+            new HamburgerMenu(menuConfig);
+
             // Load partials using Lcars
-
-            // We load only the two needed panels.
-            // Note: Lcars.loadPartial is async but we fire them off.
-            // We need to wait for all of them before initializing the logic?
-            // The initializeApp logic binds to elements. It will fail if elements aren't there.
-
-            // Chain the loads or use Promise.all if loadPartial returned a promise (it does).
-
             Promise.all([
                 Lcars.loadPartial('LeftPanel', './panels/findings_list.html'),
                 Lcars.loadPartial('RightPanel', './panels/detail_view.html')
