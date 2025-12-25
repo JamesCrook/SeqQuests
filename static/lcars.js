@@ -272,7 +272,7 @@ class HamburgerMenu {
                 { label: 'Domains', href: 'domain-viewer.html' },
                 { label: 'Help Demo', href: 'help-demo.html' },
                 { type: 'divider' },
-                { label: 'Help', action: DoHelp }
+                { label: 'Help', action: DoDefaultHelp }
             ];
         this.isOpen = false;
         this.init();
@@ -376,6 +376,7 @@ class HamburgerMenu {
         // Button
         this.button = document.createElement('button');
         this.button.className = 'hamburger-menu';
+        this.button.id = 'hamburger-menu';
         this.button.setAttribute('aria-label', 'Menu');
         this.button.innerHTML = '<span></span><span></span><span></span>';
 
@@ -492,6 +493,10 @@ class HamburgerMenu {
 
 const Lcars = new LcarsUI();
 
-function DoHelp() {
+function DoDefaultHelp() {
+    if( DoHelp ){
+        DoHelp()
+        return;
+    }
     alert("Help Called");
 }

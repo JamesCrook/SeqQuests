@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="lcars.css">
     <link rel="icon" href="./wheel.ico">
     <script src="./lcars.js"></script>
+    <script src="./vector2d.js"></script>
+    <script src="./help.js"></script>
 
     <style>
 
@@ -122,7 +124,7 @@
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <span id="source-label" style="margin-left: 10px; color: var(--color-accent-tertiary);">External (UniProt)</span>
+                <span id="source-label" style="margin-left: 10px; color: var(--color-accent-tertiary);">External (Swiss-Prot)</span>
             </div>
 
             <div class="control-group">
@@ -147,10 +149,10 @@
     // Toggle Label Update
     sourceToggle.addEventListener('change', () => {
         if (sourceToggle.checked) {
-            sourceLabel.textContent = "Internal (FastAPI)";
+            sourceLabel.textContent = "Internal (Lab Server)";
             sourceLabel.style.color = "var(--color-accent-tertiary)";
         } else {
-            sourceLabel.textContent = "External (UniProt)";
+            sourceLabel.textContent = "External (Swiss-Prot)";
             sourceLabel.style.color = "var(--color-accent-tertiary)";
         }
     });
@@ -171,7 +173,7 @@
             url = `https://rest.uniprot.org/uniprotkb/${accession}.json`;
         }
 
-        statusDiv.textContent = `Fetching from ${useInternal ? 'Internal API' : 'UniProt'}...`;
+        statusDiv.textContent = `Fetching from ${useInternal ? 'Lab Server' : 'Swiss-Prot'}...`;
         resultArea.value = "Loading...";
 
         try {
@@ -194,6 +196,54 @@
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
         new HamburgerMenu();
+
+        const helpConfig = [
+            {
+                items: [
+                    {
+                        text: '<strong>Accession:</strong><br>Enter a Swiss-Prot protein accession number here.',
+                        targetId: 'accession-input',
+                        type: 'default'
+                    },
+                    {
+                        text: '<strong>Source:</strong><br>Choose between <strong>Swiss-Prot</strong> (global) and the <strong>Lab Server</strong>. Swiss-Prot is recommended for standard sequences. Use the lab server option only if your lab has configured a custom database.',
+                        targetId: 'source-toggle',
+                        type: 'default'
+                    },
+                    {
+                        text: '<strong>Fetch Sequence:</strong><br>Click to actually fetch the protein information.',
+                        targetId: 'fetch-btn',
+                        type: 'default'
+                    },
+                    {
+                        text: '<strong>Result:</strong><br>This is where the result, the protein data file, ends up. This page retrieves the file in JSON format, a format that is easily read by software.',
+                        targetId: 'result-area',
+                        type: 'results'
+                    }
+                ]
+            },
+            {
+                items: [
+                    {
+                        text: '<strong>Menu:</strong><br>Click to get a menu of choices - such as other web pages to visit.',
+                        targetId: 'hamburger-menu',
+                        type: 'default'
+                    },
+                    {
+                        text: '<strong>Status:</strong><br><ul style="padding-left:15px;"><li><em>Red</em> if no response from lab server</li><li><em>Light Blue</em> if has a response from the lab server</li></ul>On this page it doesn\'t really matter as you will usually be using Swiss-Prot and not the lab server',
+                        targetId: 'statusDot',
+                        type: 'results'
+                    }
+                ]
+            }
+        ];
+
+        const helpOverlay = new HelpOverlay(helpConfig);
+
+        DoHelp = function () {
+            helpOverlay.start();
+        };
+
     })
 </script>
 
