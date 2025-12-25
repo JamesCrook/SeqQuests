@@ -64,6 +64,15 @@
             color: white;
         }
 
+        .result-box {
+            border: 2px dashed #9333ea;
+            padding: 10px;
+            background-color: #f3e8ff;
+            color: #7e22ce;
+            text-align: center;
+            font-weight: bold;
+        }
+
         input[type="range"] {
             width: 100%;
         }
@@ -102,6 +111,9 @@
                 <button id="adv-btn-2" class="btn-primary">Analyze</button>
                 <button id="adv-btn-3" class="btn-primary">Report</button>
             </div>
+            <div style="margin-top: 20px;">
+                 <div id="results-area" class="result-box">Analysis Results will appear here</div>
+            </div>
         </div>
     </div>
 
@@ -114,20 +126,17 @@
                     {
                         text: '<strong>Volume Control:</strong><br>Adjust the system volume using this slider.',
                         targetId: 'volume-slider',
-                        color: '#10b981',
-                        arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+                        type: 'default'
                     },
                     {
                         text: '<strong>Save Button:</strong><br>Click here to persist your changes.',
                         targetId: 'save-btn',
-                        color: '#10b981',
-                        arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+                        type: 'default'
                     },
                     {
                         text: '<strong>Delete Button:</strong><br>Warning! This permanently removes all data.',
                         targetId: 'delete-btn',
-                        color: '#d92010',
-                        arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+                        type: 'warning'
                     }
                 ]
             },
@@ -136,20 +145,22 @@
                     {
                         text: '<strong>Optimize:</strong><br>Run the optimization algorithm.',
                         targetId: 'adv-btn-1',
-                        color: '#10b981',
-                        arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+                        type: 'default'
                     },
                     {
                         text: '<strong>Analyze:</strong><br>Deep analysis of the data.',
                         targetId: 'adv-btn-2',
-                        color: '#10b981',
-                        arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+                        type: 'default'
                     },
                     {
                         text: '<strong>Report:</strong><br>Generate a PDF report.',
                         targetId: 'adv-btn-3',
-                        color: '#10b981',
-                        arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+                        type: 'default'
+                    },
+                    {
+                        text: '<strong>Results Area:</strong><br>Shows the output of the analysis.',
+                        targetId: 'results-area',
+                        type: 'results'
                     }
                 ]
             }

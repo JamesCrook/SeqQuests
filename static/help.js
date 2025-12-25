@@ -4,11 +4,28 @@ class HelpOverlay {
     /**
      * @param {Array|Object} config - Configuration object or array of configuration objects for multi-step help.
      * Each config object should have an 'items' array.
-     * Item structure: { text: string, targetId: string, color: string, arrow: { extendHead: number, extendTail: number, width: number, headSize: number, tailSize: number } }
+     * Item structure: { text: string, targetId: string, type: string }
+     * 'type' can be 'default', 'warning', or 'results'. If omitted, defaults to 'default'.
      */
     constructor(config) {
         this.config = Array.isArray(config) ? config : (config ? [config] : []);
         this.currentStepIndex = 0;
+
+        // Named arrow types
+        this.ARROW_STYLES = {
+            default: {
+                color: '#10b981',
+                arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+            },
+            warning: {
+                color: '#d92010',
+                arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
+            },
+            results: {
+                color: '#9333ea', // Purple
+                arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4, dash: [4, 4] }
+            }
+        };
 
         // Canvas setup
         this.canvas = document.createElement('canvas');
@@ -189,14 +206,27 @@ class HelpOverlay {
                 el.innerHTML = item.text || '';
                 this.contentDiv.appendChild(el);
 
+                let sourceEl = el;
+                // If text starts with <strong>, use that as the source
+                const firstChild = el.firstElementChild;
+                if (firstChild && firstChild.tagName === 'STRONG') {
+                    // Check if it's really at the start (ignoring whitespace)
+                    // But checking firstElementChild is usually sufficient if structure is strictly <strong>...</strong>...
+                    sourceEl = firstChild;
+                }
+
                 if (item.targetId) {
                     const targetEl = document.getElementById(item.targetId);
                     if (targetEl) {
+                        // Resolve style
+                        const styleKey = item.type || 'default';
+                        const styleConfig = this.ARROW_STYLES[styleKey] || this.ARROW_STYLES.default;
+
                         this.connections.push({
-                            from: el,
+                            from: sourceEl,
                             to: targetEl,
-                            color: item.color || '#64748b',
-                            arrow: item.arrow || {}
+                            color: styleConfig.color,
+                            arrow: styleConfig.arrow
                         });
                     }
                 }
@@ -287,7 +317,7 @@ class HelpOverlay {
     }
 
     drawArrow(ctx, start, end, color = '#64748b', opts = {}) {
-        const { extendHead = 0, extendTail = 0, headSize = 12, tailSize = 0, width = 2.5 } = opts;
+        const { extendHead = 0, extendTail = 0, headSize = 12, tailSize = 0, width = 2.5, dash = [] } = opts;
 
         // start and end are Vector2D
         let diff = end.sub(start);
@@ -319,12 +349,18 @@ class HelpOverlay {
 
         // Draw Line
         ctx.beginPath();
+        if (dash && dash.length > 0) {
+            ctx.setLineDash(dash);
+        } else {
+            ctx.setLineDash([]);
+        }
         ctx.moveTo(actualStart.x, actualStart.y);
         ctx.lineTo(actualEnd.x, actualEnd.y);
         ctx.strokeStyle = color;
         ctx.lineWidth = width;
         ctx.lineCap = 'round';
         ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
 
         // Draw Head
         if (headSize > 0) {
