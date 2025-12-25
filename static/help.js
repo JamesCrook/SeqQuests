@@ -149,17 +149,17 @@ class HelpOverlay {
         this.footer = document.createElement('div');
         this.footer.className = 'help-footer';
 
-        this.closeBtn = document.createElement('button');
-        this.closeBtn.className = 'help-btn help-btn-close';
-        this.closeBtn.textContent = 'Close';
-        this.closeBtn.onclick = () => this.stop();
-        this.footer.appendChild(this.closeBtn);
-
         this.nextBtn = document.createElement('button');
         this.nextBtn.className = 'help-btn help-btn-next';
         this.nextBtn.textContent = 'Next';
         this.nextBtn.onclick = () => this.nextStep();
         this.footer.appendChild(this.nextBtn);
+
+        this.closeBtn = document.createElement('button');
+        this.closeBtn.className = 'help-btn help-btn-close';
+        this.closeBtn.textContent = 'Close';
+        this.closeBtn.onclick = () => this.stop();
+        this.footer.appendChild(this.closeBtn);
 
         this.organizer.appendChild(this.footer);
         this.container.appendChild(this.organizer);
@@ -330,25 +330,17 @@ class HelpOverlay {
         if (headSize > 0) {
             const angle = drawDiff.angle;
             // Tips of the arrow head
-            const p = actualEnd;
+            const p = actualEnd.add(dir.scale(width));
             const arrowAngle = Math.PI / 7;
-
-            // Using vector rotation would be:
-            // const back = dir.scale(-headSize);
-            // const left = back.rotate(arrowAngle).add(p);
-            // const right = back.rotate(-arrowAngle).add(p);
-            // But let's stick to standard trig if we want or vector methods
 
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
 
-            // Using Vector2D for arrow head points
+
             // Vector pointing back from tip
             const vBack = dir.scale(-1);
-
             // Rotate +angle
             const vLeft = vBack.rotate(arrowAngle).scale(headSize).add(p);
-
             // Rotate -angle
             const vRight = vBack.rotate(-arrowAngle).scale(headSize).add(p);
 
