@@ -21,6 +21,8 @@ class LcarsUI {
             this.doSearchResults();
         else if (action == 'Job Queue')
             this.doJobQueue();
+        else if (action == 'Links')
+            this.doLinks();
         else
             alert(`No handler for ${action}`);
     }
@@ -214,6 +216,12 @@ class LcarsUI {
     doSearchResults() {
          this.loadPartial('SubPanel', './panels/findings_list.html', () => {
              // For Findings List, we also rely on match_explorer.js
+             if (typeof initializeApp === 'function') initializeApp();
+         });
+    }
+
+    doLinks() {
+         this.loadPartial('SubPanel', './panels/links.html', () => {
              if (typeof initializeApp === 'function') initializeApp();
          });
     }

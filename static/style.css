@@ -14,9 +14,15 @@
    
    ============================================================================= */
 
+
+
 /* =============================================================================
    1. VARIABLES
    ============================================================================= */
+
+/* Import fonts before any other work*/
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Work+Sans:wght@400;500;600&display=swap');
+
 
 :root {
     /* --- STRUCTURAL: Spacing Scale --- */
@@ -53,12 +59,13 @@
     --color-text-primary: #ffffff;
     --color-text-secondary: #cccccc;
     --color-text-muted: #999999;
+    --color-back-mono: #00000070;
     
     --color-border: #ff9966;
     --color-hover-bg: rgba(255, 153, 102, 0.1);
-    --color-accent-primary-20: rgba(255, 153, 102, 0.2);
-    --color-accent-primary-30: rgba(255, 153, 102, 0.3);
-    --color-accent-primary-05: rgba(255, 153, 102, 0.05);
+    --color-accent-primary-20: #00002070;
+    --color-accent-primary-30: #00002070;
+    --color-accent-primary-5: #00002070;
     
     /* --- AESTHETIC: Typography --- */
     --font-body: 'Work Sans', sans-serif;
@@ -85,10 +92,6 @@
     --transition-medium: 0.3s ease;
     --transition-bounce: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-/* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Work+Sans:wght@400;500;600&display=swap');
-
 
 /* =============================================================================
    2. RESET & BASE (Structural)
@@ -132,7 +135,7 @@ body {
 .flex-fill { flex: 1 1 0; min-height: 0; }
 
 /* --- Scroll Regions --- */
-.scroll-y { overflow-y: auto; }
+.scroll-y { overflow-y: auto; min-height: 0;}
 .scroll-x { overflow-x: auto; }
 .scroll-both { overflow: auto; }
 .no-scroll { overflow: hidden; }
@@ -163,6 +166,12 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+.button-holder {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 /* --- Container --- */
@@ -211,9 +220,8 @@ body {
 .panel {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
-    height: 100%;
     position: relative;
 }
 
@@ -247,7 +255,7 @@ header h1 {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
-    padding: var(--space-lg);
+    padding: var(--space-md);
 }
 
 #log {
@@ -415,9 +423,8 @@ header h1 {
 }
 
 /* --- Alignment Viewer Structure --- */
-.alignment-viewer {
+.alignment-viewer-container {
     white-space: pre;
-    overflow-x: auto;
 }
 
 /* --- Mol Container --- */
@@ -570,11 +577,11 @@ header {
 }
 
 /* --- Log/Output Area Aesthetics --- */
-#log, .log-output, .findings-list,
-.alignment-viewer-container, .sequence-viewer {
+#log, .log-output, .findings-list, .pair-container,
+.sequence-viewer {
     background: var(--color-bg-tertiary);
     border-radius: var(--radius-md);
-    padding: var(--space-md);
+    /*padding: var(--space-md);*/
     font-family: var(--font-mono);
     font-size: var(--font-size-base);
     line-height: 1.6;
@@ -582,8 +589,20 @@ header {
     border: 1px solid var(--color-bg-secondary);
 }
 
+/* --- Alignment Viewer Structure --- */
+.alignment-viewer-container {
+    color: var(--color-text-primary);
+    background: var(--color-back-mono);
+    border-radius: var(--radius-sm);
+}
+
+
 #log, .log-output {
     min-height: 100px;
+}
+
+.sequence-viewer {
+    padding: 0;
 }
 
 .findings-list,
@@ -659,7 +678,7 @@ input[type="checkbox"] {
     transition: all var(--transition-bounce);
     cursor: pointer;
     border-left: 4px solid transparent;
-    background: var(--color-accent-primary-05);
+    background: var(--color-back-mono);
     color: var(--color-text-secondary);
     font-family: var(--font-mono);
 }
@@ -776,9 +795,9 @@ input[type="checkbox"] {
 
 .sequence-text {
     color: var(--color-text-primary);
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--color-back-mono);
     border-radius: var(--radius-sm);
-    border-left: 3px solid var(--color-accent-primary);
+/*    border-left: 3px solid var(--color-accent-primary);*/
 }
 
 /* --- Alignment Viewer Aesthetics --- */
@@ -828,8 +847,6 @@ button:disabled:hover {
 }
 
 .job-item:hover, .finding-entry:hover {
-    background: var(--color-hover-bg);
-    border-left-color: var(--color-accent-primary);
     transform: translateX(4px);
 }
 

@@ -6,37 +6,39 @@
     <link rel="stylesheet" href="../lcars.css">
 </head>
 <body>
-    <!-- Alignment Section -->
-    <div class="panel-header" style="background: var(--bg-tertiary); margin-bottom: 20px;">
-        <div class="panel-title">Alignment Visualization</div>
-        <div style="display: flex; gap: 12px; align-items: center;">
-            <button class="copy-button" id="copyAlignmentBtn" onclick="copyAlignment()">Copy Alignment</button>
-            <div class="panel-badge" id="alignmentBadge">—</div>
+    <div class="flex-col flex-fill">    
+        <!-- Alignment Section -->
+        <div class="panel-header">
+            <div class="panel-title">Alignment Visualization</div>
+            <div class="button-holder">
+                <button class="copy-button" id="copyAlignmentBtn" onclick="copyAlignment()">Copy Alignment</button>
+                <div class="panel-badge" id="alignmentBadge">—</div>
+            </div>
         </div>
-    </div>
-    <div class="pair-container" id="pairViewer">
-        <div id="pairHolder">
-            <div class="alignment-viewer-container" id="alignmentViewer" style="margin-bottom: 30px;">
-                <div class="empty-state">
-                    <div class="empty-state-icon">╳</div>
-                    <div class="empty-state-text">No alignment selected</div>
-                    <div class="empty-state-subtext">Click an entry to view alignment</div>
+        <div class="pair-container scroll-y" id="pairViewer">
+            <div id="pairHolder">
+                <div class="alignment-viewer-container" id="alignmentViewer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">╳</div>
+                        <div class="empty-state-text">No alignment selected</div>
+                        <div class="empty-state-subtext">Click an entry to view alignment</div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Details Section -->
-            <div class="panel-header" style="background: var(--bg-tertiary);">
-                <div class="panel-title">Sequence Details</div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                   <button class="copy-button" id="copyDetailBtn" onclick="copyDetail()">Copy Pair</button>
-                   <div class="panel-badge" id="detailBadge">—</div>
+                <!-- Details Section -->
+                <div class="panel-header" style="background: var(--bg-tertiary);">
+                    <div class="panel-title">Sequence Details</div>
+                        <div class="button-holder">
+                        <button class="copy-button" id="copyDetailBtn" onclick="copyDetail()">Copy Pair</button>
+                        <div class="panel-badge" id="detailBadge">—</div>
+                    </div>
                 </div>
-            </div>
-            <div class="sequence-viewer" id="detailViewer" style="margin-top: 20px; border: none; background: transparent; padding: 0;">
-                <div class="empty-state">
-                    <div class="empty-state-icon">◯</div>
-                    <div class="empty-state-text">Select an alignment to view details</div>
-                    <div class="empty-state-subtext">Click entries in the left panel to explore sequence data</div>
+                <div class="sequence-viewer" id="detailViewer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">◯</div>
+                        <div class="empty-state-text">Select an alignment to view details</div>
+                        <div class="empty-state-subtext">Click entries in the left panel to explore sequence data</div>
+                    </div>
                 </div>
             </div>
         </div>
