@@ -81,17 +81,33 @@
             pointer-events: auto; /* Allow clicking on overlay to close or interact */
         }
 
-        .help-text {
+        #help-organizer {
             position: absolute;
-            background: white;
-            padding: 15px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            width: 200px;
+            width: 300px;
+            z-index: 1001;
+            cursor: move;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .help-text {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
             font-size: 14px;
             line-height: 1.4;
             color: #334155;
-            z-index: 1001; /* Above canvas */
+        }
+
+        .help-text:last-child {
+            border-bottom: none;
         }
 
         .close-help {
@@ -138,20 +154,22 @@
     <div id="help-overlay">
         <button class="close-help">Close Help</button>
 
-        <!-- Explanatory Text Divs -->
-        <div id="help-volume" class="help-text" style="top: 250px; left: 50px;">
-            <strong>Volume Control:</strong><br>
-            Adjust the system volume using this slider. Slide right to increase.
-        </div>
+        <div id="help-organizer">
+            <!-- Explanatory Text Divs -->
+            <div id="help-volume" class="help-text">
+                <strong>Volume Control:</strong><br>
+                Adjust the system volume using this slider. Slide right to increase.
+            </div>
 
-        <div id="help-save" class="help-text" style="top: 350px; left: 100px;">
-            <strong>Save Button:</strong><br>
-            Click here to persist your changes to the database.
-        </div>
+            <div id="help-save" class="help-text">
+                <strong>Save Button:</strong><br>
+                Click here to persist your changes to the database.
+            </div>
 
-        <div id="help-delete" class="help-text" style="top: 200px; right: 100px;">
-            <strong>Delete Button:</strong><br>
-            Warning! This permanently removes all data. Use with caution.
+            <div id="help-delete" class="help-text">
+                <strong>Delete Button:</strong><br>
+                Warning! This permanently removes all data. Use with caution.
+            </div>
         </div>
     </div>
 
@@ -171,6 +189,9 @@
         const helpVolume = document.getElementById('help-volume');
         const helpSave = document.getElementById('help-save');
         const helpDelete = document.getElementById('help-delete');
+        const helpOrganizer = document.getElementById('help-organizer');
+
+        helpOverlay.makeDraggable(helpOrganizer);
 
         helpBtn.addEventListener('click', () => {
             overlayDiv.style.display = 'block';
