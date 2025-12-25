@@ -6,6 +6,8 @@
     <title>Protein Sequence Stats</title>
     <link rel="icon" href="./wheel.ico">
     <link rel="stylesheet" type="text/css" href="./style.css">
+    <link rel="stylesheet" type="text/css" href="./lcars.css">
+    <script src="./lcars.js"></script>
   </head>
   <body>
     <header>
@@ -63,7 +65,7 @@
     </div>
     <script src="./stream.js"></script>
     <script>
-    let startTime;
+        let startTime;
         
         function updateUI(stats) {
             document.getElementById('totalRecords').textContent = stats.totalRecords.toLocaleString();
@@ -110,6 +112,10 @@
                 btn.disabled = false;
             }
         }
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            new HamburgerMenu();
+        })        
     </script>
   </body>
 </html>

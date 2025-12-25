@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="lcars.css">
     <link rel="icon" href="./wheel.ico">
     <script src="sw_client.js"></script>
+    <script src="lcars.js"></script>
     <style>
         .demo-layout {
             display: grid;
@@ -56,37 +57,37 @@
         </div>
     </header>
 
-    <div class="container">
-        <div class="panel">
+    <div class="container explorer-layout">
+        <div class="panel flex-fill">
             <div class="panel-header">
                 <span class="panel-title">Sequence Input</span>
             </div>
-            <div class="demo-padding">
-                <div class="input-area">
-                    <label class="sequence-label">Sequence 1</label>
-                    <textarea id="seq1">MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA</textarea>
+            <div class="flex-col flex-fill scroll-y">
+                <div class="demo-padding">
+                    <div class="input-area">
+                        <label class="sequence-label">Sequence 1</label>
+                        <textarea id="seq1">MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA</textarea>
 
-                    <label class="sequence-label">Sequence 2</label>
-                    <textarea id="seq2">MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG</textarea>
+                        <label class="sequence-label">Sequence 2</label>
+                        <textarea id="seq2">MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG</textarea>
+                    </div>
+
+                    <div class="controls" style="margin-top: 20px;">
+                        <button onclick="runAlign('server')">Align on Server (API)</button>
+                        <button onclick="runAlign('js')">Align Client (JS)</button>
+                        <button onclick="runAlign('wasm')">Align Client (WASM)</button>
+                    </div>
+                    <div id="perfResult" class="benchmark"></div>
                 </div>
 
-                <div class="controls" style="margin-top: 20px;">
-                    <button onclick="runAlign('server')">Align on Server (API)</button>
-                    <button onclick="runAlign('js')">Align Client (JS)</button>
-                    <button onclick="runAlign('wasm')">Align Client (WASM)</button>
+                <div class="panel-header">
+                    <span class="panel-title">Alignment Result</span>
                 </div>
-                <div id="perfResult" class="benchmark"></div>
-            </div>
-        </div>
-
-        <div class="panel" style="margin-top: 20px;">
-            <div class="panel-header">
-                <span class="panel-title">Alignment Result</span>
-            </div>
-            <div class="demo-padding">
-                <div id="alignmentViewer" class="alignment-viewer-container">
-                    <div class="empty-state">
-                        <span>No alignment generated</span>
+                <div class="demo-padding">
+                    <div id="alignmentViewer" class="alignment-viewer-container">
+                        <div class="empty-state">
+                            <span>No alignment generated</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,7 +114,7 @@
                 });
 
                 wasmModule = await createWasmModule();
-                console.log("WASM Module keys:", Object.keys(wasmModule)); // Debug
+                //console.log("WASM Module keys:", Object.keys(wasmModule)); // Debug
         
                 wasmExports = wasmModule;
                 console.log("WASM Initialized successfully");
@@ -374,6 +375,9 @@
             dot.classList.add('connected');
         }).catch(() => {});
 
+        window.addEventListener('DOMContentLoaded', () => {
+            new HamburgerMenu();
+        })
     </script>
 </body>
 </html>

@@ -42,20 +42,7 @@
      
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
-            // Instantiate HamburgerMenu
-            const menuConfig = [
-                { label: 'Matches', href: 'match_explorer.html' },
-                { label: 'Streaming Demo', href: 'stream_demo.html' },
-                { label: 'Help Demo', href: 'help-demo.html' },
-                { label: 'Fetch', href: 'fetch-seq.html' },
-                { label: 'Bias', href: 'bias_analysis.html' },
-                { label: 'Domains', href: 'domain-viewer.html' },
-                { label: 'Tree', href: 'tree_browse.html' },
-                { label: 'Align', href: 'fast-align.html' },
-                { type: 'divider' },
-                { label: 'Help', action: DoHelp }
-            ];
-            new HamburgerMenu(menuConfig);
+            new HamburgerMenu();
 
             // Load partials using Lcars
             Promise.all([

@@ -258,8 +258,22 @@ class LcarsUI {
 }
 
 class HamburgerMenu {
-    constructor(config) {
-        this.config = config;
+    constructor(config ) {
+        this.config = config ??
+            [
+                { label: 'Fetch', href: 'fetch-seq.html' },
+                { label: 'Align', href: 'fast-align.html' },
+                { label: 'Matches', href: 'match_explorer.html' },
+                { label: 'Streaming Demo', href: 'stream_demo.html' },
+                { type: 'divider' },
+                { label: 'Tree', href: 'tree_browse.html' },
+                { type: 'divider' },
+                { label: 'Bias', href: 'bias_analysis.html' },
+                { label: 'Domains', href: 'domain-viewer.html' },
+                { label: 'Help Demo', href: 'help-demo.html' },
+                { type: 'divider' },
+                { label: 'Help', action: DoHelp }
+            ];
         this.isOpen = false;
         this.init();
     }
