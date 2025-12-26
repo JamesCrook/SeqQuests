@@ -4,356 +4,443 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protein Texture Map: Ribbon & Composition</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lcars.css">
+    <link rel="icon" href="./wheel.ico">
     <link rel="stylesheet" href="proteins.css">
+    <script src="./lcars.js"></script>
+    <script src="./vector2d.js"></script>
+    <script src="./help.js"></script>
     <script src="proteins.js"></script>
+    <style>
+        /* Mapping LCARs variables to Bias Analysis specific variables */
+        :root {
+            --bias-bg-body: var(--color-bg-primary);
+            --bias-bg-container: var(--color-bg-secondary);
+            --bias-bg-controls: var(--color-bg-tertiary);
+            --bias-bg-canvas: #333333;
+            --bias-color-text: var(--color-text-primary);
+            --bias-color-label: var(--color-text-secondary);
+        }
+        
+        /* Ensure input text is visible on dark background */
+        .bias-textarea {
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+            border-color: var(--color-accent-primary);
+        }
+
+        .bias-h2 {
+            display: none; /* Hide internal title as we use header */
+        }
+
+        /* Adjust toggle labels color */
+        .bias-toggles, .bias-settings {
+            color: var(--color-text-secondary);
+        }
+
+        .bias-input-label {
+            color: var(--color-text-secondary);
+        }
+    </style>
 </head>
-<body class="bias-body">
-
-<div class="bias-container">
-    <h2 class="bias-h2">Protein Texture Map</h2>
-    
-    <div class="bias-controls">
-        <label for="sequenceInput" class="bias-input-label">Protein Sequence:</label>
-        <!-- Added oninput for immediate rendering -->
-        <textarea id="sequenceInput" class="bias-textarea" spellcheck="false" oninput="updateVisualization()">SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK</textarea>
-        
-        <div class="bias-settings">
-            <button class="bias-button" onclick="updateVisualization()">Render Sequence</button>
-            <label class="bias-input-label"><input type="checkbox" id="showSeparators" checked onchange="updateVisualization()"> Show Ribbon Separators</label>
-            <label class="bias-input-label" title="Matches residues based on proximity in the canonical list (G A T S D E...)"><input type="checkbox" id="useChemicalSim" checked onchange="updateVisualization()"> Use Chemical Similarity</label>
-            
-            <label class="bias-input-label" title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
-                Mosaic Smoothing: 
-                <!-- Slider extended to 24 -->
-                <input type="range" id="mosaicWindow" class="bias-slider" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
-                <span id="mosaicVal" style="font-weight:bold; width:20px;">5</span>
-            </label>
+<body>
+    <header>
+        <!-- Hamburger Menu may be injected here -->
+        <h1>Protein Texture Map</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Ready</span>
         </div>
+    </header>
 
-        <div class="bias-toggles">
-            <strong>Detect Periods:</strong>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="2" checked onchange="updateVisualization()"> 2</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="3" checked onchange="updateVisualization()"> 3</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="4" checked onchange="updateVisualization()"> 4</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="5" checked onchange="updateVisualization()"> 5</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="6" checked onchange="updateVisualization()"> 6</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="7" checked onchange="updateVisualization()"> 7</label>
+    <div class="container explorer-layout">
+        <div class="panel">
+            <div class="bias-container" style="max-width: 100%; box-shadow: none; padding: 0;">
+                <!-- Internal H2 hidden via CSS -->
+                <h2 class="bias-h2">Protein Texture Map</h2>
+
+                <div class="bias-controls">
+                    <label for="sequenceInput" class="bias-input-label">Protein Sequence:</label>
+                    <!-- Added oninput for immediate rendering -->
+                    <textarea id="sequenceInput" class="bias-textarea" spellcheck="false" oninput="updateVisualization()">SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK</textarea>
+
+                    <div class="bias-settings">
+                        <button class="bias-button" onclick="updateVisualization()" id="renderBtn">Render Sequence</button>
+                        <label class="bias-input-label"><input type="checkbox" id="showSeparators" checked onchange="updateVisualization()"> Show Ribbon Separators</label>
+                        <label class="bias-input-label" title="Matches residues based on proximity in the canonical list (G A T S D E...)"><input type="checkbox" id="useChemicalSim" checked onchange="updateVisualization()"> Use Chemical Similarity</label>
+
+                        <label class="bias-input-label" title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
+                            Mosaic Smoothing:
+                            <!-- Slider extended to 24 -->
+                            <input type="range" id="mosaicWindow" class="bias-slider" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
+                            <span id="mosaicVal" style="font-weight:bold; width:20px;">5</span>
+                        </label>
+                    </div>
+
+                    <div class="bias-toggles" id="periodToggles">
+                        <strong>Detect Periods:</strong>
+                        <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="2" checked onchange="updateVisualization()"> 2</label>
+                        <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="3" checked onchange="updateVisualization()"> 3</label>
+                        <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="4" checked onchange="updateVisualization()"> 4</label>
+                        <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="5" checked onchange="updateVisualization()"> 5</label>
+                        <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="6" checked onchange="updateVisualization()"> 6</label>
+                        <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="7" checked onchange="updateVisualization()"> 7</label>
+                    </div>
+                </div>
+
+                <div class="bias-canvas-wrapper" id="canvasContainer">
+                    <div class="bias-label">Literal Sequence (1:1)</div>
+                    <canvas id="literalCanvas" class="bias-canvas" height="15"></canvas>
+
+                    <div class="bias-label">Texture Map (Ribbon / Sorted Stack)</div>
+                    <canvas id="textureCanvas" class="bias-canvas" height="40"></canvas>
+
+                    <div class="bias-label">Detected Periodicity (0-7)</div>
+                    <canvas id="periodCanvas" class="bias-canvas" height="15"></canvas>
+                </div>
+
+                <div class="protein-legend" id="legendContainer"></div>
+            </div>
         </div>
     </div>
 
-    <div class="bias-canvas-wrapper" id="canvasContainer">
-        <div class="bias-label">Literal Sequence (1:1)</div>
-        <canvas id="literalCanvas" class="bias-canvas" height="15"></canvas>
-        
-        <div class="bias-label">Texture Map (Ribbon / Sorted Stack)</div>
-        <canvas id="textureCanvas" class="bias-canvas" height="40"></canvas>
+    <!-- Tooltip moved outside container to avoid clipping -->
+    <div id="tooltip" class="bias-tooltip"></div>
 
-        <div class="bias-label">Detected Periodicity (0-7)</div>
-        <canvas id="periodCanvas" class="bias-canvas" height="15"></canvas>
-    </div>
+    <script>
+        // --- Configuration ---
+        // Now using ProteinStyle from proteins.js
 
-    <div class="protein-legend" id="legendContainer"></div>
-</div>
+        // Define canonicalOrder for compatibility or use ProteinStyle.canonicalOrderStr
+        const canonicalOrder = ProteinStyle.canonicalOrderStr.split(' ');
 
-<!-- Tooltip moved outside container to avoid clipping -->
-<div id="tooltip" class="bias-tooltip"></div>
+        const canvas = document.getElementById('textureCanvas');
+        const ctx = canvas.getContext('2d');
+        const litCanvas = document.getElementById('literalCanvas');
+        const litCtx = litCanvas.getContext('2d');
+        const perCanvas = document.getElementById('periodCanvas');
+        const perCtx = perCanvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
 
-<script>
-    // --- Configuration ---
-    // Now using ProteinStyle from proteins.js
+        // --- Core Algorithms ---
 
-    // Define canonicalOrder for compatibility or use ProteinStyle.canonicalOrderStr
-    const canonicalOrder = ProteinStyle.canonicalOrderStr.split(' ');
+        function getCanonicalRotation(subseq) {
+            // Translate amino acids to acids 'in order'
+            let translated = ""
+            for (let char of subseq) {
+                let r = ProteinStyle.aaRank[char] ?? 0;
+                translated += String.fromCharCode('@'.charCodeAt(0)+r);
+            }
 
-    const canvas = document.getElementById('textureCanvas');
-    const ctx = canvas.getContext('2d');
-    const litCanvas = document.getElementById('literalCanvas');
-    const litCtx = litCanvas.getContext('2d');
-    const perCanvas = document.getElementById('periodCanvas');
-    const perCtx = perCanvas.getContext('2d');
-    const tooltip = document.getElementById('tooltip');
-
-    // --- Core Algorithms ---
-
-    function getCanonicalRotation(subseq) {
-        // Translate amino acids to acids 'in order'
-        let translated = ""
-        for (let char of subseq) {
-            let r = ProteinStyle.aaRank[char] ?? 0;
-            translated += String.fromCharCode('@'.charCodeAt(0)+r);
+            let rotations = [];
+            let rotString;
+            // Make a list of rotated strings with the rotated
+            // translation prepended.
+            for (let i = 0; i < subseq.length; i++) {
+                rotString = translated.substring(i)
+                    + translated.substring(0, i)
+                    + subseq.substring(i)
+                    + subseq.substring(0, i)
+                rotations.push( rotString )
+            }
+            rotations.sort();
+            return rotations[0].substring( subseq.length);
         }
 
-        let rotations = [];
-        let rotString;
-        // Make a list of rotated strings with the rotated 
-        // translation prepended. 
-        for (let i = 0; i < subseq.length; i++) {
-            rotString = translated.substring(i) 
-                + translated.substring(0, i)
-                + subseq.substring(i) 
-                + subseq.substring(0, i)
-            rotations.push( rotString )
+        function getChemicalDistance(aa1, aa2) {
+            let r1 = ProteinStyle.aaRank[aa1];
+            let r2 = ProteinStyle.aaRank[aa2];
+            if (r1 === undefined || r2 === undefined) return 100;
+            return Math.abs(r1 - r2);
         }
-        rotations.sort();
-        return rotations[0].substring( subseq.length);
-    }
 
-    function getChemicalDistance(aa1, aa2) {
-        let r1 = ProteinStyle.aaRank[aa1];
-        let r2 = ProteinStyle.aaRank[aa2];
-        if (r1 === undefined || r2 === undefined) return 100;
-        return Math.abs(r1 - r2);
-    }
-
-    function detectPeriodicity(seq, index) {
-        let bestPeriod = 0;
-        let bestScore = 0;
-        const useChem = document.getElementById('useChemicalSim').checked;
-        
-        // Get active periods
-        const activePeriods = Array.from(document.querySelectorAll('.period-toggle:checked')).map(cb => parseInt(cb.value));
-
-        // Check enabled periods
-        for (let p of activePeriods) {
-            let matches = 0;
-            let comparisons = 0;
+        function detectPeriodicity(seq, index) {
+            let bestPeriod = 0;
+            let bestScore = 0;
+            const useChem = document.getElementById('useChemicalSim').checked;
             
-            // Check immediate and secondary neighbors
-            for (let k = 0; k < p; k++) {
-                if (index + k + p < seq.length) {
-                    comparisons++;
-                    let aa1 = seq[index + k];
-                    let aa2 = seq[index + k + p];
+            // Get active periods
+            const activePeriods = Array.from(document.querySelectorAll('.period-toggle:checked')).map(cb => parseInt(cb.value));
+
+            // Check enabled periods
+            for (let p of activePeriods) {
+                let matches = 0;
+                let comparisons = 0;
+
+                // Check immediate and secondary neighbors
+                for (let k = 0; k < p; k++) {
+                    if (index + k + p < seq.length) {
+                        comparisons++;
+                        let aa1 = seq[index + k];
+                        let aa2 = seq[index + k + p];
+
+                        if (aa1 === aa2) {
+                            matches += 1.0;
+                        } else if (useChem) {
+                            let dist = getChemicalDistance(aa1, aa2);
+                            if (dist <= 3) matches += 0.7; // Strong similarity
+                            else if (dist <= 5) matches += 0.3; // Weak similarity
+                        }
+                    }
                     
-                    if (aa1 === aa2) {
-                        matches += 1.0;
-                    } else if (useChem) {
-                        let dist = getChemicalDistance(aa1, aa2);
-                        if (dist <= 3) matches += 0.7; // Strong similarity
-                        else if (dist <= 5) matches += 0.3; // Weak similarity
+                    // Look ahead 2 cycles for reinforcement
+                    if (index + k + (2*p) < seq.length) {
+                        comparisons++;
+                        let aa1 = seq[index + k];
+                        let aa3 = seq[index + k + (2*p)];
+                        if (aa1 === aa3) matches += 1.0;
+                        else if (useChem && getChemicalDistance(aa1, aa3) <= 3) matches += 0.7;
                     }
                 }
+
+                let score = comparisons > 0 ? matches / comparisons : 0;
                 
-                // Look ahead 2 cycles for reinforcement
-                if (index + k + (2*p) < seq.length) {
-                    comparisons++;
-                    let aa1 = seq[index + k];
-                    let aa3 = seq[index + k + (2*p)];
-                    if (aa1 === aa3) matches += 1.0;
-                    else if (useChem && getChemicalDistance(aa1, aa3) <= 3) matches += 0.7;
+                // Prefer shorter periods if scores are tied/similar, unless longer is significantly better
+                if (score > bestScore * 1.1) {
+                    bestScore = score;
+                    bestPeriod = p;
                 }
             }
 
-            let score = comparisons > 0 ? matches / comparisons : 0;
-            
-            // Prefer shorter periods if scores are tied/similar, unless longer is significantly better
-            if (score > bestScore * 1.1) {
-                bestScore = score;
-                bestPeriod = p;
+            return { period: bestPeriod, score: bestScore };
+        }
+
+        function renderSequence(seq) {
+            const widthPerResidue = 10;
+            const texHeight = canvas.height;
+            const litHeight = litCanvas.height;
+            const perHeight = perCanvas.height;
+
+            const totalWidth = seq.length * widthPerResidue;
+
+            // Ensure canvases are large enough
+            if (canvas.width !== totalWidth) {
+                canvas.width = totalWidth;
+                litCanvas.width = totalWidth;
+                perCanvas.width = totalWidth;
+            }
+
+            // Clear with Dark Grey
+            [ctx, litCtx, perCtx].forEach(c => {
+                c.fillStyle = "#333";
+                c.fillRect(0, 0, totalWidth, 100);
+            });
+
+            const showLines = document.getElementById('showSeparators').checked;
+            const mosaicWindowSize = parseInt(document.getElementById('mosaicWindow').value) || 5;
+
+            canvas.dataMap = [];
+
+            for (let i = 0; i < seq.length; i++) {
+                const x = i * widthPerResidue;
+                const aa = seq[i];
+                const color = ProteinStyle.aaColors[aa] || '#666';
+
+                // --- 1. Literal Bar (Top) ---
+                litCtx.fillStyle = color;
+                litCtx.fillRect(x, 0, widthPerResidue, litHeight);
+                litCtx.strokeStyle = "rgba(0,0,0,0.1)";
+                litCtx.strokeRect(x, 0, widthPerResidue, litHeight);
+
+                // --- 2. Pattern Analysis ---
+                let detection = detectPeriodicity(seq, i);
+                let period = detection.period;
+                let score = detection.score;
+
+                let threshold = document.getElementById('useChemicalSim').checked ? 0.6 : 0.5;
+                let isRibbon = score >= threshold;
+
+                // --- 3. Periodicity Bar (Bottom) ---
+                // Visual feedback of what period was detected
+                let pColor = isRibbon ? ProteinStyle.periodColors[period] : ProteinStyle.periodColors[0];
+                perCtx.fillStyle = pColor;
+                perCtx.fillRect(x, 0, widthPerResidue, perHeight);
+                // Slight separator
+                perCtx.fillStyle = "rgba(0,0,0,0.1)";
+                perCtx.fillRect(x, 0, 1, perHeight);
+
+
+                if (isRibbon) {
+                    // === RIBBON MODE ===
+                    let unit = seq.substring(i, i + period);
+                    if (unit.length < period) unit = unit.padEnd(period, 'X');
+
+                    let canonicalUnit = getCanonicalRotation(unit);
+                    let stripeHeight = texHeight / period;
+
+                    for (let s = 0; s < period; s++) {
+                        let stripeAA = canonicalUnit[s];
+                        ctx.fillStyle = ProteinStyle.aaColors[stripeAA] || '#666';
+                        ctx.fillRect(x, s * stripeHeight, widthPerResidue, stripeHeight);
+
+                        if (showLines && s > 0) {
+                            ctx.fillStyle = "rgba(0,0,0,0.2)";
+                            ctx.fillRect(x, s * stripeHeight, widthPerResidue, 1);
+                        }
+                    }
+                    canvas.dataMap[i] = { type: 'Ribbon', period, score: score.toFixed(2), aa, unit: canonicalUnit };
+
+                } else {
+                    // === MOSAIC MODE (Sorted Stack) ===
+
+                    // Calculate local window indices centered on i
+                    // Total width is mosaicWindowSize
+                    let halfWin = (mosaicWindowSize - 1) / 2;
+                    let startK = Math.ceil(-halfWin);
+                    let endK = Math.floor(halfWin);
+                    
+                    let localAA = [];
+                    for (let k = startK; k <= endK; k++) {
+                        if (i+k >= 0 && i+k < seq.length) {
+                            localAA.push(seq[i+k]);
+                        }
+                    }
+
+                    // Sort by Canonical Order (Light -> Heavy)
+                    localAA.sort((a, b) => (ProteinStyle.aaRank[a]??100) - (ProteinStyle.aaRank[b]??100));
+
+                    // Draw stack
+                    if (localAA.length > 0) {
+                        let blockHeight = texHeight / localAA.length;
+                        for (let s = 0; s < localAA.length; s++) {
+                            ctx.fillStyle = ProteinStyle.aaColors[localAA[s]] || '#666';
+                            // Draw +1 height to prevent sub-pixel gaps
+                            ctx.fillRect(x, s * blockHeight, widthPerResidue, blockHeight + 0.5);
+                        }
+                    }
+
+                    canvas.dataMap[i] = { type: 'Mosaic', aa, context: localAA.join(''), period: 0 };
+                }
             }
         }
 
-        return { period: bestPeriod, score: bestScore };
-    }
+        // --- Interaction ---
 
-    function renderSequence(seq) {
-        const widthPerResidue = 10; 
-        const texHeight = canvas.height;
-        const litHeight = litCanvas.height;
-        const perHeight = perCanvas.height;
-        
-        const totalWidth = seq.length * widthPerResidue;
-        
-        // Ensure canvases are large enough
-        if (canvas.width !== totalWidth) {
-            canvas.width = totalWidth;
-            litCanvas.width = totalWidth;
-            perCanvas.width = totalWidth;
+        function updateVisualization() {
+            let seq = document.getElementById('sequenceInput').value.replace(/[^A-Za-z]/g, '').toUpperCase();
+            renderSequence(seq);
         }
-        
-        // Clear with Dark Grey
-        [ctx, litCtx, perCtx].forEach(c => {
-            c.fillStyle = "#333";
-            c.fillRect(0, 0, totalWidth, 100);
+
+        // Update Tooltip logic for boundary checking
+        function handleTooltip(e, cvs) {
+            const rect = cvs.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const widthPerResidue = 10;
+            const index = Math.floor(x / widthPerResidue);
+
+            if (canvas.dataMap && canvas.dataMap[index]) {
+                const data = canvas.dataMap[index];
+                let text = `Pos: ${index+1} (${data.aa})\nType: ${data.type}`;
+                if (data.period > 0) text += `\nPeriod: ${data.period} (Sc: ${data.score})`;
+                if (data.unit) text += `\nPattern: ${data.unit}`;
+                
+                tooltip.textContent = text;
+                tooltip.style.display = 'block';
+                
+                // Get dimensions for smart positioning
+                const tRect = tooltip.getBoundingClientRect();
+                const pad = 15;
+                
+                let left = e.pageX + pad;
+                let top = e.pageY + pad;
+                
+                // Flip horizontal if it goes off screen to the right
+                if (left + tRect.width > document.documentElement.clientWidth) {
+                    left = e.pageX - tRect.width - pad;
+                }
+
+                // Flip vertical if it goes off screen at the bottom (relative to viewport)
+                if (e.clientY + tRect.height + pad > window.innerHeight) {
+                    top = e.pageY - tRect.height - pad;
+                }
+                
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            } else {
+                tooltip.style.display = 'none';
+            }
+        }
+
+        [canvas, litCanvas, perCanvas].forEach(cvs => {
+            cvs.addEventListener('mousemove', (e) => handleTooltip(e, cvs));
+            cvs.addEventListener('mouseout', () => tooltip.style.display = 'none');
         });
 
-        const showLines = document.getElementById('showSeparators').checked;
-        const mosaicWindowSize = parseInt(document.getElementById('mosaicWindow').value) || 5;
-        
-        canvas.dataMap = [];
+        function initLegend() {
+            const leg = document.getElementById('legendContainer');
+            if(!leg) return;
+            leg.innerHTML = '';
+            
+            // AA Legend
+            for (let [aa, color] of Object.entries(ProteinStyle.aaColors)) {
+                if (aa === 'X') continue;
+                let div = document.createElement('div');
+                div.className = 'protein-legend-item bias-legend-item';
+                div.innerHTML = `<div class="color-box-indicator" style="background:${color}"></div> <span>${aa}</span>`;
+                leg.appendChild(div);
+            }
 
-        for (let i = 0; i < seq.length; i++) {
-            const x = i * widthPerResidue;
-            const aa = seq[i];
-            const color = ProteinStyle.aaColors[aa] || '#666';
+            // Period Legend
+            let pHeader = document.createElement('div');
+            pHeader.style.width = "100%";
+            pHeader.style.marginTop = "10px";
+            pHeader.style.fontSize = "11px";
+            pHeader.style.color = "#666";
+            pHeader.innerText = "PERIODICITY KEY (Bottom Bar):";
+            leg.appendChild(pHeader);
 
-            // --- 1. Literal Bar (Top) ---
-            litCtx.fillStyle = color;
-            litCtx.fillRect(x, 0, widthPerResidue, litHeight);
-            litCtx.strokeStyle = "rgba(0,0,0,0.1)";
-            litCtx.strokeRect(x, 0, widthPerResidue, litHeight);
-
-            // --- 2. Pattern Analysis ---
-            let detection = detectPeriodicity(seq, i);
-            let period = detection.period;
-            let score = detection.score;
-
-            let threshold = document.getElementById('useChemicalSim').checked ? 0.6 : 0.5;
-            let isRibbon = score >= threshold;
-
-            // --- 3. Periodicity Bar (Bottom) ---
-            // Visual feedback of what period was detected
-            let pColor = isRibbon ? ProteinStyle.periodColors[period] : ProteinStyle.periodColors[0];
-            perCtx.fillStyle = pColor;
-            perCtx.fillRect(x, 0, widthPerResidue, perHeight);
-            // Slight separator
-            perCtx.fillStyle = "rgba(0,0,0,0.1)";
-            perCtx.fillRect(x, 0, 1, perHeight);
-
-
-            if (isRibbon) {
-                // === RIBBON MODE ===
-                let unit = seq.substring(i, i + period);
-                if (unit.length < period) unit = unit.padEnd(period, 'X');
-                
-                let canonicalUnit = getCanonicalRotation(unit);
-                let stripeHeight = texHeight / period;
-                
-                for (let s = 0; s < period; s++) {
-                    let stripeAA = canonicalUnit[s];
-                    ctx.fillStyle = ProteinStyle.aaColors[stripeAA] || '#666';
-                    ctx.fillRect(x, s * stripeHeight, widthPerResidue, stripeHeight);
-                    
-                    if (showLines && s > 0) {
-                        ctx.fillStyle = "rgba(0,0,0,0.2)";
-                        ctx.fillRect(x, s * stripeHeight, widthPerResidue, 1);
-                    }
-                }
-                canvas.dataMap[i] = { type: 'Ribbon', period, score: score.toFixed(2), aa, unit: canonicalUnit };
-
-            } else {
-                // === MOSAIC MODE (Sorted Stack) ===
-                
-                // Calculate local window indices centered on i
-                // Total width is mosaicWindowSize
-                let halfWin = (mosaicWindowSize - 1) / 2;
-                let startK = Math.ceil(-halfWin);
-                let endK = Math.floor(halfWin);
-                
-                let localAA = [];
-                for (let k = startK; k <= endK; k++) {
-                    if (i+k >= 0 && i+k < seq.length) {
-                        localAA.push(seq[i+k]);
-                    }
-                }
-                
-                // Sort by Canonical Order (Light -> Heavy)
-                localAA.sort((a, b) => (ProteinStyle.aaRank[a]??100) - (ProteinStyle.aaRank[b]??100));
-                
-                // Draw stack
-                if (localAA.length > 0) {
-                    let blockHeight = texHeight / localAA.length;
-                    for (let s = 0; s < localAA.length; s++) {
-                        ctx.fillStyle = ProteinStyle.aaColors[localAA[s]] || '#666';
-                        // Draw +1 height to prevent sub-pixel gaps
-                        ctx.fillRect(x, s * blockHeight, widthPerResidue, blockHeight + 0.5);
-                    }
-                }
-                
-                canvas.dataMap[i] = { type: 'Mosaic', aa, context: localAA.join(''), period: 0 };
+            for (let [p, color] of Object.entries(ProteinStyle.periodColors)) {
+                let label = p == 0 ? "None" : p;
+                let div = document.createElement('div');
+                div.className = 'protein-legend-item bias-legend-item';
+                div.innerHTML = `<div class="color-box-indicator" style="background:${color}"></div> <span>${label}</span>`;
+                leg.appendChild(div);
             }
         }
-    }
 
-    // --- Interaction ---
+        // Initialize immediately
+        initLegend();
+        updateVisualization();
 
-    function updateVisualization() {
-        let seq = document.getElementById('sequenceInput').value.replace(/[^A-Za-z]/g, '').toUpperCase();
-        renderSequence(seq);
-    }
+        // LCARs integration
+        window.addEventListener('DOMContentLoaded', () => {
+            new HamburgerMenu();
 
-    // Update Tooltip logic for boundary checking
-    function handleTooltip(e, cvs) {
-        const rect = cvs.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const widthPerResidue = 10;
-        const index = Math.floor(x / widthPerResidue);
+            const helpConfig = [
+                {
+                    items: [
+                        {
+                            text: '<strong>Protein Sequence:</strong><br>Enter the amino acid sequence you want to analyze here.',
+                            targetId: 'sequenceInput',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Render:</strong><br>Click to update the visualization.',
+                            targetId: 'renderBtn',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Period Toggles:</strong><br>Select which periodicity lengths (2-7) to check for.',
+                            targetId: 'periodToggles',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Visualization:</strong><br>The 3-layer view showing literal sequence, texture map, and detected periods.',
+                            targetId: 'canvasContainer',
+                            type: 'results'
+                        }
+                    ]
+                }
+            ];
 
-        if (canvas.dataMap && canvas.dataMap[index]) {
-            const data = canvas.dataMap[index];
-            let text = `Pos: ${index+1} (${data.aa})\nType: ${data.type}`;
-            if (data.period > 0) text += `\nPeriod: ${data.period} (Sc: ${data.score})`;
-            if (data.unit) text += `\nPattern: ${data.unit}`;
-            
-            tooltip.textContent = text;
-            tooltip.style.display = 'block';
-            
-            // Get dimensions for smart positioning
-            const tRect = tooltip.getBoundingClientRect();
-            const pad = 15;
-            
-            let left = e.pageX + pad;
-            let top = e.pageY + pad;
-            
-            // Flip horizontal if it goes off screen to the right
-            if (left + tRect.width > document.documentElement.clientWidth) {
-                left = e.pageX - tRect.width - pad;
-            }
-            
-            // Flip vertical if it goes off screen at the bottom (relative to viewport)
-            if (e.clientY + tRect.height + pad > window.innerHeight) {
-                top = e.pageY - tRect.height - pad;
-            }
-            
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-        } else {
-            tooltip.style.display = 'none';
-        }
-    }
+            const helpOverlay = new HelpOverlay(helpConfig);
 
-    [canvas, litCanvas, perCanvas].forEach(cvs => {
-        cvs.addEventListener('mousemove', (e) => handleTooltip(e, cvs));
-        cvs.addEventListener('mouseout', () => tooltip.style.display = 'none');
-    });
+            DoHelp = function() {
+                helpOverlay.start();
+            };
+        });
 
-    function initLegend() {
-        const leg = document.getElementById('legendContainer');
-        if(!leg) return;
-        leg.innerHTML = '';
-        
-        // AA Legend
-        for (let [aa, color] of Object.entries(ProteinStyle.aaColors)) {
-            if (aa === 'X') continue;
-            let div = document.createElement('div');
-            div.className = 'protein-legend-item bias-legend-item';
-            div.innerHTML = `<div class="color-box-indicator" style="background:${color}"></div> <span>${aa}</span>`;
-            leg.appendChild(div);
-        }
-
-        // Period Legend
-        let pHeader = document.createElement('div');
-        pHeader.style.width = "100%";
-        pHeader.style.marginTop = "10px";
-        pHeader.style.fontSize = "11px";
-        pHeader.style.color = "#666";
-        pHeader.innerText = "PERIODICITY KEY (Bottom Bar):";
-        leg.appendChild(pHeader);
-
-        for (let [p, color] of Object.entries(ProteinStyle.periodColors)) {
-            let label = p == 0 ? "None" : p;
-            let div = document.createElement('div');
-            div.className = 'protein-legend-item bias-legend-item';
-            div.innerHTML = `<div class="color-box-indicator" style="background:${color}"></div> <span>${label}</span>`;
-            leg.appendChild(div);
-        }
-    }
-
-    // Initialize immediately
-    initLegend();
-    updateVisualization();
-
-</script>
-
+    </script>
 </body>
 </html>

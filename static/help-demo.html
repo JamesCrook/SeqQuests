@@ -4,73 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Help Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lcars.css">
     <link rel="icon" href="./wheel.ico">
+    <script src="./lcars.js"></script>
+    <script src="./vector2d.js"></script>
+    <script src="./help.js"></script>
     <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            height: 100vh;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            flex: 1;
-        }
-
-        .panel {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
+        /* Custom styles for demo content, adapting to LCARs */
         .btn-primary {
-            background-color: #3b82f6;
-            color: white;
+            /* Using LCARs button styles, but adding specific class if needed */
         }
 
         .btn-danger {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .btn-help {
-            background-color: #10b981;
-            color: white;
+            background-color: var(--color-accent-alert);
+            color: var(--color-bg-primary);
+            border-color: var(--color-accent-alert);
         }
 
         .result-box {
-            border: 2px dashed #9333ea;
+            border: 2px dashed var(--color-accent-secondary);
             padding: 10px;
-            background-color: #f3e8ff;
-            color: #7e22ce;
+            background-color: var(--color-accent-primary-20);
+            color: var(--color-accent-secondary);
             text-align: center;
             font-weight: bold;
+            border-radius: var(--radius-sm);
         }
 
         input[type="range"] {
@@ -80,12 +39,17 @@
 </head>
 <body>
 
-    <div class="header">
+    <header>
         <h1>Application Dashboard</h1>
-        <button id="help-btn" class="btn-help">Help</button>
-    </div>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Ready</span>
+        </div>
+        <!-- Removed separate Help button as it's now in Hamburger Menu -->
+    </header>
 
-    <div class="main-content">
+    <div class="container explorer-layout">
+        <!-- Panel 1 -->
         <div class="panel">
             <h2>Controls</h2>
             <div style="margin-bottom: 20px;">
@@ -93,91 +57,94 @@
                 <input type="range" id="volume-slider" min="0" max="100">
             </div>
             <div style="margin-bottom: 20px;">
-                <button id="save-btn" class="btn-primary">Save Settings</button>
+                <button id="save-btn" class="job-button">Save Settings</button>
             </div>
         </div>
 
+        <!-- Panel 2 -->
         <div class="panel">
             <h2>Danger Zone</h2>
-            <p>Be careful with these controls.</p>
-            <button id="delete-btn" class="btn-danger">Delete All Data</button>
+            <p style="color: var(--color-text-secondary); margin-bottom: 10px;">Be careful with these controls.</p>
+            <button id="delete-btn" class="btn-danger job-button">Delete All Data</button>
         </div>
 
-        <div class="panel" style="grid-column: span 2;">
+        <!-- Panel 3 (Spanning) -->
+        <div class="panel" style="flex-basis: 100%;">
             <h2>Advanced Features</h2>
-            <p>Additional controls available for power users.</p>
-            <div style="display: flex; gap: 15px;">
-                <button id="adv-btn-1" class="btn-primary">Optimize</button>
-                <button id="adv-btn-2" class="btn-primary">Analyze</button>
-                <button id="adv-btn-3" class="btn-primary">Report</button>
+            <p style="color: var(--color-text-secondary); margin-bottom: 10px;">Additional controls available for power users.</p>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <button id="adv-btn-1" class="job-button">Optimize</button>
+                <button id="adv-btn-2" class="job-button">Analyze</button>
+                <button id="adv-btn-3" class="job-button">Report</button>
             </div>
-            <div style="margin-top: 20px;">
+            <div>
                  <div id="results-area" class="result-box">Analysis Results will appear here</div>
             </div>
         </div>
     </div>
 
-    <script src="vector2d.js"></script>
-    <script src="help.js"></script>
     <script>
-        const helpConfig = [
-            {
-                items: [
-                    {
-                        text: '<strong>Volume Control:</strong><br>Adjust the system volume using this slider.',
-                        targetId: 'volume-slider',
-                        type: 'default'
-                    },
-                    {
-                        text: '<strong>Save Button:</strong><br>Click here to persist your changes.',
-                        targetId: 'save-btn',
-                        type: 'default'
-                    },
-                    {
-                        text: '<strong>Delete Button:</strong><br>Warning! This permanently removes all data.',
-                        targetId: 'delete-btn',
-                        type: 'warning'
-                    }
-                ]
-            },
-            {
-                items: [
-                    {
-                        text: '<strong>Optimize:</strong><br>Run the optimization algorithm.',
-                        targetId: 'adv-btn-1',
-                        type: 'default'
-                    },
-                    {
-                        text: '<strong>Analyze:</strong><br>Deep analysis of the data.',
-                        targetId: 'adv-btn-2',
-                        type: 'default'
-                    },
-                    {
-                        text: '<strong>Report:</strong><br>Generate a PDF report.',
-                        targetId: 'adv-btn-3',
-                        type: 'default'
-                    },
-                    {
-                        text: '<strong>Results Area:</strong><br>Shows the output of the analysis.',
-                        targetId: 'results-area',
-                        type: 'results'
-                    }
-                ]
-            }
-        ];
+        window.addEventListener('DOMContentLoaded', () => {
+            new HamburgerMenu();
 
-        const helpOverlay = new HelpOverlay(helpConfig);
-        const helpBtn = document.getElementById('help-btn');
+            const helpConfig = [
+                {
+                    items: [
+                        {
+                            text: '<strong>Volume Control:</strong><br>Adjust the system volume using this slider.',
+                            targetId: 'volume-slider',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Save Button:</strong><br>Click here to persist your changes.',
+                            targetId: 'save-btn',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Delete Button:</strong><br>Warning! This permanently removes all data.',
+                            targetId: 'delete-btn',
+                            type: 'warning'
+                        }
+                    ]
+                },
+                {
+                    items: [
+                        {
+                            text: '<strong>Optimize:</strong><br>Run the optimization algorithm.',
+                            targetId: 'adv-btn-1',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Analyze:</strong><br>Deep analysis of the data.',
+                            targetId: 'adv-btn-2',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Report:</strong><br>Generate a PDF report.',
+                            targetId: 'adv-btn-3',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Results Area:</strong><br>Shows the output of the analysis.',
+                            targetId: 'results-area',
+                            type: 'results'
+                        }
+                    ]
+                }
+            ];
 
-        helpBtn.addEventListener('click', () => {
-            helpOverlay.start();
-        });
+            const helpOverlay = new HelpOverlay(helpConfig);
 
-        // Close on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                helpOverlay.stop();
-            }
+            DoHelp = function() {
+                helpOverlay.start();
+            };
+
+            // Close on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    helpOverlay.stop();
+                }
+            });
         });
     </script>
 </body>

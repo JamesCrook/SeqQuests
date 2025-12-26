@@ -4,35 +4,138 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Protein Alignment Viewer</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="lcars.css">
+<link rel="icon" href="./wheel.ico">
 <link rel="stylesheet" href="proteins.css">
+<script src="./lcars.js"></script>
+<script src="./vector2d.js"></script>
+<script src="./help.js"></script>
 <script src="proteins.js"></script>
+<style>
+  /* Mapping LCARs variables */
+  :root {
+      --dv-bg-body: var(--color-bg-primary);
+      --dv-bg-panel: var(--color-bg-secondary);
+      /* Use a slightly lighter dark for canvas background if needed, or keep light if canvas drawing assumes light */
+      /* The canvas drawing code sets colors. The background seems transparent or cleared.
+         render() function: ctx.clearRect(0, 0, width, height);
+         So canvas is transparent. We need to set background on container.
+      */
+      --dv-bg-canvas: #fafafa; /* Keeping light for now as colors might depend on it */
+      --dv-color-text: var(--color-text-primary);
+      --dv-color-subtitle: var(--color-text-secondary);
+      --dv-border: var(--color-accent-primary);
+  }
+  
+  /* Overrides for dark theme compatibility */
+  .dv-h1 { display: none; } /* Use header h1 */
+  .dv-subtitle { margin-top: 0; }
+
+  .dv-controls label {
+      color: var(--color-text-primary);
+  }
+
+  .dv-zoom-val {
+      color: var(--color-text-secondary);
+  }
+
+  /* Make table text readable in dark mode */
+  .dv-feature-table th {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+      border-bottom-color: var(--color-accent-primary);
+  }
+
+  .dv-feature-table td {
+      color: var(--color-text-secondary);
+      border-bottom-color: var(--color-bg-tertiary);
+  }
+
+  .dv-feature-table tr:hover {
+      background: var(--color-accent-primary-20);
+  }
+
+  .dv-feature-table tr.selected {
+      background: var(--color-accent-primary-30);
+  }
+
+  .dv-table-selector select {
+      background-color: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+      border-color: var(--color-accent-primary);
+  }
+
+  .dv-nav-arrow {
+      background-color: var(--color-bg-tertiary);
+      border-color: var(--color-accent-primary);
+      color: var(--color-accent-primary);
+  }
+
+  .dv-nav-arrow:hover {
+      background-color: var(--color-accent-primary-20);
+  }
+
+  .dv-loading {
+      color: var(--color-text-muted);
+  }
+
+  /* Canvas wrapper bg */
+  .dv-canvas-wrap {
+      background: #fafafa; /* Keep light for visibility of standard colors? Or change to dark? */
+      /* If I change to dark, I need to check if text drawn on canvas is black. */
+      /* render():
+         ctx.fillStyle = '#e5e7eb'; ctx.roundRect(...) // Protein track bg - Light grey
+         ctx.fillStyle = '#333'; ctx.fillText(protein.id...) // Text - Dark grey
+         So canvas MUST have light background unless we rewrite render code.
+      */
+  }
+
+  /* Ensure container layout works with LCARs */
+  .dv-container {
+      max-width: 100%;
+      padding: 0;
+  }
+</style>
 </head>
-<body class="dv-body">
-<div class="dv-container">
-  <h1 class="dv-h1">Protein Alignment Viewer</h1>
-  <p class="dv-subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
-  
-  <div class="dv-panel">
-    <div class="dv-controls">
-      <label>Zoom:</label>
-      <input type="range" id="zoom" min="0.01" max="0.8" step="0.005" value="0.35">
-      <span class="dv-zoom-val" id="zoomVal">35%</span>
-      <label><input type="checkbox" id="showLabels" checked> Labels</label>
-      <div style="flex:1"></div>
-      <span style="font-size:0.8rem;color:#666">Load:</span>
-      <button class="dv-btn dv-btn-secondary" onclick="loadExample('default')">Pair</button>
-      <button class="dv-btn dv-btn-secondary" onclick="loadExample('titin')">Titin</button>
-      <button class="dv-btn dv-btn-secondary" onclick="loadExample('polyprotein')">SARS-CoV-2</button>
-      <button class="dv-btn dv-btn-primary" onclick="loadExample('all')">All 4</button>
+<body>
+    <header>
+        <h1>Protein Alignment Viewer</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Ready</span>
+        </div>
+    </header>
+
+<div class="container explorer-layout">
+  <div class="panel">
+    <div class="dv-container">
+      <!-- Removed internal h1 -->
+      <p class="dv-subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
+
+      <div class="dv-panel">
+        <div class="dv-controls">
+          <label>Zoom:</label>
+          <input type="range" id="zoom" min="0.01" max="0.8" step="0.005" value="0.35">
+          <span class="dv-zoom-val" id="zoomVal">35%</span>
+          <label><input type="checkbox" id="showLabels" checked> Labels</label>
+          <div style="flex:1"></div>
+          <span style="font-size:0.8rem;color:var(--color-text-secondary)">Load:</span>
+          <button class="dv-btn dv-btn-secondary" onclick="loadExample('default')" id="btnLoadPair">Pair</button>
+          <button class="dv-btn dv-btn-secondary" onclick="loadExample('titin')">Titin</button>
+          <button class="dv-btn dv-btn-secondary" onclick="loadExample('polyprotein')">SARS-CoV-2</button>
+          <button class="dv-btn dv-btn-primary" onclick="loadExample('all')">All 4</button>
+        </div>
+        <div class="dv-canvas-wrap" id="canvasWrap">
+          <canvas id="canvas" class="dv-canvas"></canvas>
+        </div>
+        <div class="dv-legend" id="legend"></div>
+        <p class="dv-info" style="color:var(--color-text-muted)">Proteins aligned by padding. Click a feature below to highlight it on the canvas.</p>
+      </div>
+
+      <div id="tables-container" class="dv-tables-container"></div>
     </div>
-    <div class="dv-canvas-wrap" id="canvasWrap">
-      <canvas id="canvas" class="dv-canvas"></canvas>
-    </div>
-    <div class="dv-legend" id="legend"></div>
-    <p class="dv-info">Proteins aligned by padding. Click a feature below to highlight it on the canvas.</p>
   </div>
-  
-  <div id="tables-container" class="dv-tables-container"></div>
 </div>
 
 <script>
@@ -492,6 +595,44 @@ canvasWrap.addEventListener('wheel', (e) => {
 // INIT
 // ============================================================================
 loadExample('default');
+
+// LCARs integration
+window.addEventListener('DOMContentLoaded', () => {
+    new HamburgerMenu();
+
+    const helpConfig = [
+        {
+            items: [
+                {
+                    text: '<strong>Zoom Control:</strong><br>Adjust the zoom level for the protein visualization.',
+                    targetId: 'zoom',
+                    type: 'default'
+                },
+                {
+                    text: '<strong>Load Examples:</strong><br>Click these buttons to load different protein datasets.',
+                    targetId: 'btnLoadPair', // Pointing to first button
+                    type: 'default'
+                },
+                {
+                    text: '<strong>Canvas:</strong><br>The main visualization area showing aligned proteins.',
+                    targetId: 'canvasWrap',
+                    type: 'results'
+                },
+                {
+                    text: '<strong>Feature Tables:</strong><br>Detailed lists of features for the loaded proteins.',
+                    targetId: 'tables-container',
+                    type: 'results'
+                }
+            ]
+        }
+    ];
+
+    const helpOverlay = new HelpOverlay(helpConfig);
+
+    DoHelp = function() {
+        helpOverlay.start();
+    };
+});
 </script>
 </body>
 </html>
