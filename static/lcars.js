@@ -509,7 +509,7 @@ class LcarsHeader {
             return;
         header = document.createElement('header');
         header.innerHTML = 
-        `<h1>${this.title}</h1>
+        `<h1 id='page-title'>${this.title}</h1>
         <div class="status-indicator">
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">Checking Connection</span>
