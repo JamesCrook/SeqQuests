@@ -195,6 +195,13 @@ class HelpOverlay {
         };       
     }
 
+    isVisible(b) {
+        return b && (
+            b.bottom > 0 && b.top < window.innerHeight &&
+            b.right > 0 && b.left < window.innerWidth
+        );
+    }
+
     renderStep(index) {
         if (index < 0 || index >= this.config.length) return;
 
@@ -218,20 +225,31 @@ class HelpOverlay {
                     sourceEl = firstChild;
                 }
 
+                let targetEl = null;
                 if (item.targetId) {
-                    const targetEl = document.getElementById(item.targetId);
-                    if (targetEl) {
-                        // Resolve style
-                        const styleKey = item.type || 'default';
-                        const styleConfig = this.ARROW_STYLES[styleKey] || this.ARROW_STYLES.default;
-
-                        this.connections.push({
-                            from: sourceEl,
-                            to: targetEl,
-                            color: styleConfig.color,
-                            arrow: styleConfig.arrow
-                        });
+                    targetEl = document.getElementById(item.targetId);
+                } else if (item.targetSelector) {
+                    const els = document.querySelectorAll(item.targetSelector);
+                    for (const el of els) {
+                        const box = this.getElementBox(el);
+                        if (box && this.isVisible(box)) {
+                            targetEl = el;
+                            break;
+                        }
                     }
+                }
+
+                if (targetEl) {
+                    // Resolve style
+                    const styleKey = item.type || 'default';
+                    const styleConfig = this.ARROW_STYLES[styleKey] || this.ARROW_STYLES.default;
+
+                    this.connections.push({
+                        from: sourceEl,
+                        to: targetEl,
+                        color: styleConfig.color,
+                        arrow: styleConfig.arrow
+                    });
                 }
             });
         }
@@ -428,17 +446,28 @@ class HelpOverlay {
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        const isInViewport = (b) => b && (
-            b.bottom > 0 && b.top < window.innerHeight &&
-            b.right > 0 && b.left < window.innerWidth
-        );
-
         for (const conn of this.connections) {
             let b1 = this.getElementBox(conn.from);
             const b2 = this.getElementBox(conn.to);
 
-            if (isInViewport(b1) && isInViewport(b2)) {
-                const { p1, p2 } = this.getNearestPoints(b1, b2);
+            if (this.isVisible(b1) && this.isVisible(b2)) {
+                let { p1, p2 } = this.getNearestPoints(b1, b2);
+
+                if (p1.sub(p2).length < 1) {
+                    // Try alternative target points if arrow length is too short (e.g. inside target)
+                    const tryTarget = (x, y) => {
+                        const altB2 = { left: x, right: x, top: y, bottom: y, center: new Vector2D(x, y) };
+                        const res = this.getNearestPoints(b1, altB2); // res.p1 is on b1, res.p2 is altB2
+                        return res.p1.sub(res.p2).length > 1 ? res : null;
+                    };
+
+                    const best = tryTarget(b2.left + 5, b2.top + 5) || tryTarget(b2.right - 5, b2.top + 5);
+                    if (best) {
+                        p1 = best.p1;
+                        p2 = best.p2;
+                    }
+                }
+
                 this.drawArrow(this.ctx, p1, p2, conn.color, conn.arrow);
             }
         }

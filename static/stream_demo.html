@@ -101,7 +101,14 @@
         }
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
-          const helpConfig = null;
+          const helpConfig = [
+              {
+                  items: [
+                      { text: '<strong>Start:</strong><br>Begin the data stream.', targetId: 'startBtn' },
+                      { text: '<strong>Statistics:</strong><br>Real-time statistics.', targetSelector: '.stats-bar' }
+                  ]
+              }
+          ];
           new LcarsHeader("Streaming Data", helpConfig);
         })        
     </script>

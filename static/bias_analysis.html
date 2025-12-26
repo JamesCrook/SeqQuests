@@ -358,7 +358,16 @@
     initLegend();
     updateVisualization();
     window.addEventListener('DOMContentLoaded', () => {
-        new LcarsHeader("Protein Sequence Bias Map");//HamburgerMenu();
+        const helpConfig = [
+             {
+                 items: [
+                     { text: '<strong>Protein Sequence:</strong><br>Paste your protein sequence here.', targetId: 'sequenceInput' },
+                     { text: '<strong>Render:</strong><br>Click to update the visualization.', targetSelector: '.bias-button' },
+                     { text: '<strong>Visualization:</strong><br>The bias analysis appears here.', targetId: 'canvasContainer' }
+                 ]
+             }
+        ];
+        new LcarsHeader("Protein Sequence Bias Map", helpConfig);
     })    
 
 </script>

@@ -368,7 +368,15 @@
         }).catch(() => {});
 
         window.addEventListener('DOMContentLoaded', () => {
-            const helpConfig = null;
+            const helpConfig = [
+                {
+                    items: [
+                        { text: '<strong>Sequence 1:</strong><br>Enter the first protein sequence.', targetId: 'seq1' },
+                        { text: '<strong>Sequence 2:</strong><br>Enter the second protein sequence.', targetId: 'seq2' },
+                        { text: '<strong>Controls:</strong><br>Select alignment method.', targetSelector: '.controls' }
+                    ]
+                }
+            ];
             new LcarsHeader("Align Sequences", helpConfig);
         })
     </script>

@@ -41,7 +41,15 @@
      
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
-            const helpConfig = null;
+            const helpConfig = [
+                {
+                    items: [
+                        { text: '<strong>Findings List:</strong><br>Select a match to view details.', targetId: 'LeftPanel' },
+                        { text: '<strong>Details:</strong><br>View alignment and info here.', targetId: 'RightPanel' },
+                        { text: '<strong>First Match:</strong><br>The first match in the list.', targetSelector: '.finding-entry' }
+                    ]
+                }
+            ];
             new LcarsHeader("Protein Sequence Match Explorer", helpConfig);
 
             // Load partials using Lcars
