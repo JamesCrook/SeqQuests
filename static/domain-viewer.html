@@ -14,14 +14,6 @@
 
 </head>
 <body class="app-root">
-    <header>
-        <!-- Hamburger Menu Injected by HamburgerMenu class -->
-        <h1>Protein Alignment Viewer</h1>
-        <div class="status-indicator">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Checking Connection</span>
-        </div>
-    </header>
 
 <div class="panel">
 
@@ -509,7 +501,8 @@ canvasWrap.addEventListener('wheel', (e) => {
 loadExample('default');
 
 window.addEventListener('DOMContentLoaded', () => {
-    new HamburgerMenu();
+  const helpConfig = null;
+  new LcarsHeader("Protein Domains Map", helpConfig);
 })  
 </script>
 </body>

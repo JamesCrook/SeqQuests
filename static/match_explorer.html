@@ -41,7 +41,8 @@
      
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
-            new HamburgerMenu();
+            const helpConfig = null;
+            new LcarsHeader("Protein Sequence Match Explorer", helpConfig);
 
             // Load partials using Lcars
             Promise.all([

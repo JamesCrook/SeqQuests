@@ -10,19 +10,6 @@
     <script src="./lcars.js"></script>
   </head>
   <body class="app-root">
-    <header>
-        <button class="hamburger-menu" aria-label="Menu">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-        <h1>Active Data</h1>
-        <div class="status-indicator">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Checking Connection</span>
-        </div>
-    </header>
-
     <div class="panel-tight">
     <div class="panel-header">
         <div class="panel-title">Protein Sequence Statistics</div>
@@ -114,7 +101,8 @@
         }
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
-            new HamburgerMenu();
+          const helpConfig = null;
+          new LcarsHeader("Streaming Data", helpConfig);
         })        
     </script>
   </body>

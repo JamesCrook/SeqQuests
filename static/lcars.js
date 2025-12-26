@@ -493,6 +493,32 @@ class HamburgerMenu {
     }
 }
 
+class LcarsHeader {
+    constructor( title, helpConfig, menuConfig ) {
+        this.title = title;
+        if( title )
+            this.makeHeader();
+        new HamburgerMenu( menuConfig );
+        if( helpConfig )
+            new HelpOverlay(helpConfig);
+    }
+
+    makeHeader( ){
+        let header = document.querySelector('header');
+        if (header)
+            return;
+        header = document.createElement('header');
+        header.innerHTML = 
+        `<h1>${this.title}</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Checking Connection</span>
+        </div>`        
+        document.body.prepend(header);
+    }
+
+}
+
 const Lcars = new LcarsUI();
 
 function DoDefaultHelp() {

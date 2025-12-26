@@ -100,15 +100,6 @@
     </style>
 </head>
 <body class="app-root">
-    <header>
-        <!-- Hamburger Menu may be injected here -->
-        <h1>Sequence Fetcher</h1>
-        <div class="status-indicator">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Checking Connection</span>
-        </div>
-    </header>
-
     <div class="container explorer-layout">
         <div class="panel flex-fill">
             <div class="control-group">
@@ -195,8 +186,6 @@
 
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
-        new HamburgerMenu();
-
         const helpConfig = [
             {
                 items: [
@@ -238,7 +227,7 @@
             }
         ];
 
-        const helpOverlay = new HelpOverlay(helpConfig);
+        new LcarsHeader("Fetch Sequence", helpConfig);
     })
 </script>
 

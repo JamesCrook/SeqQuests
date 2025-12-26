@@ -49,14 +49,6 @@
     </style>
 </head>
 <body class="app-root">
-    <header>
-        <h1>Fast Align Demo</h1>
-        <div class="status-indicator">
-            <div id="statusDot" class="status-dot disconnected"></div>
-            <span id="statusText">System Ready</span>
-        </div>
-    </header>
-
     <div class="container explorer-layout">
         <div class="panel-tight flex-fill">
             <div class="panel-header">
@@ -376,7 +368,8 @@
         }).catch(() => {});
 
         window.addEventListener('DOMContentLoaded', () => {
-            new HamburgerMenu();
+            const helpConfig = null;
+            new LcarsHeader("Align Sequences", helpConfig);
         })
     </script>
 </body>
