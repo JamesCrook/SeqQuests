@@ -26,6 +26,7 @@
 
 :root {
     /* --- STRUCTURAL: Spacing Scale --- */
+    --space-us: 2px;
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 15px;
@@ -133,6 +134,7 @@ body {
 .flex-2 { flex: 2; }
 .flex-shrink-0 { flex-shrink: 0; }
 .flex-fill { flex: 1 1 0; min-height: 0; }
+.flex-fixed { flex: 1 1 0;}
 
 /* --- Scroll Regions --- */
 .scroll-y { overflow-y: auto; min-height: 0;}
@@ -188,20 +190,24 @@ body {
     flex-direction: row;
     flex-wrap: wrap;
     gap: var(--space-lg);
-    height: calc(100vh - 100px);
+    /*height: calc(100vh - 100px);*/
     padding: 0;
+    flex: 1 1 0; 
+    min-height: 0;
+    margin:0px;
 }
 
-.findings-panel {
-    flex: 1 1 400px;
+.wide-400-more-or-less {
+    flex: 10 1 400px;
     min-width: 400px;
     min-height: 0;
     display: flex;
     flex-direction: column;
 }
 
-.detail-panel-container {
-    flex: 0 0 700px;
+.wide-700-or-more {
+    flex: 1 0 700px;
+    min-width: 700px;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -217,10 +223,10 @@ body {
 }
 
 /* --- Panel --- */
-.panel {
+.panel, .panel-tight {
     display: flex;
     flex-direction: column;
-    flex: 1 1 0;
+    /*flex: 1 1 0;*/
     min-height: 0;
     position: relative;
 }
@@ -256,15 +262,6 @@ header h1 {
     min-height: 0;
     overflow-y: auto;
     padding: var(--space-md);
-}
-
-#log {
-    height: 200px;
-    overflow-y: auto;
-}
-
-#detailDiv {
-    overflow: scroll;
 }
 
 /* --- Modal Structure --- */
@@ -492,6 +489,8 @@ body::after {
     z-index: -1;
 }
 
+ul { padding-left:20px; }
+
 /* --- Scrollbar Aesthetics --- */
 ::-webkit-scrollbar {
     width: var(--scrollbar-size);
@@ -528,19 +527,17 @@ body::after {
 }
 
 /* --- Panel Aesthetics --- */
-.panel,
-#controls, #pollControl, #jobList, #currentJob, #log-container,
-#config-form {
+.panel, .panel-tight
+{
     background: var(--color-bg-secondary);
     border: var(--panel-border-width) solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    margin-bottom: var(--space-lg);
+    /*margin-bottom: var(--space-lg);*/
 }
 
-/* Panel structure override - no padding in flex panel */
-.panel {
-    padding: 0;
+.panel
+{
+    padding: var(--space-md);
 }
 
 /* --- Panel Header Aesthetics --- */
@@ -641,7 +638,8 @@ input[type="text"], input[type="number"], select {
     background: var(--color-bg-tertiary);
     border: 1px solid var(--color-accent-primary);
     color: var(--color-text-primary);
-    padding: var(--space-sm);
+    padding: var(--space-us);
+    margin: var(--space-sm);
     border-radius: var(--radius-sm);
     font-family: var(--font-mono);
 }

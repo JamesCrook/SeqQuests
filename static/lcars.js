@@ -270,6 +270,8 @@ class HamburgerMenu {
                 { type: 'divider' },
                 { label: 'Bias', href: 'bias_analysis.html' },
                 { label: 'Domains', href: 'domain-viewer.html' },
+                { label: 'Home', href: '/' },
+                { type: 'divider' },
                 { label: 'Help Demo', href: 'help-demo.html' },
                 { type: 'divider' },
                 { label: 'Help', action: DoDefaultHelp }
@@ -494,7 +496,7 @@ class HamburgerMenu {
 const Lcars = new LcarsUI();
 
 function DoDefaultHelp() {
-    if( DoHelp ){
+    if( typeof DoHelp !== 'undefined' ){
         DoHelp()
         return;
     }

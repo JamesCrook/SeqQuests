@@ -27,7 +27,7 @@
     --dv-color-primary: #3b82f6;
     --dv-color-primary-hover: #2563eb;
     --dv-color-text: #333333;
-    --dv-color-subtitle: #666666;
+    --dv-color-subtitle: #ea74e5;
 }
 
 /* =============================================================================
@@ -49,6 +49,8 @@
     gap: 5px;
     padding: 4px 8px;
     border-radius: 4px;
+    color: black
+
 }
 
 /* Bias uses bordered legend items, Domain Viewer uses simpler ones.

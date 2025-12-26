@@ -4,14 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protein Texture Map: Ribbon & Composition</title>
+    <link rel="stylesheet" type="text/css" href="./style.css">
+
     <link rel="stylesheet" href="proteins.css">
     <script src="proteins.js"></script>
+    <script src="./lcars.js"></script>
+    <script src="./vector2d.js"></script>
+    <script src="./help.js"></script>
+
+
 </head>
-<body class="bias-body">
+<body class="app-root">
+    <header>
+        <!-- Hamburger Menu Injected by HamburgerMenu class -->
+        <h1>Protein Texture Map</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Checking Connection</span>
+        </div>
+    </header>
 
 <div class="bias-container">
-    <h2 class="bias-h2">Protein Texture Map</h2>
-    
     <div class="bias-controls">
         <label for="sequenceInput" class="bias-input-label">Protein Sequence:</label>
         <!-- Added oninput for immediate rendering -->
@@ -32,12 +45,12 @@
 
         <div class="bias-toggles">
             <strong>Detect Periods:</strong>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="2" checked onchange="updateVisualization()"> 2</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="3" checked onchange="updateVisualization()"> 3</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="4" checked onchange="updateVisualization()"> 4</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="5" checked onchange="updateVisualization()"> 5</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="6" checked onchange="updateVisualization()"> 6</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="7" checked onchange="updateVisualization()"> 7</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="2" unchecked onchange="updateVisualization()"> 2</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="3" unchecked onchange="updateVisualization()"> 3</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="4" unchecked onchange="updateVisualization()"> 4</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="5" unchecked onchange="updateVisualization()"> 5</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="6" unchecked onchange="updateVisualization()"> 6</label>
+            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="7" unchecked onchange="updateVisualization()"> 7</label>
         </div>
     </div>
 
@@ -352,6 +365,9 @@
     // Initialize immediately
     initLegend();
     updateVisualization();
+    window.addEventListener('DOMContentLoaded', () => {
+        new HamburgerMenu();
+    })    
 
 </script>
 

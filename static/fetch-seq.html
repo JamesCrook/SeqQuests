@@ -99,7 +99,7 @@
         }
     </style>
 </head>
-<body>
+<body class="app-root">
     <header>
         <!-- Hamburger Menu may be injected here -->
         <h1>Sequence Fetcher</h1>
@@ -110,7 +110,7 @@
     </header>
 
     <div class="container explorer-layout">
-        <div class="panel" style="min-width:600px;padding:15px;">
+        <div class="panel flex-fill">
             <div class="control-group">
                 <label for="accession-input">Accession:</label>
                 <input type="text" style="padding:2px;margin:6px;" id="accession-input" value="Q6GZX4" placeholder="e.g. Q9Y6K9 or Q6GZX4">
@@ -239,11 +239,6 @@
         ];
 
         const helpOverlay = new HelpOverlay(helpConfig);
-
-        DoHelp = function () {
-            helpOverlay.start();
-        };
-
     })
 </script>
 

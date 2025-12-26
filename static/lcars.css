@@ -134,6 +134,8 @@ body {
 
 /* Panel content area */
 .panel-content {
+    display:flex;
+    flex-direction: column;
     flex: 1 1 auto;  /* grow, shrink, but basis=auto preserves content size */
     overflow: auto;
     padding: 20px;

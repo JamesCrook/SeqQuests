@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">      
     <title>Configure Computation Job</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
 </head>
 <body>
-<div style="padding: 20px;">
+<div class="panel flex-fill">
     <h2>Configure Computation Job</h2>
     <form id="configForm">
       <label for="max_proteins">Max Proteins:</label>
@@ -17,7 +18,10 @@
       <br>
       <button type="button" onclick="saveConfigComputation()">Save Configuration</button>
     </form>
-    <div id="detailDiv">
+    <hr>
+    <h2>Job Progress</h2>
+    <div class="flex-col flex-fill" id="detailDiv">
+        Lorem Ipsum Delores
     </div>
 </div>
 <script src="config_computation.js"></script>

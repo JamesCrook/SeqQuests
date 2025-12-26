@@ -3,13 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Protein Alignment Viewer</title>
-<link rel="stylesheet" href="proteins.css">
-<script src="proteins.js"></script>
+    <title>Protein Alignment Viewer</title>
+    <link rel="stylesheet" type="text/css" href="./style.css">
+
+    <link rel="stylesheet" href="proteins.css">
+    <script src="proteins.js"></script>
+    <script src="./lcars.js"></script>
+    <script src="./vector2d.js"></script>
+    <script src="./help.js"></script>
+
 </head>
-<body class="dv-body">
-<div class="dv-container">
-  <h1 class="dv-h1">Protein Alignment Viewer</h1>
+<body class="app-root">
+    <header>
+        <!-- Hamburger Menu Injected by HamburgerMenu class -->
+        <h1>Protein Alignment Viewer</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Checking Connection</span>
+        </div>
+    </header>
+
+<div class="panel">
+
   <p class="dv-subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
   
   <div class="dv-panel">
@@ -492,6 +507,10 @@ canvasWrap.addEventListener('wheel', (e) => {
 // INIT
 // ============================================================================
 loadExample('default');
+
+window.addEventListener('DOMContentLoaded', () => {
+    new HamburgerMenu();
+})  
 </script>
 </body>
 </html>

@@ -190,6 +190,9 @@ class HelpOverlay {
         document.body.appendChild(this.canvas);
         window.addEventListener('resize', this.resizeCanvas);
         this.resizeCanvas();
+        window.DoHelp = function () {
+            helpOverlay.start();
+        };        
     }
 
     renderStep(index) {

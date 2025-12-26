@@ -10,10 +10,9 @@
     <script src="./lcars.js"></script>
 
 </head>
-<body>
+<body class="app-root">
     <header>
-        <!-- Hamburger Menu Button Removed - Injected by HamburgerMenu class -->
-        
+        <!-- Hamburger Menu Injected by HamburgerMenu class -->
         <h1>Protein Sequence Match Explorer</h1>
         <div class="status-indicator">
             <div class="status-dot" id="statusDot"></div>
@@ -23,10 +22,10 @@
 
     <div class="container explorer-layout">
         <!-- Left Panel: Findings List -->
-        <div class="findings-panel panel" id="LeftPanel"></div>
+        <div class="panel-tight wide-400-more-or-less" id="LeftPanel"></div>
 
         <!-- Right Panel: Detail View (now includes Alignment) -->
-        <div class="detail-panel-container panel" id="RightPanel"></div>
+        <div class="panel-tight wide-700-or-more" id="RightPanel"></div>
     </div>
 
     <script>
