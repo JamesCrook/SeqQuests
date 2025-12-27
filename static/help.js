@@ -334,26 +334,122 @@ class HelpOverlay {
     }
 
     getNearestPoints(box1, box2) {
-        // Use Vector2D logic aggressively
-
-        // Clamp v to the bounds of box
-        const clampToBox = (v, box) => {
-            return new Vector2D(
-                Math.max(box.left, Math.min(v.x, box.right)),
-                Math.max(box.top, Math.min(v.y, box.bottom))
-            );
-        };
-
         // First approximation: clamp box2 center to box1
-        let p1 = clampToBox(box2.center, box1);
+        let p1 = this.clampToBox(box2.center, box1);
 
         // Second: clamp p1 to box2 to get p2
-        let p2 = clampToBox(p1, box2);
+        let p2 = this.clampToBox(p1, box2);
 
         // Refine p1: clamp p2 back to box1
-        p1 = clampToBox(p2, box1);
+        p1 = this.clampToBox(p2, box1);
 
         return { p1, p2 };
+    }
+
+    /**
+     * Find target point that is inside box2 but outside excludeBox, trying four cardinal directions from sourceCenter.
+     * Returns { p1, p2 } where p2 is inside box2 and outside excludeBox, and p1 is nearest point on box1 to p2.
+     * Returns null if no valid direction found.
+     */
+    findExternalTargetPoint(box1, box2, excludeBox, margin = 10) {
+        const sourceCenter = box1.center;
+        
+        // Expanded excludeBox with margin
+        const expanded = {
+            left: excludeBox.left - margin,
+            right: excludeBox.right + margin,
+            top: excludeBox.top - margin,
+            bottom: excludeBox.bottom + margin
+        };
+        
+        // If source center is not inside the expanded excludeBox, this method doesn't apply
+        if( !this.isInsideBox(sourceCenter, expanded))
+            return null;
+        
+        // Four cardinal directions
+        const directions = [
+            new Vector2D(0, -1),  // up
+            new Vector2D(0, 1),   // down
+            new Vector2D(-1, 0),  // left
+            new Vector2D(1, 0)    // right
+        ];
+        
+        // Collect all valid exit points
+        const candidates = [];
+        
+        for (const dir of directions) {
+            const exitPoint = this.rayBoxExit(sourceCenter, dir, expanded);
+            if (!exitPoint) continue;
+            
+            // Check if this exit point is inside box2
+            if (this.isInsideBox( exitPoint, box2 ) ){
+                candidates.push(exitPoint);
+            }
+        }
+        
+        // Now find the best candidate (shortest arrow)
+        let bestResult = null;
+        let bestDist = 2000;
+        
+        for (const p2 of candidates) {
+            const p1 = this.clampToBox(p2, box1);
+            const dist = p1.sub(p2).length;
+            
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestResult = { p1, p2 };
+            }
+        }
+        
+        return bestResult;
+    }
+
+    /**
+     * Test if a point is inside a box
+     */
+    isInsideBox(point, box) {
+        return point.x >= box.left && point.x <= box.right &&
+               point.y >= box.top && point.y <= box.bottom;
+    }
+
+    /**
+     * Find where a ray from origin in direction dir exits the box.
+     * Returns the exit point or null if origin is outside box.
+     */
+    rayBoxExit(origin, dir, box) {
+        if( !this.isInsideBox( origin, box ))
+            return null;
+        
+        let t = Infinity;
+        
+        // Find smallest positive t where ray hits a boundary
+        if (dir.x > 1e-9) {
+            t = Math.min(t, (box.right - origin.x) / dir.x);
+        } else if (dir.x < -1e-9) {
+            t = Math.min(t, (box.left - origin.x) / dir.x);
+        }
+        
+        if (dir.y > 1e-9) {
+            t = Math.min(t, (box.bottom - origin.y) / dir.y);
+        } else if (dir.y < -1e-9) {
+            t = Math.min(t, (box.top - origin.y) / dir.y);
+        }
+        
+        if (t === Infinity || t < 0) return null;
+
+        let v = origin.add(dir.scale(t)) 
+    
+        return v;
+    }
+
+    /**
+     * Clamp a point to the boundary of a box
+     */
+    clampToBox(v, box) {
+        return new Vector2D(
+            Math.max(box.left, Math.min(v.x, box.right)),
+            Math.max(box.top, Math.min(v.y, box.bottom))
+        );
     }
 
     drawArrow(ctx, start, end, color = '#64748b', opts = {}) {
@@ -472,24 +568,17 @@ class HelpOverlay {
             if (this.isVisible(b1) && this.isVisible(b2)) {
                 let { p1, p2 } = this.getNearestPoints(b1, b2);
 
-                // TODO Improve this fallback by detecting when the target is inside the organiser, and 
-                // in that case finding a target point that is nearest to the source and at least 10px 
-                // outside the organiser's box. Possibly try each of four directons and pick the best.  
-                if (p1.sub(p2).length < 1) {
-                    // Try alternative target points if arrow length is too short (e.g. inside target)
-                    const tryTarget = (x, y) => {
-                        const altB2 = { left: x, right: x, top: y, bottom: y, center: new Vector2D(x, y) };
-                        const res = this.getNearestPoints(b1, altB2); // res.p1 is on b1, res.p2 is altB2
-                        return res.p1.sub(res.p2).length > 1 ? res : null;
-                    };
-
-                    const best = tryTarget(b2.left + 5, b2.top + 5) || tryTarget(b2.right - 5, b2.top + 5);
-                    if (best) {
-                        p1 = best.p1;
-                        p2 = best.p2;
+                // Target may be obscured by organizer - try to find external point
+                const organizerBox = this.getElementBox(this.organizer);
+                
+                if (organizerBox ) {
+                    const externalResult = this.findExternalTargetPoint(b1, b2, organizerBox);
+                    if (externalResult) {
+                        p1 = externalResult.p1;
+                        p2 = externalResult.p2;
                     }
                 }
-
+                
                 this.drawArrow(this.ctx, p1, p2, conn.color, conn.arrow);
             }
         }
