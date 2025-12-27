@@ -313,6 +313,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    color: black;
 }
 .dv-legend-color {
     width: 14px;

@@ -202,6 +202,19 @@ class HelpOverlay {
         );
     }
 
+    // Helper method
+    getVisibleArea(b) {
+        const visibleTop = Math.max(0, b.top);
+        const visibleBottom = Math.min(window.innerHeight, b.bottom);
+        const visibleLeft = Math.max(0, b.left);
+        const visibleRight = Math.min(window.innerWidth, b.right);
+        
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+        const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+        
+        return visibleHeight * visibleWidth;
+    }    
+
     renderStep(index) {
         if (index < 0 || index >= this.config.length) return;
 
@@ -230,11 +243,17 @@ class HelpOverlay {
                     targetEl = document.getElementById(item.targetId);
                 } else if (item.targetSelector) {
                     const els = document.querySelectorAll(item.targetSelector);
+                    // Find the element with maximum visible area
+                    let maxVisibleArea = 0;
+
                     for (const el of els) {
                         const box = this.getElementBox(el);
-                        if (box && this.isVisible(box)) {
+                        if (!box) continue;
+                        
+                        const visibleArea = this.getVisibleArea(box);
+                        if (visibleArea > maxVisibleArea) {
+                            maxVisibleArea = visibleArea;
                             targetEl = el;
-                            break;
                         }
                     }
                 }
@@ -453,6 +472,9 @@ class HelpOverlay {
             if (this.isVisible(b1) && this.isVisible(b2)) {
                 let { p1, p2 } = this.getNearestPoints(b1, b2);
 
+                // TODO Improve this fallback by detecting when the target is inside the organiser, and 
+                // in that case finding a target point that is nearest to the source and at least 10px 
+                // outside the organiser's box. Possibly try each of four directons and pick the best.  
                 if (p1.sub(p2).length < 1) {
                     // Try alternative target points if arrow length is too short (e.g. inside target)
                     const tryTarget = (x, y) => {

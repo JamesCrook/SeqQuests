@@ -266,6 +266,7 @@ function buildTables() {
     
     const panel = document.createElement('div');
     panel.className = 'dv-panel';
+    panel.id= `features-${tableIdx+1}`;
     panel.innerHTML = buildTableHeader(tableIdx, proteinIdx);
     
     const scrollDiv = document.createElement('div');
@@ -501,7 +502,16 @@ canvasWrap.addEventListener('wheel', (e) => {
 loadExample('default');
 
 window.addEventListener('DOMContentLoaded', () => {
-  const helpConfig = null;
+            const helpConfig = [
+                {
+                    items: [
+                        { text: '<strong>Zoom:</strong><br>Use to zoom in or alternatively click on the domain view and use the mouse wheel to zoom instead.', targetId: 'zoom' },
+                        { text: '<strong>Domain View:</strong><br>Shows proteins marked up with their features.', targetId: 'canvasWrap', type: 'results' },
+                        { text: '<strong>Features 1:</strong><br>The list of features for protein 1.', targetId: 'features-1', type: 'results' },
+                        { text: '<strong>Features 2:</strong><br>The list of features for protein 2.', targetId: 'features-2', type: 'results' }
+                    ]
+                }
+            ];
   new LcarsHeader("Protein Domains Map", helpConfig);
 })  
 </script>

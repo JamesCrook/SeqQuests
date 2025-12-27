@@ -8,18 +8,10 @@
     <link rel="stylesheet" type="text/css" href="./style.css">
     <script src="./match_explorer.js"></script>
     <script src="./lcars.js"></script>
-
+    <script src="./vector2d.js"></script>
+    <script src="./help.js"></script>
 </head>
 <body class="app-root">
-    <header>
-        <!-- Hamburger Menu Injected by HamburgerMenu class -->
-        <h1>Protein Sequence Match Explorer</h1>
-        <div class="status-indicator">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Checking Connection</span>
-        </div>
-    </header>
-
     <div class="container explorer-layout">
         <!-- Left Panel: Findings List -->
         <div class="panel-tight wide-400-more-or-less" id="LeftPanel"></div>
@@ -44,9 +36,55 @@
             const helpConfig = [
                 {
                     items: [
-                        { text: '<strong>Findings List:</strong><br>Select a match to view details.', targetId: 'LeftPanel' },
-                        { text: '<strong>Details:</strong><br>View alignment and info here.', targetId: 'RightPanel' },
-                        { text: '<strong>First Match:</strong><br>The first match in the list.', targetSelector: '.finding-entry' }
+                        {
+                            text: '<strong>Match Explorer:</strong><br>For exploring alignments between proteins.',
+                            targetId: 'page-title',
+                            type: 'results'
+                        },                    
+                        {
+                            text: '<strong>Menu:</strong><br>Click to get a menu of choices - such as other web pages to visit.',
+                            targetId: 'hamburger-menu',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Status:</strong><br><ul style="padding-left:15px;"><li><em>Red</em> if no response from lab server</li><li><em>Light Blue</em> if has a response from the lab server</li></ul>',
+                            targetId: 'statusDot',
+                            type: 'results'
+                        },
+                        {
+                            text: '<strong>Chooser:</strong><br>Choose the pair of proteins from this list.',
+                            targetId: 'LeftPanel',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Details:</strong><br>View the alignment and protein files in this list.',
+                            targetId: 'RightPanel',
+                            type: 'results'
+                        },                                                
+                    ]
+                },
+                {
+                    items: [
+                        {
+                            text: '<strong>Found Similarity:</strong><br>Click on the found similarity to view details in the detail panel.',
+                            targetSelector: '.finding-entry',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Multiscroll:</strong><br>Click to enable or disable ganged <a href="/docs/tutorials/multiscroller.md">\'multiscroller\' scrolling</a>.<br>When it\'s ON, dragging either column will also move the other column.',
+                            targetId: 'multiscrollBtn',
+                            type: 'default'
+                        },
+                        {
+                            text: '<strong>Count of entries:</strong><br>The number of protein pairs listed in this list.',
+                            targetId: 'entriesCount',
+                            type: 'results'
+                        },
+                        {
+                            text: '<strong>Copy:</strong><br>Copies the names of the two proteins and their alignement to the clipboard. You can then paste into an editor.',
+                            targetId: 'copyAlignmentBtn',
+                            type: 'results'
+                        }
                     ]
                 }
             ];
