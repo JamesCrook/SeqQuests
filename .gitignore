@@ -10,6 +10,9 @@ __pycache__/
 *.wasm
 sw_align_module.js
 
+# Automatically produced images
+docs/images/*.png
+
 # Jules
 verification/
 
