@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart",
     "biopython",
     "numpy>=1.20.0",
+    "playwright",
     
     # Metal dependencies (macOS only - auto-detected)
     "pyobjc-core>=8.0; sys_platform == 'darwin'",
