@@ -601,10 +601,10 @@ async function loadSequenceDetails(finding, index) {
     
     // Calculate stats
     const matches = (alignment.matches.match(/\|/g) || []).length;
-    const similarity = score ;//((matches / Math.max(seq1.length, seq2.length)) * 100).toFixed(1);
+    const identity = ((matches / alignment.align1.length) * 100).toFixed(1);
     
     // Update badges
-    if (detailBadge) detailBadge.textContent = `${similarity} score`;
+    if (detailBadge) detailBadge.textContent = `${score} score`;
     if (alignmentBadge) alignmentBadge.textContent = `${matches} matches`;
     
     // Build alignment view
@@ -651,7 +651,7 @@ async function loadSequenceDetails(finding, index) {
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Identity</div>
-                    <div class="stat-value">${similarity}%</div>
+                    <div class="stat-value">${identity}%</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Length 1</div>
