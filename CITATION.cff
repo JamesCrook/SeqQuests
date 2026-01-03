@@ -9,8 +9,7 @@ repository-code: https://github.com/JamesCrook/SeqQuest
 abstract: >-
   Protein sequence relationships that appear to have been missed
   by standard annotation pipelines, identified using novel
-  sequence analysis software. Licensed CC-BY-4.0 due to
-  inclusion of UniProt data.
+  sequence analysis software.
 keywords:
   - sequence analysis
   - bioinformatics

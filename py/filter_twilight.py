@@ -537,10 +537,10 @@ def filter_twilight(input_file: str, output_file: str, reasons_file: str,
 def main():
     parser = argparse.ArgumentParser(description='Filter twilight zone protein comparisons')
     
-    default_input = PROJECT_ROOT / "sw_results/sw_raw_finds.txt"
-    default_output = PROJECT_ROOT / "sw_results/sw_finds.txt"
+    default_input = PROJECT_ROOT / "sw_results/sw_finds_raw.txt"
+    default_output = PROJECT_ROOT / "sw_results/sw_finds_standard.txt"
     default_reasons = PROJECT_ROOT / "sw_results/filter_reasons.txt"
-    default_bias = PROJECT_ROOT / "sw_results/biased_alignments.txt"
+    default_bias = PROJECT_ROOT / "sw_results/sw_finds_biased.txt"
     
     parser.add_argument('-i', '--input', default=str(default_input),
                         help='Input twilight comparison file')

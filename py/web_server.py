@@ -57,7 +57,7 @@ app.add_middleware(
 # Remove when debugging is complete.
 app.add_middleware(NoCacheMiddleware)
 
-FINDINGS_FILE = PROJECT_ROOT / "sw_results" / "sw_finds.txt"  # Path to your main results file
+FINDINGS_FILE = PROJECT_ROOT / "sw_results" / "sw_finds_standard.txt"  # Path to your main results file
 
 
 # Mount static files directory
@@ -327,10 +327,15 @@ async def get_part_for_html_page(file: str):
     file = safe_filename(file)
     return FileResponse(PROJECT_ROOT / f'static/panels/{file}')
 
+@app.get("/findings/{file}")
+async def get_findings_file(file: str):
+    file = safe_filename(file)
+    return FileResponse(PROJECT_ROOT / f'findings/{file}')
+
 @app.get("/docs/{file}")
 async def get_document(file: str):
     file = safe_filename(file)
-    file_path = PROJECT_ROOT / "static/docs" / file
+    file_path = PROJECT_ROOT / "docs" / file
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)

@@ -40,10 +40,24 @@ Pairwise scores assembled into a maximal scoring tree using `tree_builder.py`. T
 - Name/description similarity
 - Same gene family indicators
 
+For this search:
+
+```
+Kept 6579 entries after filtering
+Filtered out 508663 entries (phase0)
+Filtered out 16721 entries (phase1)
+Filtered out 25043 entries (phase2)
+Filtered out 4207 entries (bias)     # in sw_finds_biased.txt instead
+```
+
+Phase0 drops pairs with the same name (per first 11 chars), toxins, uncharacterised and putative. The rationale is that these finds are likely to be of low interest.
+Phase1 drops pairs with shared meaningful words in the description (i.e. stop words excluded)
+Phase2 drops pairs matching on any of InterPro, PANTHER, PRINTS, Pfam etc, also -!- SIMILARITY. It's an attempt to find where the annotation indicates its actually known. 
+
 Full details of these filters are in the source code.
 Filter statistics were logged to `sw_results/filter_reasons.txt`.
 
-Additionally the filtering does alignments and counts amino acids matches, building a composition of the matches used. This composition is then used to mark some sequence pairs as biased.
+Additionally the filtering does alignments and counts amino acids matches, building a composition of the matches used. This composition is then used to mark some sequence pairs as biased. This is hoped to be more sensitive than just checking composition, as it shows the residues the alignment actually relied on. 
 
 **Outputs:**
 - `sw_results/sw_finds.txt` — **6,579 candidate finds** (scores 110-4,089)
@@ -66,7 +80,7 @@ Many similarities where the pairs of protein names suggested the similarity was 
 ### Requirements
 
 - macOS with Apple Silicon (M1, M2, or M4)
-- Python ≥3.8
+- Python ≥3.9
 - Clang (included with Xcode Command Line Tools)
 
 ### Installation
@@ -108,12 +122,11 @@ This is for the files already in the findings folder
 
 ### Local
 
-If reproducing the results, you can read the results files you make in a text editor. To use the dynamic browser on these results, overwrite the files in ./findings with them. Then start the web server
+If reproducing the results, you can read the results files you make in a text editor. To instead use the dynamic browser on these results, overwrite the files in /findings/ with them. Then browse to 'http://127.0.0.1:8006/match_explorer.html' starting the web server first with:
 
 ```
 python py/web_server.py
 ```
-and browse to 'http://127.0.0.1:8006/match_explorer.html'
 
 ## Release Contents
 
@@ -158,7 +171,7 @@ See `findings/proposed_updates.md` for full details and justifications.
 
 ## Citation
 
-> James Crook. SeqQuest Protein Homology Findings, v1.0. Zenodo. [DOI]
+> James Crook. SeqQuest Protein Homology Findings, v0.1. Zenodo. [DOI]
 
 ## Contact
 
