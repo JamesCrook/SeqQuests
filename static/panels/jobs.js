@@ -7,55 +7,57 @@
 // The execution of this function should be done by the loading context (the HTML file).
 
 async function initJobSelection() {
-    try {
-        const response = await fetch('/api/job_types');
-        if (response.ok) {
-            const jobTypes = await response.json();
-            const container = document.getElementById('job-buttons');
-            if (!container) return; // Guard against element missing
-            container.innerHTML = ''; // Clear existing
+  try {
+    const response = await fetch('/api/job_types');
+    if(response.ok) {
+      const jobTypes = await response.json();
+      const container = document.getElementById('job-buttons');
+      if(!container) return; // Guard against element missing
+      container.innerHTML = ''; // Clear existing
 
-            jobTypes.forEach(jobType => {
-                const button = document.createElement('button');
-                button.className = 'job-button';
-                button.textContent = jobType.display_name;
-                button.onclick = () => createJob(jobType.id);
-                container.appendChild(button);
-            });
-        } else {
-            console.error('Failed to fetch job types:', await response.text());
-            addLog('Failed to fetch job types', 'error');
-        }
-    } catch (error) {
-        console.error('Error fetching job types:', error);
-        addLog(`Error fetching job types: ${error}`, 'error');
+      jobTypes.forEach(jobType => {
+        const button = document.createElement('button');
+        button.className = 'job-button';
+        button.textContent = jobType.display_name;
+        button.onclick = () => createJob(jobType.id);
+        container.appendChild(button);
+      });
+    } else {
+      console.error('Failed to fetch job types:', await response.text());
+      addLog('Failed to fetch job types', 'error');
     }
+  } catch (error) {
+    console.error('Error fetching job types:', error);
+    addLog(`Error fetching job types: ${error}`, 'error');
+  }
 }
 
 async function createJob(jobType) {
-    try {
-        const response = await fetch('/api/job', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ job_type: jobType }),
-        });
-        if (response.ok) {
-            const newJob = await response.json();
+  try {
+    const response = await fetch('/api/job', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        job_type: jobType
+      }),
+    });
+    if(response.ok) {
+      const newJob = await response.json();
 
-            // Success actions:
-            addLog(`Job created: ${newJob.job_id} (${jobType})`);
-            await refreshJobs(); // defined in app.js
-            selectJob(newJob.job_id, jobType); // defined in app.js
-            closeModal(); // defined in app.js
+      // Success actions:
+      addLog(`Job created: ${newJob.job_id} (${jobType})`);
+      await refreshJobs(); // defined in app.js
+      selectJob(newJob.job_id, jobType); // defined in app.js
+      closeModal(); // defined in app.js
 
-        } else {
-            console.error('Failed to create job:', await response.text());
-            addLog('Failed to create job', 'error');
-        }
-    } catch (error) {
-        console.error('Error creating job:', error);
-        addLog(`Error creating job: ${error}`, 'error');
+    } else {
+      console.error('Failed to create job:', await response.text());
+      addLog('Failed to create job', 'error');
     }
+  } catch (error) {
+    console.error('Error creating job:', error);
+    addLog(`Error creating job: ${error}`, 'error');
+  }
 }

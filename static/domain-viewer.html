@@ -1,50 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protein Alignment Viewer</title>
     <link rel="stylesheet" type="text/css" href="./style.css">
-
     <link rel="stylesheet" href="./proteins.css">
-    <link rel="icon" href="./wheel.ico">    
+    <link rel="icon" href="./wheel.ico">
     <script src="./proteins.js"></script>
     <script src="./lcars.js"></script>
     <script src="./vector2d.js"></script>
     <script src="./help.js"></script>
-
-</head>
-<body class="app-root">
-
-<div class="panel">
-
-  <p class="dv-subtitle" id="subtitle">Multi-protein track viewer with feature annotations</p>
-  
-  <div class="dv-panel">
-    <div class="dv-controls">
-      <label>Zoom:</label>
-      <input type="range" id="zoom" min="0.01" max="0.8" step="0.005" value="0.35">
-      <span class="dv-zoom-val" id="zoomVal">35%</span>
-      <label><input type="checkbox" id="showLabels" checked> Labels</label>
-      <div style="flex:1"></div>
-      <span style="font-size:0.8rem;color:#666">Load:</span>
-      <button class="dv-btn dv-btn-secondary" onclick="loadExample('default')">Pair</button>
-      <button class="dv-btn dv-btn-secondary" onclick="loadExample('titin')">Titin</button>
-      <button class="dv-btn dv-btn-secondary" onclick="loadExample('polyprotein')">SARS-CoV-2</button>
-      <button class="dv-btn dv-btn-primary" onclick="loadExample('all')">All 4</button>
+  </head>
+  <body class="app-root">
+    <div class="panel">
+      <p class="dv-subtitle" id="subtitle">
+        Multi-protein track viewer with feature annotations
+      </p>
+      <div class="dv-panel">
+        <div class="dv-controls">
+          <label>Zoom:</label>
+          <input type="range" id="zoom" min="0.01" max="0.8" step="0.005" value="0.35">
+          <span class="dv-zoom-val" id="zoomVal">35%</span>
+          <label>
+            <input type="checkbox" id="showLabels" checked="">
+            Labels
+          </label>
+          <div style="flex:1">
+          </div>
+          <span style="font-size:0.8rem;color:#666">Load:</span>
+          <button class="dv-btn dv-btn-secondary" onclick="loadExample('default')">
+            Pair
+          </button>
+          <button class="dv-btn dv-btn-secondary" onclick="loadExample('titin')">
+            Titin
+          </button>
+          <button class="dv-btn dv-btn-secondary" onclick="loadExample('polyprotein')">
+            SARS-CoV-2
+          </button>
+          <button class="dv-btn dv-btn-primary" onclick="loadExample('all')">
+            All 4
+          </button>
+        </div>
+        <div class="dv-canvas-wrap" id="canvasWrap">
+          <canvas id="canvas" class="dv-canvas">
+          </canvas>
+        </div>
+        <div class="dv-legend" id="legend">
+        </div>
+        <p class="dv-info">
+          Proteins aligned by padding. Click a feature below to highlight it on the canvas.
+        </p>
+      </div>
+      <div id="tables-container" class="dv-tables-container">
+      </div>
     </div>
-    <div class="dv-canvas-wrap" id="canvasWrap">
-      <canvas id="canvas" class="dv-canvas"></canvas>
-    </div>
-    <div class="dv-legend" id="legend"></div>
-    <p class="dv-info">Proteins aligned by padding. Click a feature below to highlight it on the canvas.</p>
-  </div>
-  
-  <div id="tables-container" class="dv-tables-container"></div>
-</div>
-
-<script>
-// ============================================================================
+    <script>
+    // ============================================================================
 // CONFIGURATION
 // ============================================================================
 const CONFIG = {
@@ -514,7 +526,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             ];
   new LcarsHeader("Protein Domains Map", helpConfig);
-})  
-</script>
-</body>
+})
+    </script>
+  </body>
 </html>

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SeqQuest: Twilight Zone Protein Homology Findings</title>
     <style>
-        :root {
+    :root {
             --bg: #fafafa;
             --text: #222;
             --muted: #666;
@@ -86,40 +86,44 @@
             font-size: 0.9rem;
         }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>SeqQuest Findings</h1>
-    <p class="subtitle">Overlooked protein homologies from twilight zone Smith-Waterman analysis</p>
-
+    <p class="subtitle">
+      Overlooked protein homologies from twilight zone Smith-Waterman analysis
+    </p>
     <p>
-        This site presents protein sequence relationships that appear to have been missed by standard annotation pipelines. 
+      This site presents protein sequence relationships that appear to have been missed by standard annotation pipelines. 
         They were identified through an all-on-all Smith-Waterman comparison of UniProt Swiss-Prot (~570,000 sequences), 
         filtered to remove known relationships, and manually curated for biological significance.
     </p>
-
     <p>
-        The focus is on "twilight zone" similarities (15–30% identity, scores 140–300) where genuine homology 
+      The focus is on "twilight zone" similarities (15–30% identity, scores 140–300) where genuine homology 
         is often obscured by sequence divergence or compositional bias. Standard tools tend to dismiss these 
         as noise; careful analysis reveals that many represent deep evolutionary relationships or annotation omissions.
     </p>
-
     <a href="match_explorer.html" class="cta">Browse the findings →</a>
-
     <h2>What's here</h2>
     <p>
-        <strong>6,579 candidate protein pairs</strong> after automated filtering, of which approximately 20 
+      <strong>6,579 candidate protein pairs</strong>
+      after automated filtering, of which approximately 20 
         have been identified as warranting annotation updates or representing novel biological insights. Examples include:
     </p>
     <ul>
-        <li>A honeybee "membrane protein" that is like a secreted neuropeptide (missing signal peptide annotation)</li>
-        <li>An orphan yeast protein revealed to contain a rhomboid protease domain</li>
-        <li>Deep homology between coral skeletal proteins and human inner-ear structural proteins</li>
-        <li>Missing domain annotations in fungal biosynthetic enzymes</li>
+      <li>
+        A honeybee "membrane protein" that is like a secreted neuropeptide (missing signal peptide annotation)
+      </li>
+      <li>
+        An orphan yeast protein revealed to contain a rhomboid protease domain
+      </li>
+      <li>
+        Deep homology between coral skeletal proteins and human inner-ear structural proteins
+      </li>
+      <li>Missing domain annotations in fungal biosynthetic enzymes</li>
     </ul>
-
     <h2>Sample alignment</h2>
     <div class="findings-preview">
-P85828-E2ADG2 s(654)  Length: 314/205
+      P85828-E2ADG2 s(654)  Length: 314/205
  P85828: Prohormone-3; Apis mellifera (Honeybee).
  E2ADG2: ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).
 
@@ -138,25 +142,27 @@ P85828-E2ADG2 s(654)  Length: 314/205
    299  GQGNRIFKR
         |||||.|||
    193  GQGNRLFKR
-
     </div>
     <p style="font-size: 0.9rem; color: var(--muted);">
-        The region annotated as "transmembrane" in P85828 (positions 90–112) aligns perfectly with 
+      The region annotated as "transmembrane" in P85828 (positions 90–112) aligns perfectly with 
         the signal peptide of the ant ortholog—indicating P85828 is secreted, not membrane-bound.
     </p>
-
     <div class="links">
-        <a href="https://github.com/JamesCrook/seqquest">GitHub</a>
-        <a href="https://github.com/JamesCrook/seqquest/findings/METHODS.md">Methods</a>
-        <a href="https://github.com/JamesCrook/seqquest/findings/proposed_updates.md">Proposed UniProt updates</a>
-        <a href="[ZENODO_DOI_URL]">Cite (Zenodo DOI)</a>
+      <a href="https://github.com/JamesCrook/seqquest">GitHub</a>
+      <a href="https://github.com/JamesCrook/seqquest/findings/METHODS.md">
+        Methods
+      </a>
+      <a href="https://github.com/JamesCrook/seqquest/findings/proposed_updates.md">
+        Proposed UniProt updates
+      </a>
+      <a href="[ZENODO_DOI_URL]">Cite (Zenodo DOI)</a>
     </div>
-
     <footer>
-        <p>
-            [Your name] · [Year]<br>
-            Contact: [email or link]
-        </p>
+      <p>
+        [Your name] · [Year]
+        <br>
+        Contact: [email or link]
+      </p>
     </footer>
-</body>
+  </body>
 </html>

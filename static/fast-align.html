@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sequence Alignment Demo</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="lcars.css">
     <link rel="icon" href="./wheel.ico">
-    <script src="./sw_support.js"></script>    
+    <script src="./sw_support.js"></script>
     <script src="./lcars.js"></script>
     <script src="./vector2d.js"></script>
     <script src="./help.js"></script>
     <style>
-        .demo-layout {
+    .demo-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
@@ -49,49 +49,52 @@
             font-size: 0.8rem;
         }
     </style>
-</head>
-<body class="app-root">
+  </head>
+  <body class="app-root">
     <div class="container explorer-layout">
-        <div class="panel-tight flex-fill">
-            <div class="panel-header">
-                <span class="panel-title">Sequence Input</span>
-            </div>
-            <div class="flex-col flex-fill scroll-y">
-                <div class="demo-padding">
-                    <div class="input-area">
-                        <label class="sequence-label">Sequence 1</label>
-                        <textarea id="seq1">MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA</textarea>
-
-                        <label class="sequence-label">Sequence 2</label>
-                        <textarea id="seq2">MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG</textarea>
-                    </div>
-
-                    <div class="controls" style="margin-top: 20px;">
-                        <button id="alignServerBtn" onclick="runAlign('server')">Align on Server (API)</button>
-                        <button id="alignJsBtn" onclick="runAlign('js')">Align Client (JS)</button>
-                        <button id="alignWasmBtn" onclick="runAlign('wasm')">Align Client (WASM)</button>
-                    </div>
-                    <div id="perfResult" class="benchmark"></div>
-                </div>
-
-                <div class="panel-header">
-                    <span class="panel-title">Alignment Result</span>
-                </div>
-                <div class="demo-padding">
-                    <div id="alignmentViewer" class="alignment-viewer-container">
-                        <div class="empty-state">
-                            <span>No alignment generated</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="panel-tight flex-fill">
+        <div class="panel-header">
+          <span class="panel-title">Sequence Input</span>
         </div>
+        <div class="flex-col flex-fill scroll-y">
+          <div class="demo-padding">
+            <div class="input-area">
+              <label class="sequence-label">Sequence 1</label>
+              <textarea id="seq1">
+                MKLLVILLFSALALAAQKPGGAPTTSLIGNESRSDQPSTVAAA
+              </textarea>
+              <label class="sequence-label">Sequence 2</label>
+              <textarea id="seq2">MVTAQKPGGAPTTQLLGNESRSDQPSTVGGG</textarea>
+            </div>
+            <div class="controls" style="margin-top: 20px;">
+              <button id="alignServerBtn" onclick="runAlign('server')">
+                Align on Server (API)
+              </button>
+              <button id="alignJsBtn" onclick="runAlign('js')">
+                Align Client (JS)
+              </button>
+              <button id="alignWasmBtn" onclick="runAlign('wasm')">
+                Align Client (WASM)
+              </button>
+            </div>
+            <div id="perfResult" class="benchmark">
+            </div>
+          </div>
+          <div class="panel-header">
+            <span class="panel-title">Alignment Result</span>
+          </div>
+          <div class="demo-padding">
+            <div id="alignmentViewer" class="alignment-viewer-container">
+              <div class="empty-state">
+                <span>No alignment generated</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-
     <script>
-
-
-        // Initialize WASM on load
+    // Initialize WASM on load
         initWasm().then(success => {
             if (success) {
                 document.getElementById('statusText').textContent += " + WASM Ready";
@@ -230,5 +233,5 @@
             new LcarsHeader("Align Sequences", helpConfig);
         })
     </script>
-</body>
+  </body>
 </html>

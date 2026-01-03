@@ -1,53 +1,57 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">    
+  <head>
+    <meta charset="UTF-8">
     <title>Job Management</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
-</head>
-<body>
-  <div class="flex-col flex-fill">  
-    <div class="panel" id="controls">
-      <div id="job-specific-controls" style="display: inline-block;">
-        <button onclick="addJob()">Add Job</button>
-        <button id="startButton" onclick="startJob()" disabled="">Start</button>
-        <button id="pauseButton" onclick="pauseJob()" disabled="">Pause</button>
-        <button id="resumeButton" onclick="resumeJob()" disabled="">
-          Resume
-        </button>
-        <button id="configureButton" onclick="configureJob()" disabled="">
-          Configure
-        </button>
-      </div>
-    </div>
-    <div class="panel" id="pollControl">
-      <label>
-        Poll Interval:
-        <select id="pollInterval" onchange="updatePollInterval()">
-          <option value="0">Manual Only</option>
-          <option value="500">0.5 seconds</option>
-          <option value="1000" selected="">1 second</option>
-          <option value="5000">5 seconds</option>
-          <option value="10000">10 seconds</option>
-        </select>
-      </label>
-      <span id="pollStatus">Polling: Active</span>
-    </div>
-    <div class="panel" id="main-content">
-      <div id="jobList">
-        <h3>Jobs</h3>
-        <div id="jobs">
+  </head>
+  <body>
+    <div class="flex-col flex-fill">
+      <div class="panel" id="controls">
+        <div id="job-specific-controls" style="display: inline-block;">
+          <button onclick="addJob()">Add Job</button>
+          <button id="startButton" onclick="startJob()" disabled="">
+            Start
+          </button>
+          <button id="pauseButton" onclick="pauseJob()" disabled="">
+            Pause
+          </button>
+          <button id="resumeButton" onclick="resumeJob()" disabled="">
+            Resume
+          </button>
+          <button id="configureButton" onclick="configureJob()" disabled="">
+            Configure
+          </button>
         </div>
       </div>
-      <div id="job-details">
+      <div class="panel" id="pollControl">
+        <label>
+          Poll Interval:
+          <select id="pollInterval" onchange="updatePollInterval()">
+            <option value="0">Manual Only</option>
+            <option value="500">0.5 seconds</option>
+            <option value="1000" selected="">1 second</option>
+            <option value="5000">5 seconds</option>
+            <option value="10000">10 seconds</option>
+          </select>
+        </label>
+        <span id="pollStatus">Polling: Active</span>
+      </div>
+      <div class="panel" id="main-content">
+        <div id="jobList">
+          <h3>Jobs</h3>
+          <div id="jobs">
+          </div>
+        </div>
+        <div id="job-details">
+        </div>
+      </div>
+      <div class="panel flex-fill" id="log-container">
+        <h3>Log</h3>
+        <div id="log">
+        </div>
       </div>
     </div>
-    <div class="panel flex-fill" id="log-container">
-      <h3>Log</h3>
-      <div id="log">
-      </div>
-    </div>
-  </div>
-</body>
+  </body>
 </html>

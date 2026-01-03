@@ -1,70 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protein Texture Map: Ribbon & Composition</title>
     <link rel="stylesheet" type="text/css" href="./style.css">
-
     <link rel="stylesheet" href="./proteins.css">
-    <link rel="icon" href="./wheel.ico">    
+    <link rel="icon" href="./wheel.ico">
     <script src="./proteins.js"></script>
     <script src="./lcars.js"></script>
     <script src="./vector2d.js"></script>
     <script src="./help.js"></script>
-
-
-</head>
-<body class="app-root">
-
-<div class="bias-container">
-    <div class="bias-controls">
-        <label for="sequenceInput" class="bias-input-label">Protein Sequence:</label>
+  </head>
+  <body class="app-root">
+    <div class="bias-container">
+      <div class="bias-controls">
+        <label for="sequenceInput" class="bias-input-label">
+          Protein Sequence:
+        </label>
         <!-- Added oninput for immediate rendering -->
-        <textarea id="sequenceInput" class="bias-textarea" spellcheck="false" oninput="updateVisualization()">SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK</textarea>
-        
+        <textarea id="sequenceInput" class="bias-textarea" spellcheck="false" oninput="updateVisualization()">
+          SDSTESPRSDSTDEVLTDVQADSADVTSDDMDEATETDKDDDKSDDKSDADAATDKDDSDEDKDTELDGK
+        </textarea>
         <div class="bias-settings">
-            <button class="bias-button" onclick="updateVisualization()">Render Sequence</button>
-            <label class="bias-input-label"><input type="checkbox" id="showSeparators" checked onchange="updateVisualization()"> Show Ribbon Separators</label>
-            <label class="bias-input-label" title="Matches residues based on proximity in the canonical list (G A T S D E...)"><input type="checkbox" id="useChemicalSim" checked onchange="updateVisualization()"> Use Chemical Similarity</label>
-            
-            <label class="bias-input-label" title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
-                Mosaic Smoothing: 
-                <!-- Slider extended to 24 -->
-                <input type="range" id="mosaicWindow" class="bias-slider" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
-                <span id="mosaicVal" style="font-weight:bold; width:20px;">5</span>
-            </label>
+          <button class="bias-button" onclick="updateVisualization()">
+            Render Sequence
+          </button>
+          <label class="bias-input-label">
+            <input type="checkbox" id="showSeparators" checked="" onchange="updateVisualization()">
+            Show Ribbon Separators
+          </label>
+          <label class="bias-input-label" title="Matches residues based on proximity in the canonical list (G A T S D E...)">
+            <input type="checkbox" id="useChemicalSim" checked="" onchange="updateVisualization()">
+            Use Chemical Similarity
+          </label>
+          <label class="bias-input-label" title="Adjust the smoothing window for the Mosaic (No-Pattern) view">
+            Mosaic Smoothing:
+            <!-- Slider extended to 24 -->
+            <input type="range" id="mosaicWindow" class="bias-slider" min="1" max="24" value="5" oninput="document.getElementById('mosaicVal').innerText = this.value; updateVisualization()">
+            <span id="mosaicVal" style="font-weight:bold; width:20px;">5</span>
+          </label>
         </div>
-
         <div class="bias-toggles">
-            <strong>Detect Periods:</strong>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="2" unchecked onchange="updateVisualization()"> 2</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="3" unchecked onchange="updateVisualization()"> 3</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="4" unchecked onchange="updateVisualization()"> 4</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="5" unchecked onchange="updateVisualization()"> 5</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="6" unchecked onchange="updateVisualization()"> 6</label>
-            <label class="bias-input-label"><input type="checkbox" class="period-toggle" value="7" unchecked onchange="updateVisualization()"> 7</label>
+          <strong>Detect Periods:</strong>
+          <label class="bias-input-label">
+            <input type="checkbox" class="period-toggle" value="2" unchecked="" onchange="updateVisualization()">
+            2
+          </label>
+          <label class="bias-input-label">
+            <input type="checkbox" class="period-toggle" value="3" unchecked="" onchange="updateVisualization()">
+            3
+          </label>
+          <label class="bias-input-label">
+            <input type="checkbox" class="period-toggle" value="4" unchecked="" onchange="updateVisualization()">
+            4
+          </label>
+          <label class="bias-input-label">
+            <input type="checkbox" class="period-toggle" value="5" unchecked="" onchange="updateVisualization()">
+            5
+          </label>
+          <label class="bias-input-label">
+            <input type="checkbox" class="period-toggle" value="6" unchecked="" onchange="updateVisualization()">
+            6
+          </label>
+          <label class="bias-input-label">
+            <input type="checkbox" class="period-toggle" value="7" unchecked="" onchange="updateVisualization()">
+            7
+          </label>
         </div>
-    </div>
-
-    <div class="bias-canvas-wrapper" id="canvasContainer">
+      </div>
+      <div class="bias-canvas-wrapper" id="canvasContainer">
         <div class="bias-label">Literal Sequence (1:1)</div>
-        <canvas id="literalCanvas" class="bias-canvas" height="15"></canvas>
-        
+        <canvas id="literalCanvas" class="bias-canvas" height="15">
+        </canvas>
         <div class="bias-label">Texture Map (Ribbon / Sorted Stack)</div>
-        <canvas id="textureCanvas" class="bias-canvas" height="40"></canvas>
-
+        <canvas id="textureCanvas" class="bias-canvas" height="40">
+        </canvas>
         <div class="bias-label">Detected Periodicity (0-7)</div>
-        <canvas id="periodCanvas" class="bias-canvas" height="15"></canvas>
+        <canvas id="periodCanvas" class="bias-canvas" height="15">
+        </canvas>
+      </div>
+      <div class="protein-legend" id="legendContainer">
+      </div>
     </div>
-
-    <div class="protein-legend" id="legendContainer"></div>
-</div>
-
-<!-- Tooltip moved outside container to avoid clipping -->
-<div id="tooltip" class="bias-tooltip"></div>
-
-<script>
+    <!-- Tooltip moved outside container to avoid clipping -->
+    <div id="tooltip" class="bias-tooltip">
+    </div>
+    <script>
     // --- Configuration ---
     // Now using ProteinStyle from proteins.js
 
@@ -369,9 +391,7 @@
              }
         ];
         new LcarsHeader("Protein Sequence Bias Map", helpConfig);
-    })    
-
-</script>
-
-</body>
+    })
+    </script>
+  </body>
 </html>

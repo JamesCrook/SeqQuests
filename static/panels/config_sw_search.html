@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">      
+  <head>
+    <meta charset="UTF-8">
     <title>Configure SW Search Job</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
-</head>
-<body>
-<div class="panel flex-col flex-fill">  
-    <h2>Configure SW Search Job</h2>
-    <form id="config-form">
-      <label for="debug_slot">Debug Slot:</label>
-      <input type="number" id="debug_slot" name="debug_slot" value="-10">
-      <br>
-      <label for="reporting_threshold">Reporting Threshold:</label>
-      <input type="number" id="reporting_threshold" name="reporting_threshold" value="110">
-      <br>
-      <label for="start_at">Start At:</label>
-      <input type="number" id="start_at" name="start_at" value="1000000">
-      <br>
-      <label for="num_seqs">Number of Sequences:</label>
-      <input type="number" id="num_seqs" name="num_seqs" value="10000">
-      <br>
-      <label for="pam_data">Similarity Matrix File:</label>
-      <input type="text" id="pam_data" name="pam_data" value="data/pam250.bin">
-      <br>
-      <label for="fasta_data">FASTA Data File:</label>
-      <input type="text" id="fasta_data" name="fasta_data" value="data/fasta.bin">
-      <br>
-      <br>
-      <button type="button" onclick="saveConfigSearch()">Save Configuration</button>
-    </form>
-    <hr>
-    <h2>Job Progress</h2>
-    <div class="flex-col flex-fill" id="detailDiv">
-        Lorem Ipsum Delores
+  </head>
+  <body>
+    <div class="panel flex-col flex-fill">
+      <h2>Configure SW Search Job</h2>
+      <form id="config-form">
+        <label for="debug_slot">Debug Slot:</label>
+        <input type="number" id="debug_slot" name="debug_slot" value="-10">
+        <br>
+        <label for="reporting_threshold">Reporting Threshold:</label>
+        <input type="number" id="reporting_threshold" name="reporting_threshold" value="110">
+        <br>
+        <label for="start_at">Start At:</label>
+        <input type="number" id="start_at" name="start_at" value="1000000">
+        <br>
+        <label for="num_seqs">Number of Sequences:</label>
+        <input type="number" id="num_seqs" name="num_seqs" value="10000">
+        <br>
+        <label for="pam_data">Similarity Matrix File:</label>
+        <input type="text" id="pam_data" name="pam_data" value="data/pam250.bin">
+        <br>
+        <label for="fasta_data">FASTA Data File:</label>
+        <input type="text" id="fasta_data" name="fasta_data" value="data/fasta.bin">
+        <br>
+        <br>
+        <button type="button" onclick="saveConfigSearch()">
+          Save Configuration
+        </button>
+      </form>
+      <hr>
+      <h2>Job Progress</h2>
+      <div class="flex-col flex-fill" id="detailDiv">Lorem Ipsum Delores</div>
     </div>
-</div>
-<script src="config_sw_search.js"></script>
-<script>
+    <script src="config_sw_search.js"></script>
+    <script>
     if (typeof loadJobConfig === 'function')
         loadJobConfig();
-</script>
-</body>
+    </script>
+  </body>
 </html>

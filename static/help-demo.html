@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Help Demo</title>
     <link rel="icon" href="./wheel.ico">
     <style>
-        body {
+    body {
             font-family: sans-serif;
             background-color: #f0f4f8;
             margin: 0;
@@ -77,50 +77,47 @@
             width: 100%;
         }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div class="header">
-        <h1>Application Dashboard</h1>
-        <button id="help-btn" class="btn-help">Help</button>
+      <h1>Application Dashboard</h1>
+      <button id="help-btn" class="btn-help">Help</button>
     </div>
-
     <div class="main-content">
-        <div class="panel">
-            <h2>Controls</h2>
-            <div style="margin-bottom: 20px;">
-                <label>Volume</label>
-                <input type="range" id="volume-slider" min="0" max="100">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <button id="save-btn" class="btn-primary">Save Settings</button>
-            </div>
+      <div class="panel">
+        <h2>Controls</h2>
+        <div style="margin-bottom: 20px;">
+          <label>Volume</label>
+          <input type="range" id="volume-slider" min="0" max="100">
         </div>
-
-        <div class="panel">
-            <h2>Danger Zone</h2>
-            <p>Be careful with these controls.</p>
-            <button id="delete-btn" class="btn-danger">Delete All Data</button>
+        <div style="margin-bottom: 20px;">
+          <button id="save-btn" class="btn-primary">Save Settings</button>
         </div>
-
-        <div class="panel" style="grid-column: span 2;">
-            <h2>Advanced Features</h2>
-            <p>Additional controls available for power users.</p>
-            <div style="display: flex; gap: 15px;">
-                <button id="adv-btn-1" class="btn-primary">Optimize</button>
-                <button id="adv-btn-2" class="btn-primary">Analyze</button>
-                <button id="adv-btn-3" class="btn-primary">Report</button>
-            </div>
-            <div style="margin-top: 20px;">
-                 <div id="results-area" class="result-box">Analysis Results will appear here</div>
-            </div>
+      </div>
+      <div class="panel">
+        <h2>Danger Zone</h2>
+        <p>Be careful with these controls.</p>
+        <button id="delete-btn" class="btn-danger">Delete All Data</button>
+      </div>
+      <div class="panel" style="grid-column: span 2;">
+        <h2>Advanced Features</h2>
+        <p>Additional controls available for power users.</p>
+        <div style="display: flex; gap: 15px;">
+          <button id="adv-btn-1" class="btn-primary">Optimize</button>
+          <button id="adv-btn-2" class="btn-primary">Analyze</button>
+          <button id="adv-btn-3" class="btn-primary">Report</button>
         </div>
+        <div style="margin-top: 20px;">
+          <div id="results-area" class="result-box">
+            Analysis Results will appear here
+          </div>
+        </div>
+      </div>
     </div>
-
     <script src="vector2d.js"></script>
     <script src="help.js"></script>
     <script>
-        const helpConfig = [
+    const helpConfig = [
             {
                 items: [
                     {
@@ -180,5 +177,5 @@
             }
         });
     </script>
-</body>
+  </body>
 </html>

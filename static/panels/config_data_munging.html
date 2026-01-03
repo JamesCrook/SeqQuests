@@ -1,60 +1,62 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">    
+  <head>
+    <meta charset="UTF-8">
     <title>Configure Data Munging Job</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
-</head>
-<body>
-<div class="panel flex-fill">
-    <h2>Configure Data Munging Job</h2>
-    <form id="config-form">
-      <label>Select Organisms:</label>
-      <div id="organisms-checkboxes">
-        <label>
-          <input type="checkbox" id="human" name="organisms" value="human">
-          Human
-        </label>
+  </head>
+  <body>
+    <div class="panel flex-fill">
+      <h2>Configure Data Munging Job</h2>
+      <form id="config-form">
+        <label>Select Organisms:</label>
+        <div id="organisms-checkboxes">
+          <label>
+            <input type="checkbox" id="human" name="organisms" value="human">
+            Human
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" id="rat" name="organisms" value="rat">
+            Rat
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" id="ecoli" name="organisms" value="ecoli">
+            E. coli
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" id="yeast" name="organisms" value="yeast">
+            Yeast
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" id="chicken" name="organisms" value="chicken">
+            Chicken
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" id="mouse" name="organisms" value="mouse">
+            Mouse
+          </label>
+          <br>
+        </div>
         <br>
-        <label>
-          <input type="checkbox" id="rat" name="organisms" value="rat">
-          Rat
-        </label>
-        <br>
-        <label>
-          <input type="checkbox" id="ecoli" name="organisms" value="ecoli">
-          E. coli
-        </label>
-        <br>
-        <label>
-          <input type="checkbox" id="yeast" name="organisms" value="yeast">
-          Yeast
-        </label>
-        <br>
-        <label>
-          <input type="checkbox" id="chicken" name="organisms" value="chicken">
-          Chicken
-        </label>
-        <br>
-        <label>
-          <input type="checkbox" id="mouse" name="organisms" value="mouse">
-          Mouse
-        </label>
-        <br>
+        <button type="button" onclick="saveConfigMunging()">
+          Save Configuration
+        </button>
+      </form>
+      <hr>
+      <h2>Job Progress</h2>
+      <div id="detailDiv">
       </div>
-      <br>
-      <button type="button" onclick="saveConfigMunging()">Save Configuration</button>
-    </form>
-    <hr>
-    <h2>Job Progress</h2>
-    <div id="detailDiv">
     </div>
-</div>
-<script src="config_data_munging.js"></script>
-<script>
+    <script src="config_data_munging.js"></script>
+    <script>
     if (typeof loadJobConfig === 'function')
         loadJobConfig();
-</script>
-</body>
+    </script>
+  </body>
 </html>

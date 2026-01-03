@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">      
+  <head>
+    <meta charset="UTF-8">
     <title>Protein Alignments</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
-</head>
-<body>
-<div class="flex-col flex-fill">
-    <div class="panel-header">
+  </head>
+  <body>
+    <div class="flex-col flex-fill">
+      <div class="panel-header">
         <div class="panel-title">Protein Alignments</div>
         <div class="button-holder">
-            <label for="sources">Source:</label>
-            <select name="sources" onchange="newSource(this.value)" id="sources">
-              <option value="distilled">Distilled</option>
-              <option value="standard">Standard</option>
-              <option value="biased">Biased</option>
-            </select>            
-            <button id="multiscrollBtn" onclick="toggleMultiscroller()" class="job-button">Multiscroll: OFF</button>
-            <div class="panel-badge" id="entriesCount">14 entries</div>
+          <label for="sources">Source:</label>
+          <select name="sources" onchange="newSource(this.value)" id="sources">
+            <option value="distilled">Distilled</option>
+            <option value="standard">Standard</option>
+            <option value="biased">Biased</option>
+          </select>
+          <button id="multiscrollBtn" onclick="toggleMultiscroller()" class="job-button">
+            Multiscroll: OFF
+          </button>
+          <div class="panel-badge" id="entriesCount">14 entries</div>
         </div>
-    </div>
-    <div class="findings-list scroll-y" id="findingsList">
+      </div>
+      <div class="findings-list scroll-y" id="findingsList">
         <!-- Findings will be populated here -->
+      </div>
     </div>
-</div>
-</body>
+  </body>
 </html>

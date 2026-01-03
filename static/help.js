@@ -1,56 +1,75 @@
 /* global Vector2D */
 
 class HelpOverlay {
-    /**
-     * @param {Array|Object} config - Configuration object or array of configuration objects for multi-step help.
-     * Each config object should have an 'items' array.
-     * Item structure: { text: string, targetId: string, type: string }
-     * 'type' can be 'default', 'warning', or 'results'. If omitted, defaults to 'default'.
-     */
-    constructor(config) {
-        this.config = Array.isArray(config) ? config : (config ? [config] : []);
-        this.currentStepIndex = 0;
+  /**
+   * @param {Array|Object} config - Configuration object or array of configuration objects for multi-step help.
+   * Each config object should have an 'items' array.
+   * Item structure: { text: string, targetId: string, type: string }
+   * 'type' can be 'default', 'warning', or 'results'. If omitted, defaults to 'default'.
+   */
+  constructor(config) {
+    this.config = Array.isArray(config) ? config : (config ? [config] : []);
+    this.currentStepIndex = 0;
 
-        // Named arrow types
-        this.ARROW_STYLES = {
-            default: {
-                color: '#10b981',
-                arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
-            },
-            warning: {
-                color: '#d92010',
-                arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4 }
-            },
-            results: {
-                color: '#9333ea', // Purple
-                arrow: { extendHead: 5, extendTail: -7, tailSize: 5, headSize: 15, width: 4, dash: [4, 4] }
-            }
-        };
+    // Named arrow types
+    this.ARROW_STYLES = {
+      default: {
+        color: '#10b981',
+        arrow: {
+          extendHead: 5,
+          extendTail: -7,
+          tailSize: 5,
+          headSize: 15,
+          width: 4
+        }
+      },
+      warning: {
+        color: '#d92010',
+        arrow: {
+          extendHead: 5,
+          extendTail: -7,
+          tailSize: 5,
+          headSize: 15,
+          width: 4
+        }
+      },
+      results: {
+        color: '#9333ea', // Purple
+        arrow: {
+          extendHead: 5,
+          extendTail: -7,
+          tailSize: 5,
+          headSize: 15,
+          width: 4,
+          dash: [4, 4]
+        }
+      }
+    };
 
-        // Canvas setup
-        this.canvas = document.createElement('canvas');
-        this.canvas.style.position = 'fixed';
-        this.canvas.style.top = '0';
-        this.canvas.style.left = '0';
-        this.canvas.style.pointerEvents = 'none';
-        this.canvas.style.zIndex = '9999';
-        this.ctx = this.canvas.getContext('2d');
+    // Canvas setup
+    this.canvas = document.createElement('canvas');
+    this.canvas.style.position = 'fixed';
+    this.canvas.style.top = '0';
+    this.canvas.style.left = '0';
+    this.canvas.style.pointerEvents = 'none';
+    this.canvas.style.zIndex = '9999';
+    this.ctx = this.canvas.getContext('2d');
 
-        this.connections = [];
-        this.animating = false;
+    this.connections = [];
+    this.animating = false;
 
-        this.resizeCanvas = this.resizeCanvas.bind(this);
-        this.draw = this.draw.bind(this);
+    this.resizeCanvas = this.resizeCanvas.bind(this);
+    this.draw = this.draw.bind(this);
 
-        this.initUI();
-    }
+    this.initUI();
+  }
 
-    initUI() {
-        // Inject styles if not present
-        if (!document.getElementById('help-overlay-styles')) {
-            const style = document.createElement('style');
-            style.id = 'help-overlay-styles';
-            style.textContent = `
+  initUI() {
+    // Inject styles if not present
+    if(!document.getElementById('help-overlay-styles')) {
+      const style = document.createElement('style');
+      style.id = 'help-overlay-styles';
+      style.textContent = `
                 .help-overlay-container {
                     position: fixed;
                     top: 0;
@@ -139,452 +158,468 @@ class HelpOverlay {
                     background: #cbd5e1;
                 }
             `;
-            document.head.appendChild(style);
+      document.head.appendChild(style);
+    }
+
+    // Create Container
+    this.container = document.createElement('div');
+    this.container.className = 'help-overlay-container';
+
+    // Create Organizer
+    this.organizer = document.createElement('div');
+    this.organizer.className = 'help-organizer';
+
+    // X Close Button
+    const xBtn = document.createElement('div');
+    xBtn.className = 'help-close-x';
+    xBtn.innerHTML = '×';
+    xBtn.onclick = () => this.stop();
+    this.organizer.appendChild(xBtn);
+
+    // Content Area
+    this.contentDiv = document.createElement('div');
+    this.contentDiv.className = 'help-content';
+    this.organizer.appendChild(this.contentDiv);
+
+    // Footer
+    this.footer = document.createElement('div');
+    this.footer.className = 'help-footer';
+
+    this.nextBtn = document.createElement('button');
+    this.nextBtn.className = 'help-btn help-btn-next';
+    this.nextBtn.textContent = 'Next';
+    this.nextBtn.onclick = () => this.nextStep();
+    this.footer.appendChild(this.nextBtn);
+
+    this.closeBtn = document.createElement('button');
+    this.closeBtn.className = 'help-btn help-btn-close';
+    this.closeBtn.textContent = 'Close';
+    this.closeBtn.onclick = () => this.stop();
+    this.footer.appendChild(this.closeBtn);
+
+    this.organizer.appendChild(this.footer);
+    this.container.appendChild(this.organizer);
+
+    document.body.appendChild(this.container);
+
+    // Make organizer draggable
+    this.makeDraggable(this.organizer);
+
+    // Add canvas
+    document.body.appendChild(this.canvas);
+    window.addEventListener('resize', this.resizeCanvas);
+    this.resizeCanvas();
+    window.DoHelp = () => {
+      this.start();
+    };
+  }
+
+  isVisible(b) {
+    return b && (
+      b.bottom > 0 && b.top < window.innerHeight &&
+      b.right > 0 && b.left < window.innerWidth
+    );
+  }
+
+  // Helper method
+  getVisibleArea(b) {
+    const visibleTop = Math.max(0, b.top);
+    const visibleBottom = Math.min(window.innerHeight, b.bottom);
+    const visibleLeft = Math.max(0, b.left);
+    const visibleRight = Math.min(window.innerWidth, b.right);
+
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+
+    return visibleHeight * visibleWidth;
+  }
+
+  renderStep(index) {
+    if(index < 0 || index >= this.config.length) return;
+
+    const stepConfig = this.config[index];
+    this.contentDiv.innerHTML = '';
+    this.connections = [];
+
+    if(stepConfig.items) {
+      stepConfig.items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'help-item';
+        el.innerHTML = item.text || '';
+        this.contentDiv.appendChild(el);
+
+        let sourceEl = el;
+        // If text starts with <strong>, use that as the source
+        const firstChild = el.firstElementChild;
+        if(firstChild && firstChild.tagName === 'STRONG') {
+          // Check if it's really at the start (ignoring whitespace)
+          // But checking firstElementChild is usually sufficient if structure is strictly <strong>...</strong>...
+          sourceEl = firstChild;
         }
 
-        // Create Container
-        this.container = document.createElement('div');
-        this.container.className = 'help-overlay-container';
+        let targetEl = null;
+        if(item.targetId) {
+          targetEl = document.getElementById(item.targetId);
+        } else if(item.targetSelector) {
+          const els = document.querySelectorAll(item.targetSelector);
+          // Find the element with maximum visible area
+          let maxVisibleArea = 0;
 
-        // Create Organizer
-        this.organizer = document.createElement('div');
-        this.organizer.className = 'help-organizer';
+          for(const el of els) {
+            const box = this.getElementBox(el);
+            if(!box) continue;
 
-        // X Close Button
-        const xBtn = document.createElement('div');
-        xBtn.className = 'help-close-x';
-        xBtn.innerHTML = '×';
-        xBtn.onclick = () => this.stop();
-        this.organizer.appendChild(xBtn);
-
-        // Content Area
-        this.contentDiv = document.createElement('div');
-        this.contentDiv.className = 'help-content';
-        this.organizer.appendChild(this.contentDiv);
-
-        // Footer
-        this.footer = document.createElement('div');
-        this.footer.className = 'help-footer';
-
-        this.nextBtn = document.createElement('button');
-        this.nextBtn.className = 'help-btn help-btn-next';
-        this.nextBtn.textContent = 'Next';
-        this.nextBtn.onclick = () => this.nextStep();
-        this.footer.appendChild(this.nextBtn);
-
-        this.closeBtn = document.createElement('button');
-        this.closeBtn.className = 'help-btn help-btn-close';
-        this.closeBtn.textContent = 'Close';
-        this.closeBtn.onclick = () => this.stop();
-        this.footer.appendChild(this.closeBtn);
-
-        this.organizer.appendChild(this.footer);
-        this.container.appendChild(this.organizer);
-
-        document.body.appendChild(this.container);
-
-        // Make organizer draggable
-        this.makeDraggable(this.organizer);
-
-        // Add canvas
-        document.body.appendChild(this.canvas);
-        window.addEventListener('resize', this.resizeCanvas);
-        this.resizeCanvas();
-        window.DoHelp = () => {
-            this.start();
-        };       
-    }
-
-    isVisible(b) {
-        return b && (
-            b.bottom > 0 && b.top < window.innerHeight &&
-            b.right > 0 && b.left < window.innerWidth
-        );
-    }
-
-    // Helper method
-    getVisibleArea(b) {
-        const visibleTop = Math.max(0, b.top);
-        const visibleBottom = Math.min(window.innerHeight, b.bottom);
-        const visibleLeft = Math.max(0, b.left);
-        const visibleRight = Math.min(window.innerWidth, b.right);
-        
-        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-        const visibleWidth = Math.max(0, visibleRight - visibleLeft);
-        
-        return visibleHeight * visibleWidth;
-    }    
-
-    renderStep(index) {
-        if (index < 0 || index >= this.config.length) return;
-
-        const stepConfig = this.config[index];
-        this.contentDiv.innerHTML = '';
-        this.connections = [];
-
-        if (stepConfig.items) {
-            stepConfig.items.forEach(item => {
-                const el = document.createElement('div');
-                el.className = 'help-item';
-                el.innerHTML = item.text || '';
-                this.contentDiv.appendChild(el);
-
-                let sourceEl = el;
-                // If text starts with <strong>, use that as the source
-                const firstChild = el.firstElementChild;
-                if (firstChild && firstChild.tagName === 'STRONG') {
-                    // Check if it's really at the start (ignoring whitespace)
-                    // But checking firstElementChild is usually sufficient if structure is strictly <strong>...</strong>...
-                    sourceEl = firstChild;
-                }
-
-                let targetEl = null;
-                if (item.targetId) {
-                    targetEl = document.getElementById(item.targetId);
-                } else if (item.targetSelector) {
-                    const els = document.querySelectorAll(item.targetSelector);
-                    // Find the element with maximum visible area
-                    let maxVisibleArea = 0;
-
-                    for (const el of els) {
-                        const box = this.getElementBox(el);
-                        if (!box) continue;
-                        
-                        const visibleArea = this.getVisibleArea(box);
-                        if (visibleArea > maxVisibleArea) {
-                            maxVisibleArea = visibleArea;
-                            targetEl = el;
-                        }
-                    }
-                }
-
-                if (targetEl) {
-                    // Resolve style
-                    const styleKey = item.type || 'default';
-                    const styleConfig = this.ARROW_STYLES[styleKey] || this.ARROW_STYLES.default;
-
-                    this.connections.push({
-                        from: sourceEl,
-                        to: targetEl,
-                        color: styleConfig.color,
-                        arrow: styleConfig.arrow
-                    });
-                }
-            });
+            const visibleArea = this.getVisibleArea(box);
+            if(visibleArea > maxVisibleArea) {
+              maxVisibleArea = visibleArea;
+              targetEl = el;
+            }
+          }
         }
 
-        // Handle Next Button visibility
-        if (index < this.config.length - 1) {
-            this.nextBtn.style.display = 'block';
-        } else {
-            this.nextBtn.style.display = 'none';
+        if(targetEl) {
+          // Resolve style
+          const styleKey = item.type || 'default';
+          const styleConfig = this.ARROW_STYLES[styleKey] || this
+            .ARROW_STYLES.default;
+
+          this.connections.push({
+            from: sourceEl,
+            to: targetEl,
+            color: styleConfig.color,
+            arrow: styleConfig.arrow
+          });
         }
+      });
     }
 
-    nextStep() {
-        if (this.currentStepIndex < this.config.length - 1) {
-            this.currentStepIndex++;
-            this.renderStep(this.currentStepIndex);
-        } else {
-            this.stop();
-        }
+    // Handle Next Button visibility
+    if(index < this.config.length - 1) {
+      this.nextBtn.style.display = 'block';
+    } else {
+      this.nextBtn.style.display = 'none';
+    }
+  }
+
+  nextStep() {
+    if(this.currentStepIndex < this.config.length - 1) {
+      this.currentStepIndex++;
+      this.renderStep(this.currentStepIndex);
+    } else {
+      this.stop();
+    }
+  }
+
+  start() {
+    this.container.style.display = 'block';
+    this.currentStepIndex = 0;
+    this.renderStep(0);
+
+    // Ensure canvas size is correct
+    this.resizeCanvas();
+
+    if(!this.animating) {
+      this.animating = true;
+      this.draw();
+    }
+  }
+
+  stop() {
+    this.container.style.display = 'none';
+    this.animating = false;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  resizeCanvas() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+  }
+
+  getElementBox(el) {
+    if(!el) return null;
+    if(el.offsetParent === null && el.style.position !== 'fixed')
+  return null; // Simple visibility check
+
+    const rect = el.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
+      center: new Vector2D(rect.left + rect.width / 2, rect.top + rect
+        .height / 2),
+      pos: new Vector2D(rect.left, rect.top),
+      size: new Vector2D(rect.width, rect.height)
+    };
+  }
+
+  getNearestPoints(box1, box2) {
+    // First approximation: clamp box2 center to box1
+    let p1 = this.clampToBox(box2.center, box1);
+
+    // Second: clamp p1 to box2 to get p2
+    let p2 = this.clampToBox(p1, box2);
+
+    // Refine p1: clamp p2 back to box1
+    p1 = this.clampToBox(p2, box1);
+
+    return {
+      p1,
+      p2
+    };
+  }
+
+  /**
+   * Find target point that is inside box2 but outside excludeBox, trying four cardinal directions from sourceCenter.
+   * Returns { p1, p2 } where p2 is inside box2 and outside excludeBox, and p1 is nearest point on box1 to p2.
+   * Returns null if no valid direction found.
+   */
+  findExternalTargetPoint(box1, box2, excludeBox, margin = 10) {
+    const sourceCenter = box1.center;
+
+    // Expanded excludeBox with margin
+    const expanded = {
+      left: excludeBox.left - margin,
+      right: excludeBox.right + margin,
+      top: excludeBox.top - margin,
+      bottom: excludeBox.bottom + margin
+    };
+
+    // If source center is not inside the expanded excludeBox, this method doesn't apply
+    if(!this.isInsideBox(sourceCenter, expanded))
+      return null;
+
+    // Four cardinal directions
+    const directions = [
+      new Vector2D(0, -1), // up
+      new Vector2D(0, 1), // down
+      new Vector2D(-1, 0), // left
+      new Vector2D(1, 0) // right
+    ];
+
+    // Collect all valid exit points
+    const candidates = [];
+
+    for(const dir of directions) {
+      const exitPoint = this.rayBoxExit(sourceCenter, dir, expanded);
+      if(!exitPoint) continue;
+
+      // Check if this exit point is inside box2
+      if(this.isInsideBox(exitPoint, box2)) {
+        candidates.push(exitPoint);
+      }
     }
 
-    start() {
-        this.container.style.display = 'block';
-        this.currentStepIndex = 0;
-        this.renderStep(0);
+    // Now find the best candidate (shortest arrow)
+    let bestResult = null;
+    let bestDist = 2000;
 
-        // Ensure canvas size is correct
-        this.resizeCanvas();
+    for(const p2 of candidates) {
+      const p1 = this.clampToBox(p2, box1);
+      const dist = p1.sub(p2).length;
 
-        if (!this.animating) {
-            this.animating = true;
-            this.draw();
-        }
-    }
-
-    stop() {
-        this.container.style.display = 'none';
-        this.animating = false;
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-
-    resizeCanvas() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-    }
-
-    getElementBox(el) {
-        if (!el) return null;
-        if (el.offsetParent === null && el.style.position !== 'fixed') return null; // Simple visibility check
-
-        const rect = el.getBoundingClientRect();
-        return {
-            left: rect.left,
-            top: rect.top,
-            right: rect.right,
-            bottom: rect.bottom,
-            width: rect.width,
-            height: rect.height,
-            center: new Vector2D(rect.left + rect.width / 2, rect.top + rect.height / 2),
-            pos: new Vector2D(rect.left, rect.top),
-            size: new Vector2D(rect.width, rect.height)
+      if(dist < bestDist) {
+        bestDist = dist;
+        bestResult = {
+          p1,
+          p2
         };
+      }
     }
 
-    getNearestPoints(box1, box2) {
-        // First approximation: clamp box2 center to box1
-        let p1 = this.clampToBox(box2.center, box1);
+    return bestResult;
+  }
 
-        // Second: clamp p1 to box2 to get p2
-        let p2 = this.clampToBox(p1, box2);
+  /**
+   * Test if a point is inside a box
+   */
+  isInsideBox(point, box) {
+    return point.x >= box.left && point.x <= box.right &&
+      point.y >= box.top && point.y <= box.bottom;
+  }
 
-        // Refine p1: clamp p2 back to box1
-        p1 = this.clampToBox(p2, box1);
+  /**
+   * Find where a ray from origin in direction dir exits the box.
+   * Returns the exit point or null if origin is outside box.
+   */
+  rayBoxExit(origin, dir, box) {
+    if(!this.isInsideBox(origin, box))
+      return null;
 
-        return { p1, p2 };
+    let t = Infinity;
+
+    // Find smallest positive t where ray hits a boundary
+    if(dir.x > 1e-9) {
+      t = Math.min(t, (box.right - origin.x) / dir.x);
+    } else if(dir.x < -1e-9) {
+      t = Math.min(t, (box.left - origin.x) / dir.x);
     }
 
-    /**
-     * Find target point that is inside box2 but outside excludeBox, trying four cardinal directions from sourceCenter.
-     * Returns { p1, p2 } where p2 is inside box2 and outside excludeBox, and p1 is nearest point on box1 to p2.
-     * Returns null if no valid direction found.
-     */
-    findExternalTargetPoint(box1, box2, excludeBox, margin = 10) {
-        const sourceCenter = box1.center;
-        
-        // Expanded excludeBox with margin
-        const expanded = {
-            left: excludeBox.left - margin,
-            right: excludeBox.right + margin,
-            top: excludeBox.top - margin,
-            bottom: excludeBox.bottom + margin
-        };
-        
-        // If source center is not inside the expanded excludeBox, this method doesn't apply
-        if( !this.isInsideBox(sourceCenter, expanded))
-            return null;
-        
-        // Four cardinal directions
-        const directions = [
-            new Vector2D(0, -1),  // up
-            new Vector2D(0, 1),   // down
-            new Vector2D(-1, 0),  // left
-            new Vector2D(1, 0)    // right
-        ];
-        
-        // Collect all valid exit points
-        const candidates = [];
-        
-        for (const dir of directions) {
-            const exitPoint = this.rayBoxExit(sourceCenter, dir, expanded);
-            if (!exitPoint) continue;
-            
-            // Check if this exit point is inside box2
-            if (this.isInsideBox( exitPoint, box2 ) ){
-                candidates.push(exitPoint);
-            }
-        }
-        
-        // Now find the best candidate (shortest arrow)
-        let bestResult = null;
-        let bestDist = 2000;
-        
-        for (const p2 of candidates) {
-            const p1 = this.clampToBox(p2, box1);
-            const dist = p1.sub(p2).length;
-            
-            if (dist < bestDist) {
-                bestDist = dist;
-                bestResult = { p1, p2 };
-            }
-        }
-        
-        return bestResult;
+    if(dir.y > 1e-9) {
+      t = Math.min(t, (box.bottom - origin.y) / dir.y);
+    } else if(dir.y < -1e-9) {
+      t = Math.min(t, (box.top - origin.y) / dir.y);
     }
 
-    /**
-     * Test if a point is inside a box
-     */
-    isInsideBox(point, box) {
-        return point.x >= box.left && point.x <= box.right &&
-               point.y >= box.top && point.y <= box.bottom;
+    if(t === Infinity || t < 0) return null;
+
+    let v = origin.add(dir.scale(t))
+
+    return v;
+  }
+
+  /**
+   * Clamp a point to the boundary of a box
+   */
+  clampToBox(v, box) {
+    return new Vector2D(
+      Math.max(box.left, Math.min(v.x, box.right)),
+      Math.max(box.top, Math.min(v.y, box.bottom))
+    );
+  }
+
+  drawArrow(ctx, start, end, color = '#64748b', opts = {}) {
+    const {
+      extendHead = 0, extendTail = 0, headSize = 12, tailSize = 0, width =
+        2.5, dash = []
+    } = opts;
+
+    // start and end are Vector2D
+    let diff = end.sub(start);
+    const dist = diff.length;
+
+    if(dist < 1) return;
+
+    const dir = diff.normalize();
+
+    // Calculate actual start and end points with extensions
+    // extendTail: extend backwards from start
+    // extendHead: extend forwards from end
+    const actualStart = start.sub(dir.scale(extendTail));
+    const actualEnd = end.add(dir.scale(extendHead));
+
+    // Re-calculate diff based on new points
+    const drawDiff = actualEnd.sub(actualStart);
+    const drawDist = drawDiff.length;
+
+    if(drawDist < 1) return;
+
+    // Draw Tail Blob
+    if(tailSize > 0) {
+      ctx.beginPath();
+      ctx.arc(actualStart.x, actualStart.y, tailSize, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
     }
 
-    /**
-     * Find where a ray from origin in direction dir exits the box.
-     * Returns the exit point or null if origin is outside box.
-     */
-    rayBoxExit(origin, dir, box) {
-        if( !this.isInsideBox( origin, box ))
-            return null;
-        
-        let t = Infinity;
-        
-        // Find smallest positive t where ray hits a boundary
-        if (dir.x > 1e-9) {
-            t = Math.min(t, (box.right - origin.x) / dir.x);
-        } else if (dir.x < -1e-9) {
-            t = Math.min(t, (box.left - origin.x) / dir.x);
-        }
-        
-        if (dir.y > 1e-9) {
-            t = Math.min(t, (box.bottom - origin.y) / dir.y);
-        } else if (dir.y < -1e-9) {
-            t = Math.min(t, (box.top - origin.y) / dir.y);
-        }
-        
-        if (t === Infinity || t < 0) return null;
-
-        let v = origin.add(dir.scale(t)) 
-    
-        return v;
+    // Draw Line
+    ctx.beginPath();
+    if(dash && dash.length > 0) {
+      ctx.setLineDash(dash);
+    } else {
+      ctx.setLineDash([]);
     }
+    ctx.moveTo(actualStart.x, actualStart.y);
+    ctx.lineTo(actualEnd.x, actualEnd.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
 
-    /**
-     * Clamp a point to the boundary of a box
-     */
-    clampToBox(v, box) {
-        return new Vector2D(
-            Math.max(box.left, Math.min(v.x, box.right)),
-            Math.max(box.top, Math.min(v.y, box.bottom))
-        );
+    // Draw Head
+    if(headSize > 0) {
+      const angle = drawDiff.angle;
+      // Tips of the arrow head
+      const p = actualEnd.add(dir.scale(width));
+      const arrowAngle = Math.PI / 7;
+
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+
+      // Vector pointing back from tip
+      const vBack = dir.scale(-1);
+      // Rotate +angle
+      const vLeft = vBack.rotate(arrowAngle).scale(headSize).add(p);
+      // Rotate -angle
+      const vRight = vBack.rotate(-arrowAngle).scale(headSize).add(p);
+
+      ctx.lineTo(vLeft.x, vLeft.y);
+      ctx.lineTo(vRight.x, vRight.y);
+
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
     }
+  }
 
-    drawArrow(ctx, start, end, color = '#64748b', opts = {}) {
-        const { extendHead = 0, extendTail = 0, headSize = 12, tailSize = 0, width = 2.5, dash = [] } = opts;
+  makeDraggable(el) {
+    let isDragging = false;
+    let startPos = new Vector2D(0, 0);
+    let initialPos = new Vector2D(0, 0);
 
-        // start and end are Vector2D
-        let diff = end.sub(start);
-        const dist = diff.length;
+    el.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startPos = new Vector2D(e.clientX, e.clientY);
 
-        if (dist < 1) return;
+      const style = window.getComputedStyle(el);
+      initialPos = new Vector2D(parseInt(style.left) || 0, parseInt(style
+        .top) || 0);
 
-        const dir = diff.normalize();
+      el.style.cursor = 'grabbing';
+    });
 
-        // Calculate actual start and end points with extensions
-        // extendTail: extend backwards from start
-        // extendHead: extend forwards from end
-        const actualStart = start.sub(dir.scale(extendTail));
-        const actualEnd = end.add(dir.scale(extendHead));
+    window.addEventListener('mousemove', (e) => {
+      if(!isDragging) return;
+      const currentPos = new Vector2D(e.clientX, e.clientY);
+      const delta = currentPos.sub(startPos);
+      const newPos = initialPos.add(delta);
 
-        // Re-calculate diff based on new points
-        const drawDiff = actualEnd.sub(actualStart);
-        const drawDist = drawDiff.length;
+      el.style.left = `${newPos.x}px`;
+      el.style.top = `${newPos.y}px`;
+    });
 
-        if (drawDist < 1) return;
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      el.style.cursor = 'move';
+    });
+  }
 
-        // Draw Tail Blob
-        if (tailSize > 0) {
-            ctx.beginPath();
-            ctx.arc(actualStart.x, actualStart.y, tailSize, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-        }
+  draw() {
+    if(!this.animating) return;
 
-        // Draw Line
-        ctx.beginPath();
-        if (dash && dash.length > 0) {
-            ctx.setLineDash(dash);
-        } else {
-            ctx.setLineDash([]);
-        }
-        ctx.moveTo(actualStart.x, actualStart.y);
-        ctx.lineTo(actualEnd.x, actualEnd.y);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-        ctx.setLineDash([]); // Reset dash
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw Head
-        if (headSize > 0) {
-            const angle = drawDiff.angle;
-            // Tips of the arrow head
-            const p = actualEnd.add(dir.scale(width));
-            const arrowAngle = Math.PI / 7;
+    for(const conn of this.connections) {
+      let b1 = this.getElementBox(conn.from);
+      const b2 = this.getElementBox(conn.to);
 
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
+      if(this.isVisible(b1) && this.isVisible(b2)) {
+        let {
+          p1,
+          p2
+        } = this.getNearestPoints(b1, b2);
 
+        // Target may be obscured by organizer - try to find external point
+        const organizerBox = this.getElementBox(this.organizer);
 
-            // Vector pointing back from tip
-            const vBack = dir.scale(-1);
-            // Rotate +angle
-            const vLeft = vBack.rotate(arrowAngle).scale(headSize).add(p);
-            // Rotate -angle
-            const vRight = vBack.rotate(-arrowAngle).scale(headSize).add(p);
-
-            ctx.lineTo(vLeft.x, vLeft.y);
-            ctx.lineTo(vRight.x, vRight.y);
-
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
-        }
-    }
-
-    makeDraggable(el) {
-        let isDragging = false;
-        let startPos = new Vector2D(0, 0);
-        let initialPos = new Vector2D(0, 0);
-
-        el.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startPos = new Vector2D(e.clientX, e.clientY);
-
-            const style = window.getComputedStyle(el);
-            initialPos = new Vector2D(parseInt(style.left) || 0, parseInt(style.top) || 0);
-
-            el.style.cursor = 'grabbing';
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const currentPos = new Vector2D(e.clientX, e.clientY);
-            const delta = currentPos.sub(startPos);
-            const newPos = initialPos.add(delta);
-
-            el.style.left = `${newPos.x}px`;
-            el.style.top = `${newPos.y}px`;
-        });
-
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-            el.style.cursor = 'move';
-        });
-    }
-
-    draw() {
-        if (!this.animating) return;
-
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        for (const conn of this.connections) {
-            let b1 = this.getElementBox(conn.from);
-            const b2 = this.getElementBox(conn.to);
-
-            if (this.isVisible(b1) && this.isVisible(b2)) {
-                let { p1, p2 } = this.getNearestPoints(b1, b2);
-
-                // Target may be obscured by organizer - try to find external point
-                const organizerBox = this.getElementBox(this.organizer);
-                
-                if (organizerBox ) {
-                    const externalResult = this.findExternalTargetPoint(b1, b2, organizerBox);
-                    if (externalResult) {
-                        p1 = externalResult.p1;
-                        p2 = externalResult.p2;
-                    }
-                }
-                
-                this.drawArrow(this.ctx, p1, p2, conn.color, conn.arrow);
-            }
+        if(organizerBox) {
+          const externalResult = this.findExternalTargetPoint(b1, b2,
+            organizerBox);
+          if(externalResult) {
+            p1 = externalResult.p1;
+            p2 = externalResult.p2;
+          }
         }
 
-        requestAnimationFrame(this.draw);
+        this.drawArrow(this.ctx, p1, p2, conn.color, conn.arrow);
+      }
     }
+
+    requestAnimationFrame(this.draw);
+  }
 }
 
 window.HelpOverlay = HelpOverlay;

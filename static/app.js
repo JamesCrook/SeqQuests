@@ -7,7 +7,7 @@ let log = document.getElementById('log');
 // --- Logging ---
 function addLog(message, type = '') {
   log = document.getElementById('log');
-  if (!log) return;
+  if(!log) return;
   const timestamp = new Date().toLocaleTimeString();
   const className = type ? ` class="${type}"` : '';
   log.innerHTML += `<p${className}>[${timestamp}] ${message}</p>`;
@@ -41,7 +41,7 @@ async function apiCall(url, method = 'GET', body = null) {
 // --- Job Management ---
 async function addJob() {
   const configContainer = document.getElementById('config-container');
-  if (!configContainer) return;
+  if(!configContainer) return;
 
   Lcars.loadPartial('config-container', './panels/jobs.html', () => {
     document.getElementById('config-modal').style.display = 'block';
@@ -90,7 +90,7 @@ async function removeJob(jobId) {
       selectJob(null, null);
     }
     await new Promise(resolve => setTimeout(resolve,
-    500)); // Add a small delay
+      500)); // Add a small delay
     await refreshJobs();
   } catch (e) {
     addLog(`Failed to remove job: ${e}`, 'error');
@@ -100,22 +100,23 @@ async function removeJob(jobId) {
 function configureJob(show = true) {
   if(!currentJobId || !currentJobType) return;
   const configContainer = document.getElementById('config-container');
-  if (!configContainer) return;
+  if(!configContainer) return;
 
-  if (show) {
-      // Load the partial
-      Lcars.loadPartial('config-container', `./panels/config_${currentJobType}.html`, () => {
-          // After loading, we might need to populate values if the partial has inputs
-          // But loadJobConfig is called by the partial's script (if we execute scripts).
-          // However, we are passing job_id via URL params in the iframe approach.
-          // Now we rely on currentJobId being available in scope.
+  if(show) {
+    // Load the partial
+    Lcars.loadPartial('config-container',
+      `./panels/config_${currentJobType}.html`, () => {
+        // After loading, we might need to populate values if the partial has inputs
+        // But loadJobConfig is called by the partial's script (if we execute scripts).
+        // However, we are passing job_id via URL params in the iframe approach.
+        // Now we rely on currentJobId being available in scope.
 
-          // Re-execute scripts logic is handled by Lcars.loadPartial.
-          document.getElementById('config-modal').style.display = 'block';
-          pollJobStatus();
+        // Re-execute scripts logic is handled by Lcars.loadPartial.
+        document.getElementById('config-modal').style.display = 'block';
+        pollJobStatus();
       });
   } else {
-      // Just update visibility if we were just toggling or something, but usually show=true when clicking configure
+    // Just update visibility if we were just toggling or something, but usually show=true when clicking configure
   }
 }
 
@@ -130,7 +131,7 @@ async function refreshJobs() {
   try {
     const jobs = await apiCall('/api/jobs');
     const jobsDiv = document.getElementById('jobs');
-    if (!jobsDiv) return;
+    if(!jobsDiv) return;
 
     jobsDiv.innerHTML = '';
     Object.entries(jobs).forEach(([jobId, job]) => {
@@ -199,7 +200,7 @@ async function pollJobStatus() {
     const data = await apiCall(`/api/job/${currentJobId}/status`);
     updateDisplay(data);
     if(pollInterval > 0 && ['running', 'initializing'].includes(data
-      .status)) {
+        .status)) {
       pollTimer = setTimeout(pollJobStatus, pollInterval);
     }
   } catch (e) {
@@ -214,18 +215,18 @@ async function pollJobStatus() {
 
 function updateDisplay(data) {
   const configureButton = document.getElementById('configureButton');
-  if (configureButton) {
-      if(['running', 'completed', 'failed', 'cancelled'].includes(data.status)) {
-        configureButton.textContent = 'View';
-      } else {
-        configureButton.textContent = 'Configure';
-      }
+  if(configureButton) {
+    if(['running', 'completed', 'failed', 'cancelled'].includes(data.status)) {
+      configureButton.textContent = 'View';
+    } else {
+      configureButton.textContent = 'Configure';
+    }
   }
 
   // Update Config Modal Progress if open
   // In the partials, we define window.setStatus.
-  if (typeof window.setStatus === 'function') {
-      window.setStatus(data);
+  if(typeof window.setStatus === 'function') {
+    window.setStatus(data);
   }
 
   // Update Job Details on Main Screen
@@ -245,25 +246,25 @@ function updateDisplay(data) {
   const configDetailDiv = document.getElementById('detailDiv');
   const mainDetailDiv = document.getElementById('job-details');
 
-  if (configDetailDiv && mainDetailDiv) {
-      mainDetailDiv.innerHTML = configDetailDiv.innerHTML;
-  } else if (mainDetailDiv) {
-      // If we don't have the config loaded, we can't show specific details unless we replicate the logic here.
-      // Or we load the config partial invisibly?
-      // For now, let's leave it blank if config not loaded, or show basic status.
-      // mainDetailDiv.innerHTML = `Status: ${data.status}`;
+  if(configDetailDiv && mainDetailDiv) {
+    mainDetailDiv.innerHTML = configDetailDiv.innerHTML;
+  } else if(mainDetailDiv) {
+    // If we don't have the config loaded, we can't show specific details unless we replicate the logic here.
+    // Or we load the config partial invisibly?
+    // For now, let's leave it blank if config not loaded, or show basic status.
+    // mainDetailDiv.innerHTML = `Status: ${data.status}`;
   }
 }
 
 function updatePollInterval() {
   const select = document.getElementById('pollInterval');
-  if (!select) return;
+  if(!select) return;
 
   pollInterval = parseInt(select.value);
   const status = document.getElementById('pollStatus');
   if(status) {
-      status.textContent = pollInterval === 0 ? 'Polling: Disabled' :
-        `Polling: Every ${pollInterval/1000}s`;
+    status.textContent = pollInterval === 0 ? 'Polling: Disabled' :
+      `Polling: Every ${pollInterval/1000}s`;
   }
   addLog(`Poll interval set to ${pollInterval}ms`);
   pollJobStatus();
@@ -296,6 +297,6 @@ window.initJobManagement = async function() {
 };
 
 // If loaded directly (legacy support or if script tag is just present), we can try to init if elements exist
-if (document.getElementById('jobs')) {
-    //window.addEventListener('load', window.initJobManagement);
+if(document.getElementById('jobs')) {
+  //window.addEventListener('load', window.initJobManagement);
 }

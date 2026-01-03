@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SeqQuest Management Console</title>
     <link rel="icon" href="./wheel.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="./style.css">
     <link rel="stylesheet" type="text/css" href="./lcars.css">
@@ -15,78 +15,78 @@
     <script src="./lcars.js"></script>
     <script src="./job_monitor.js"></script>
     <script src="./lcars_ui.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <!-- First Panel -->
     <div class="lcar-panel" style="flex:1.3">
-        <div class="sidebar left optional4">
-            <div class="block tan" data-group="Protein 1">-</div>
-            <div class="block rust" data-group="Map 1">-</div>
-            <div class="block sblock orange bl" data-group="Features">-</div>
+      <div class="sidebar left optional4">
+        <div class="block tan" data-group="Protein 1">-</div>
+        <div class="block rust" data-group="Map 1">-</div>
+        <div class="block sblock orange bl" data-group="Features">-</div>
+      </div>
+      <div class="central">
+        <div class="panel-content blp brpo" id="MainPanel">
+          <h2>Primary Display Area</h2>
+          <p>This is the main content area of the panel.</p>
         </div>
-        
-        <div class="central"> 
-            <div class="panel-content blp brpo" id='MainPanel'>
-                <h2>Primary Display Area</h2>
-                <p>This is the main content area of the panel.</p>
-            </div>
-            <div class="bar barbot">
-                <div class="block sblock orange stub" data-group="Features">&nbsp;</div>
-                <div class="block tan" data-group="Alignment">-</div>
-                <div class="block orange" data-group="Protein 2">-</div>
-                <div class="block pink optional" data-group="Dotplot">-</div>
-                <div class="block ssblock purple stub" data-group="Copy">&nbsp;</div>
-            </div>
-        </div>
-        
-        <div class="sidebar right optional2">
-            <div class="block sblock tan" data-group="Alignment">-</div>
-            <div class="block yellow" data-group="Map 2">-</div>
-            <div class="block orange" data-group="Protein 2">-</div>
-            <div class="block purple br" data-group="Copy">-</div>
-        </div>
-    </div>
-    <div class="shim"></div>
-
-    <div class="lcar-panel">
-        <div class="sidebar left optional2">
-            <div class="block green tl" data-group="Search Stats">-</div>
-            <div class="block cyan" data-group="Job Queue">-</div>
-            <div class="block purple" data-group="40274c">-</div>
-        </div>
-        
-        <div class="central"> 
-            <div class="bar bartop">
-                <div class="block sssblock green stub" data-group="Search Stats">&nbsp;</div>
-                <div class="block yellow" data-group="Configure">-</div>
-                <div class="block tan optional" data-group="40274b">-</div>
-                <div class="block yellow" data-group="Links">-</div>
-                <div class="block sblock beige stub" data-group="Help">&nbsp;</div>
-            </div>
-            <div class="panel-content tlpo trp" id='SubPanel'>
-                <h2>Display Configuration Panel</h2>
-                <p>Another panel with buttons around it. Try 'Help'.</p>
-            </div>
-        </div>
-        
-        <div class="sidebar right optional4">
-            <div class="block sblock beige tr" data-group="Help">-</div>
-            <div class="block blue" data-group="Search Results">-</div>
-            <div class="block mblock green" data-group="Credits">-</div>
-        </div>
-    </div>
-    <div id="config-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; background: var(--bg-secondary); padding: 20px; border: 1px solid var(--accent-primary); width: 80%; max-width: 800px; max-height: 80vh;">
-        <div id="modal-content">
-          <div id="config-container" style="min-height:0px;">
+        <div class="bar barbot">
+          <div class="block sblock orange stub" data-group="Features">&nbsp;
+          </div>
+          <div class="block tan" data-group="Alignment">-</div>
+          <div class="block orange" data-group="Protein 2">-</div>
+          <div class="block pink optional" data-group="Dotplot">-</div>
+          <div class="block ssblock purple stub" data-group="Copy">&nbsp;
           </div>
         </div>
-        <div class="modal-footer" style="margin-top: 20px;">
-            <button onclick="closeModal()">Close</button>
+      </div>
+      <div class="sidebar right optional2">
+        <div class="block sblock tan" data-group="Alignment">-</div>
+        <div class="block yellow" data-group="Map 2">-</div>
+        <div class="block orange" data-group="Protein 2">-</div>
+        <div class="block purple br" data-group="Copy">-</div>
+      </div>
+    </div>
+    <div class="shim">
+    </div>
+    <div class="lcar-panel">
+      <div class="sidebar left optional2">
+        <div class="block green tl" data-group="Search Stats">-</div>
+        <div class="block cyan" data-group="Job Queue">-</div>
+        <div class="block purple" data-group="40274c">-</div>
+      </div>
+      <div class="central">
+        <div class="bar bartop">
+          <div class="block sssblock green stub" data-group="Search Stats">&nbsp;
+          </div>
+          <div class="block yellow" data-group="Configure">-</div>
+          <div class="block tan optional" data-group="40274b">-</div>
+          <div class="block yellow" data-group="Links">-</div>
+          <div class="block sblock beige stub" data-group="Help">&nbsp;
+          </div>
         </div>
-    </div>    
+        <div class="panel-content tlpo trp" id="SubPanel">
+          <h2>Display Configuration Panel</h2>
+          <p>Another panel with buttons around it. Try 'Help'.</p>
+        </div>
+      </div>
+      <div class="sidebar right optional4">
+        <div class="block sblock beige tr" data-group="Help">-</div>
+        <div class="block blue" data-group="Search Results">-</div>
+        <div class="block mblock green" data-group="Credits">-</div>
+      </div>
+    </div>
+    <div id="config-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; background: var(--bg-secondary); padding: 20px; border: 1px solid var(--accent-primary); width: 80%; max-width: 800px; max-height: 80vh;">
+      <div id="modal-content">
+        <div id="config-container" style="min-height:0px;">
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top: 20px;">
+        <button onclick="closeModal()">Close</button>
+      </div>
+    </div>
     <script>
-        // Initialize blocks when the DOM is loaded
+    // Initialize blocks when the DOM is loaded
         document.addEventListener('DOMContentLoaded', activateBlocks());
     </script>
-</body>
+  </body>
 </html>

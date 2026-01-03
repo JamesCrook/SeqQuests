@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shortest Path Element Connector</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
+    body {
             margin: 0;
             overflow: hidden;
             background-color: #f8fafc;
@@ -62,39 +62,44 @@
             box-shadow: 0 0 0 2px rgba(203, 213, 225, 0.2);
         }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div class="p-6 h-screen flex flex-col gap-4">
-        <header class="flex justify-between items-end">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">Enhanced Element Connector</h1>
-                <p class="text-slate-500">Connecting boxes and editable text via the Range API.</p>
-            </div>
-            <div class="flex flex-col gap-1">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Search & Link Text</label>
-                <input type="text" id="searchInput" placeholder="Type to link green box to text..." 
-                       class="px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
-                       value="tempor varius ipsum">
-            </div>
-        </header>
-
-        <div class="grid grid-cols-2 gap-8 h-1/2 min-h-0">
-            <div id="scroll1" class="scroller shadow-inner">
-                <div class="content-area">
-                    <div id="box1" class="target-node" style="top: 200px; left: 200px;">Box A</div>
-                </div>
-            </div>
-
-            <div id="scroll2" class="scroller shadow-inner">
-                <div class="content-area">
-                    <div id="box2" class="target-node" style="top: 100px; left: 100px; background: #10b981;">Box B</div>
-                </div>
-            </div>
+      <header class="flex justify-between items-end">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">
+            Enhanced Element Connector
+          </h1>
+          <p class="text-slate-500">
+            Connecting boxes and editable text via the Range API.
+          </p>
         </div>
-
-        <div id="scroll3" class="scroller shadow-inner flex-1 min-h-0">
-            <div id="textContent" class="text-box-container text-slate-700" contenteditable="true" spellcheck="false">Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Search & Link Text
+          </label>
+          <input type="text" id="searchInput" placeholder="Type to link green box to text..." class="px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64" value="tempor varius ipsum">
+        </div>
+      </header>
+      <div class="grid grid-cols-2 gap-8 h-1/2 min-h-0">
+        <div id="scroll1" class="scroller shadow-inner">
+          <div class="content-area">
+            <div id="box1" class="target-node" style="top: 200px; left: 200px;">
+              Box A
+            </div>
+          </div>
+        </div>
+        <div id="scroll2" class="scroller shadow-inner">
+          <div class="content-area">
+            <div id="box2" class="target-node" style="top: 100px; left: 100px; background: #10b981;">
+              Box B
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="scroll3" class="scroller shadow-inner flex-1 min-h-0">
+        <div id="textContent" class="text-box-container text-slate-700" contenteditable="true" spellcheck="false">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Suspendisse ut ipsum sed quam vehicula elementum nec eget urna. Maecenas varius vel turpis non aliquet. Cras lobortis aliquet odio, at auctor nisi consectetur aliquam. Donec venenatis ex vitae lectus egestas viverra. Nullam vel hendrerit enim, at sagittis risus. Donec tempor varius ipsum, vitae luctus metus. Morbi mattis magna nulla, molestie condimentum risus condimentum et. Integer a libero sed massa pretium egestas a id lectus. Praesent at eros placerat, pretium sem sed, scelerisque lorem. Duis at dolor dictum, pulvinar odio at, lobortis neque. Integer ut justo sem. Maecenas efficitur urna at vulputate pellentesque. In eu fringilla lectus. Vestibulum tortor lorem, dignissim id tempor sed, dapibus et augue. Nullam commodo purus sit amet erat euismod, at lobortis nulla malesuada. Suspendisse dignissim libero velit, et viverra massa fermentum eu.
 
 Morbi sed ex non lorem accumsan mattis vel a nibh. Fusce vitae augue non tellus faucibus luctus vel facilisis ante. Aliquam a diam ultricies, tincidunt sem non, semper lacus. Sed nec arcu congue, mattis nisl non, aliquet enim. Integer rhoncus in purus ac hendrerit. Sed dignissim ex purus, eget dictum nisi posuere nec. Cras semper a leo at ultricies. Nam ornare tortor at erat ultricies commodo. Nam at orci rutrum tellus tincidunt viverra. Donec elementum elementum sapien, quis dictum nulla lacinia et. Cras congue mollis maximus. Vestibulum ac massa mi. Fusce ac justo sit amet eros vulputate pharetra a non dolor. Suspendisse nec quam iaculis, bibendum tortor vel, rutrum est. Vestibulum vestibulum purus sodales, placerat elit id, blandit ipsum.
@@ -105,14 +110,14 @@ Duis vehicula arcu eget tincidunt porta. Pellentesque fermentum vehicula leo a a
 
 Curabitur purus risus, sodales nec facilisis at, vulputate sed ipsum. Praesent ultricies suscipit leo malesuada suscipit. Donec consequat rhoncus ligula imperdiet elementum. Etiam lobortis dui turpis, non congue odio gravida fermentum. Aenean hendrerit ligula sem, eget tempus diam convallis quis. Nulla bibendum et quam a rutrum. Sed porttitor mattis metus sit amet dictum. Aliquam erat volutpat.
 
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
         </div>
+      </div>
     </div>
-
-    <canvas id="canvas"></canvas>
-
+    <canvas id="canvas">
+    </canvas>
     <script>
-        const canvas = document.getElementById('canvas');
+    const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const box1 = document.getElementById('box1');
         const box2 = document.getElementById('box2');
@@ -323,5 +328,5 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
         resizeCanvas();
         draw();
     </script>
-</body>
+  </body>
 </html>

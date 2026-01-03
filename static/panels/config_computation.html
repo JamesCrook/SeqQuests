@@ -1,33 +1,33 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">      
+  <head>
+    <meta charset="UTF-8">
     <title>Configure Computation Job</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
-</head>
-<body>
-<div class="panel flex-fill">
-    <h2>Configure Computation Job</h2>
-    <form id="configForm">
-      <label for="max_proteins">Max Proteins:</label>
-      <input type="number" id="max_proteins" name="max_proteins" value="100">
-      <br>
-      <label for="use_fast_sw">Use Fast SW:</label>
-      <input type="checkbox" id="use_fast_sw" name="use_fast_sw" checked="">
-      <br>
-      <button type="button" onclick="saveConfigComputation()">Save Configuration</button>
-    </form>
-    <hr>
-    <h2>Job Progress</h2>
-    <div class="flex-col flex-fill" id="detailDiv">
-        Lorem Ipsum Delores
+  </head>
+  <body>
+    <div class="panel flex-fill">
+      <h2>Configure Computation Job</h2>
+      <form id="configForm">
+        <label for="max_proteins">Max Proteins:</label>
+        <input type="number" id="max_proteins" name="max_proteins" value="100">
+        <br>
+        <label for="use_fast_sw">Use Fast SW:</label>
+        <input type="checkbox" id="use_fast_sw" name="use_fast_sw" checked="">
+        <br>
+        <button type="button" onclick="saveConfigComputation()">
+          Save Configuration
+        </button>
+      </form>
+      <hr>
+      <h2>Job Progress</h2>
+      <div class="flex-col flex-fill" id="detailDiv">Lorem Ipsum Delores</div>
     </div>
-</div>
-<script src="config_computation.js"></script>
-<script>
+    <script src="config_computation.js"></script>
+    <script>
     if (typeof loadJobConfig === 'function')
         loadJobConfig();
-</script>
-</body>
+    </script>
+  </body>
 </html>

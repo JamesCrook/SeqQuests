@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <meta charset="UTF-8">
     <title>Alignment Visualization</title>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="../lcars.css">
-</head>
-<body>
+  </head>
+  <body>
     <div class="panel-header">
-        <div class="panel-title">Alignment Visualization</div>
-        <div style="display: flex; gap: 12px; align-items: center;">
-            <button class="copy-button" id="copyAlignmentBtn" onclick="copyAlignment()">Copy Alignment</button>
-            <div class="panel-badge" id="alignmentBadge">—</div>
-        </div>
+      <div class="panel-title">Alignment Visualization</div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button class="copy-button" id="copyAlignmentBtn" onclick="copyAlignment()">
+          Copy Alignment
+        </button>
+        <div class="panel-badge" id="alignmentBadge">—</div>
+      </div>
     </div>
-<div class="panel alignment-panel" id="TopPanel">
-    <div class="alignment-viewer-container  panel" id="alignmentViewer">
+    <div class="panel alignment-panel" id="TopPanel">
+      <div class="alignment-viewer-container panel" id="alignmentViewer">
         <div class="empty-state">
-            <div class="empty-state-icon">╳</div>
-            <div class="empty-state-text">No alignment selected</div>
-            <div class="empty-state-subtext">Hover over an entry to view alignment</div>
+          <div class="empty-state-icon">╳</div>
+          <div class="empty-state-text">No alignment selected</div>
+          <div class="empty-state-subtext">
+            Hover over an entry to view alignment
+          </div>
         </div>
+      </div>
     </div>
-</div>
-</body>
+  </body>
 </html>
