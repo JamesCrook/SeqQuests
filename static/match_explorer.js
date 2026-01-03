@@ -235,7 +235,7 @@ function setConnectionStatus(connected) {
   if(connected) {
     statusDot.classList.add('connected');
     statusDot.classList.remove('disconnected');
-    statusText.textContent = 'Server Connected';
+    statusText.textContent = 'Browse Mode';
   } else {
     statusDot.classList.remove('connected');
     statusDot.classList.add('disconnected');
