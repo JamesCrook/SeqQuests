@@ -43,7 +43,7 @@ Search aborted on 8th Dec due to 32,000 bug. Better to produce correct dataset w
 @387,777 on 12 Dec at 21:10  99% done, estimating 2 days 23 hrs
 @573,660 on 13 Dec at 23:35 100% done, estimating 4 days  0 hrs
 
-Actual was 4 days 3hrs
+Actual was 4 days 3hrs on M2.
 ### Additional Dev History
 
 ed10e949fd3632d98454f6569a9d350223b4f60f fixed the 1-in-40 bug. The bug arose because UNROLL is 40, and a sequence which ended on the last item of UNROLL would steal the score from the next sequence. 

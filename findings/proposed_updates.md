@@ -4,7 +4,7 @@
 * Maximal scoring tree to cluster - to find links between families
 * Automatic removal of relations clearly already known, based on the names and the annotations. I also removed uncharacterised proteins.
 
-Reduces to 6,579 'finds', scoring from 4,089 down to 110. The high scores are well known, low scores well known, and scores of most interest between 140 and 300. This also produced a list of 4,207 finds with biassed sequences. 
+Reduces to 6,579 'finds', scoring from 4,089 down to 110. The high scores are well known, low scores well known, and scores of most interest between 140 and 300. This also produced a list of 4,207 finds with biased sequences. 
 
 * Next sift twilight manually, with a web-based browsing interface, looking for clumping and biological insight.
 
@@ -19,7 +19,6 @@ AI also suggested text for updates, based on the sequence files and similarities
 
 In this file I also placed:
  3 additional twilight zone similarities.
-
 
 # Similarities and Proposed Updates
 
@@ -68,14 +67,14 @@ This same miss in the data file was also reported against Black cutworm moth. I'
     70  IDEPGHCYSAPCTTNGDCCRGLLCLDTE-DGGRCLPAFAGRKLGEICNRENQCDAGLVCEEVVPGEMHVC
         ..|...||...||.|..||.|..|.... |.|.|.... |.|.||.|...|.|..||.|.||...|...|
    156  LEEVIPCYERKCTLNEHCCPGSICMNVDGDVGHCVFEL-GQKQGELCRNDNDCETGLMCAEVAGSETRSC
-             |||||||..|.||||||||||..|..|.||...|..||||||.|.||||||||||..|      .   
-       71  --PCYERKCMYNDHCCPGSICMNFNGVTGTCVSDFGMTQGELCRRDSDCETGLMCAEMSG------H
+             |||||||..|.||||||||||..|..|.||... |.||||||.|.||||||||||..|          
+       71  --PCYERKCMYNDHCCPGSICMNFNGVTGTCVSDF-GMTQGELCRRDSDCETGLMCAEMSG------
 
    139  RPPTAGRKQYNEDCNSSSECDVTRGLCCIMQRRHRQKPRKSCGYFKEPLVCIGPVATDQIREFVQHTAGE
         ..|....|.|||.||.|.|||..|||||..||||||.|||.|.|||.|||||||||||||...||.|.||
    225  QVPITSNKLYNEECNVSGECDISRGLCCQLQRRHRQTPRKVCSYFKDPLVCIGPVATDQIKSIVQYTSGE
-                   |||..|.||||||||||||||||||.|||||||||||||||||||||||||..||||||
-    130  ----------EECAMSSECDISRGLCCQLQRRHRQAPRKVCSYFKDPLVCIGPVATDQIKSVIQYTSGE
+        .          |||..|.||||||||||||||||||.|||||||||||||||||||||||||..||||||
+    130 H----------EECAMSSECDISRGLCCQLQRRHRQAPRKVCSYFKDPLVCIGPVATDQIKSVIQYTSGE
 
    209  KRI
         |||
@@ -381,7 +380,7 @@ To prevent users from thinking it is an active phosphatase:
 
 
 
-## Proteins with very biassed sequence
+## Proteins with very biased sequence
 
 
 17519-139994 s(826) P04065-P08640 Length: 767/1367 [Compositional: T-Biased (42%)]

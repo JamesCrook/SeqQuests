@@ -618,7 +618,6 @@ button, .copy-button, .job-button {
     color: var(--color-accent-primary);
     padding: var(--space-xs) 14px;
     border-radius: var(--radius-lg);
-    font-size: var(--font-size-sm);
     font-weight: 600;
     font-family: var(--font-mono);
     border: 1px solid var(--color-accent-primary);
@@ -637,9 +636,9 @@ button:disabled {
 
 /* --- Form Input Aesthetics --- */
 input[type="text"], input[type="number"], select {
-    background: var(--color-bg-tertiary);
+    background: var(--color-accent-primary-20);
     border: 1px solid var(--color-accent-primary);
-    color: var(--color-text-primary);
+    color: var(--color-accent-primary);
     padding: var(--space-us);
     margin: var(--space-sm);
     border-radius: var(--radius-sm);
@@ -647,7 +646,17 @@ input[type="text"], input[type="number"], select {
 }
 
 input[type="checkbox"] {
+    background: var(--color-accent-primary-20);
     accent-color: var(--color-accent-primary);
+}
+
+label {
+    color: var(--color-accent-primary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 /* --- Modal Aesthetics --- */

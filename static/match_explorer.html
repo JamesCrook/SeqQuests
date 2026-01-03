@@ -47,7 +47,7 @@
                             type: 'default'
                         },
                         {
-                            text: '<strong>Status:</strong><br><ul style="padding-left:15px;"><li><em>Red</em> if no response from lab server</li><li><em>Light Blue</em> if has a response from the lab server</li></ul>',
+                            text: '<strong>Status:</strong><br>Log in is not supported in this version',
                             targetId: 'statusDot',
                             type: 'results'
                         },
@@ -71,6 +71,11 @@
                             type: 'default'
                         },
                         {
+                            text: '<strong>Sources:</strong><br>Coose which source of similarities<ul><li>Distilled - About 20 chosen similarities</li><li>Standard - Similarities without strong sequence bias</li><li>Biased - Similairities with strong sequence bias</li></ul>',
+                            targetId: 'sources',
+                            type: 'default'
+                        },
+                        {
                             text: '<strong>Multiscroll:</strong><br>Click to enable or disable ganged <a href="/docs/tutorials/multiscroller.md">\'multiscroller\' scrolling</a>.<br>When it\'s ON, dragging either column will also move the other column.',
                             targetId: 'multiscrollBtn',
                             type: 'default'
@@ -83,12 +88,18 @@
                         {
                             text: '<strong>Copy:</strong><br>Copies the names of the two proteins and their alignement to the clipboard. You can then paste into an editor.',
                             targetId: 'copyAlignmentBtn',
-                            type: 'results'
+                            type: 'default'
                         }
                     ]
                 }
             ];
-            new LcarsHeader("Protein Sequence Match Explorer", helpConfig);
+
+            const menuConfig = [
+                { label: 'Home', href: './index.html' },
+                { type: 'divider' },
+                { label: 'Help', action: DoDefaultHelp }
+            ];
+            new LcarsHeader("Protein Sequence Match Explorer", helpConfig, menuConfig);
 
             // Load partials using Lcars
             Promise.all([

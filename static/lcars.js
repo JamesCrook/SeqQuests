@@ -272,8 +272,6 @@ class HamburgerMenu {
                 { label: 'Domains', href: 'domain-viewer.html' },
                 { label: 'Home', href: '/' },
                 { type: 'divider' },
-                { label: 'Help Demo', href: 'help-demo.html' },
-                { type: 'divider' },
                 { label: 'Help', action: DoDefaultHelp }
             ];
         this.isOpen = false;
@@ -512,7 +510,7 @@ class LcarsHeader {
         `<h1 id='page-title'>${this.title}</h1>
         <div class="status-indicator">
             <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Checking Connection</span>
+            <span id="statusText">Log in</span>
         </div>`        
         document.body.prepend(header);
     }

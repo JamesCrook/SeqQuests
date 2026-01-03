@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeqQuest: Twilight Zone Protein Homology Findings</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --text: #222;
+            --muted: #666;
+            --accent: #2563eb;
+            --border: #e5e5e5;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1a1a1a;
+                --text: #e5e5e5;
+                --muted: #999;
+                --accent: #60a5fa;
+                --border: #333;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            background: var(--bg);
+            color: var(--text);
+        }
+        h1 { 
+            font-size: 1.75rem; 
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+        h2 {
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        p { margin-bottom: 1rem; }
+        a { color: var(--accent); }
+        .cta {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 1rem 0;
+        }
+        .cta:hover { opacity: 0.9; }
+        .findings-preview {
+            white-space: pre-wrap;
+            background: var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        .links {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        .links a {
+            display: inline-block;
+            margin-right: 1.5rem;
+        }
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>SeqQuest Findings</h1>
+    <p class="subtitle">Overlooked protein homologies from twilight zone Smith-Waterman analysis</p>
+
+    <p>
+        This site presents protein sequence relationships that appear to have been missed by standard annotation pipelines. 
+        They were identified through an all-on-all Smith-Waterman comparison of UniProt Swiss-Prot (~570,000 sequences), 
+        filtered to remove known relationships, and manually curated for biological significance.
+    </p>
+
+    <p>
+        The focus is on "twilight zone" similarities (15–30% identity, scores 140–300) where genuine homology 
+        is often obscured by sequence divergence or compositional bias. Standard tools tend to dismiss these 
+        as noise; careful analysis reveals that many represent deep evolutionary relationships or annotation omissions.
+    </p>
+
+    <a href="match_explorer.html" class="cta">Browse the findings →</a>
+
+    <h2>What's here</h2>
+    <p>
+        <strong>6,579 candidate protein pairs</strong> after automated filtering, of which approximately 20 
+        have been identified as warranting annotation updates or representing novel biological insights. Examples include:
+    </p>
+    <ul>
+        <li>A honeybee "membrane protein" that is like a secreted neuropeptide (missing signal peptide annotation)</li>
+        <li>An orphan yeast protein revealed to contain a rhomboid protease domain</li>
+        <li>Deep homology between coral skeletal proteins and human inner-ear structural proteins</li>
+        <li>Missing domain annotations in fungal biosynthetic enzymes</li>
+    </ul>
+
+    <h2>Sample alignment</h2>
+    <div class="findings-preview">
+P85828-E2ADG2 s(654)  Length: 314/205
+ P85828: Prohormone-3; Apis mellifera (Honeybee).
+ E2ADG2: ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).
+
+    89  MYTCVALTVVALVSTMHFGVEAWGGLFNRFSPEMLSNLGYGSHGDHISKSGLYQRPLSTSYGYSYDSLEE
+        |....|.|.|....|...|||||||||||||||||||||||.||......||.|......||......||
+     1  MRVYAAITLVLVANTAYIGVEAWGGLFNRFSPEMLSNLGYGGHGSYMNRPGLLQEGYDGIYGEGAEPTEE
+
+   159  VIPCYERKCTLNEHCCPGSICMNVDGDVGHCVFELGQKQGELCRNDNDCETGLMCAEVAGSETRSCQVPI
+          |||||||..|.||||||||||..|..|.||...|..||||||.|.||||||||||..|      .   
+    71  --PCYERKCMYNDHCCPGSICMNFNGVTGTCVSDFGMTQGELCRRDSDCETGLMCAEMSG------H---
+
+   229  TSNKLYNEECNVSGECDISRGLCCQLQRRHRQTPRKVCSYFKDPLVCIGPVATDQIKSIVQYTSGEKRIT
+               |||..|.||||||||||||||||||.|||||||||||||||||||||||||..||||||||||
+   130  -------EECAMSSECDISRGLCCQLQRRHRQAPRKVCSYFKDPLVCIGPVATDQIKSVIQYTSGEKRIT
+
+   299  GQGNRIFKR
+        |||||.|||
+   193  GQGNRLFKR
+
+    </div>
+    <p style="font-size: 0.9rem; color: var(--muted);">
+        The region annotated as "transmembrane" in P85828 (positions 90–112) aligns perfectly with 
+        the signal peptide of the ant ortholog—indicating P85828 is secreted, not membrane-bound.
+    </p>
+
+    <div class="links">
+        <a href="https://github.com/JamesCrook/seqquest">GitHub</a>
+        <a href="https://github.com/JamesCrook/seqquest/findings/METHODS.md">Methods</a>
+        <a href="https://github.com/JamesCrook/seqquest/findings/proposed_updates.md">Proposed UniProt updates</a>
+        <a href="[ZENODO_DOI_URL]">Cite (Zenodo DOI)</a>
+    </div>
+
+    <footer>
+        <p>
+            [Your name] · [Year]<br>
+            Contact: [email or link]
+        </p>
+    </footer>
+</body>
+</html>
