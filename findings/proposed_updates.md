@@ -22,9 +22,9 @@ In this file I also placed:
 
 # Similarities and Proposed Updates
 
-331047-331048 s(654) P85828-E2ADG2 Length: 314/205
- 331047: Prohormone-3; Apis mellifera (Honeybee).
- 331048: ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).
+P85828-E2ADG2 s(654) Length: 314/205
+ Prohormone-3; Apis mellifera (Honeybee).
+ ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).
 
     89  MYTCVALTVVALVSTMHFGVEAWGGLFNRFSPEMLSNLGYGSHGDHISKSGLYQRPLSTSYGYSYDSLEE
         |....|.|.|....|...|||||||||||||||||||||||.||......||.|......||......||
@@ -53,10 +53,10 @@ possibility is that the Apis entry is a polyprotein that is cleaved, and that th
 
 This same miss in the data file was also reported against Black cutworm moth. I've assembled the two together...
 
-206874-331047 s(590) C0HKU1-P85828 Length: 217/314
- 206874: ITG-like peptide {ECO:0000303|PubMed:29466015}; Agrotis ipsilon (Black cutworm moth).
- 331047: Prohormone-3; Apis mellifera (Honeybee).
-[331048: ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).]
+C0HKU1-P85828 s(590) Length: 217/314
+ ITG-like peptide {ECO:0000303|PubMed:29466015}; Agrotis ipsilon (Black cutworm moth).
+ Prohormone-3; Apis mellifera (Honeybee).
+[ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).]
 
      1  MHRTMAVTAVLVLSAAG-AAHAWGGLFNRFSSDMLANLGYGRSPYRHYPYGQEPEEVYAEALEGNRLDDV cutworm moth
         |....|.|.|...|... ...||||||||||..||.|||||... .|............... |...|. 
@@ -83,9 +83,9 @@ This same miss in the data file was also reported against Black cutworm moth. I'
         KRITGQGNRLFKR
 
 
-65655-71747 s(250) Q2HEW6-A0A345BJN8 Length: 409/919
-65655: Chaetoglobosin A biosynthesis cluster protein C {ECO:0000303|PubMed:33622536}; Chaetomium globosum (strain ATCC 6205 / CBS 148.51 / DSM 1962 / NBRC 6347 / NRRL 1970) (Soil fungus).
-71747: MFS-type transporter clz9 {ECO:0000303|PubMed:28605916}; Cochliobolus lunatus (Filamentous fungus) (Curvularia lunata).
+Q2HEW6-A0A345BJN8 s(250) Length: 409/919
+ Chaetoglobosin A biosynthesis cluster protein C {ECO:0000303|PubMed:33622536}; Chaetomium globosum (strain ATCC 6205 / CBS 148.51 / DSM 1962 / NBRC 6347 / NRRL 1970) (Soil fungus).
+ MFS-type transporter clz9 {ECO:0000303|PubMed:28605916}; Cochliobolus lunatus (Filamentous fungus) (Curvularia lunata).
 
     26  RAAARQYNVPEATIRHRCTGRSARRDLPANSRKLTDLEERTIVQYILELDARAFPPRLRGVEDMANHLLR
         |.||....|..||...||.|..||||...||.||...||..|..|||.||.|.|.|.......||..||.
@@ -99,9 +99,9 @@ This same miss in the data file was also reported against Black cutworm moth. I'
 Clz9 has an unannotated HTH domain sitting between its MFS transporter and its DDE endonuclease domain. The Pfam/InterPro annotation missed it. ~507-610: HTH DNA-binding domain (NOT annotated). This makes Clz9 a complete pogo-like transposase (HTH + DDE) that has been fused to an MFS transporter - presumably a domestication event where a transposase got co-opted into a biosynthetic cluster and acquired a transporter domain.
 
 
-79396-519791 s(247) Q6UX73-Q6B4Z3 Length: 402/1079
-79396: UPF0764 protein C16orf89; Homo sapiens (Human).
-519791: Histone demethylase UTY; Pan troglodytes (Chimpanzee).
+Q6UX73-Q6B4Z3 s(247) Length: 402/1079
+ UPF0764 protein C16orf89; Homo sapiens (Human).
+ Histone demethylase UTY; Pan troglodytes (Chimpanzee).
 
    325  QAGVQWRNLGSLQPLPPGFKQFSCLILPSSWDYRSVPPYLANFYIFLVETGFHHVAHAGLELLISRDPPT
         .||.||..|.||||.|||||.||.|.||.||.||..|....||.|| ||||||||..|.||||.|.....
@@ -117,9 +117,9 @@ This domain should be named and linked across both protein families
 The UPF0764 family is not "uncharacterized" - it's related to UTX/UTY proteins
 
 
-100759-527563 s(245) K9L8K6-P44242 Length: 883/623
-100759: Depolymerase, capsule K63-specific {ECO:0000305}; Klebsiella phage KP36 (Bacteriophage KP36).
-527563: Mu-like prophage FluMu defective tail fiber protein; Haemophilus influenzae (strain ATCC 51907 / DSM 11121 / KW20 / Rd).
+K9L8K6-P44242 s(245) Length: 883/623
+ Depolymerase, capsule K63-specific {ECO:0000305}; Klebsiella phage KP36 (Bacteriophage KP36).
+ Mu-like prophage FluMu defective tail fiber protein; Haemophilus influenzae (strain ATCC 51907 / DSM 11121 / KW20 / Rd).
 
 
    184  LANPDGFRHIGRCKDIATLRTIEPVESRQVIEVLSYYNGLAQGGGTFWYDPNDSVTEDNGGSC-IVTNGG
@@ -145,9 +145,9 @@ This finding links an orphan prophage protein to a characterized enzymatic fold 
 
 
 
-59770-12473 s(507) Q4R871-Q96P64 Length: 360/663
- 59770: Cyclin-Y-like protein 2; Macaca fascicularis (Crab-eating macaque) (Cynomolgus monkey).
- 12473: Arf-GAP with GTPase, ANK repeat and PH domain-containing protein 4 {ECO:0000312|HGNC:HGNC:23459}; Homo sapiens (Human).
+Q4R871-Q96P64 s(507) Length: 360/663
+ Cyclin-Y-like protein 2; Macaca fascicularis (Crab-eating macaque) (Cynomolgus monkey).
+ Arf-GAP with GTPase, ANK repeat and PH domain-containing protein 4 {ECO:0000312|HGNC:HGNC:23459}; Homo sapiens (Human).
 
      1  MGNIMTCCVCPRASPELDQHQGSVCPCGSEIYKAAAGDMIAGVPVAAAVEPGEVTFEAGEGLHVHHICER
         ||||.||.|.|..|.|.||.||||||..||||.|.|||..||.|.||||.|.|||.|.||.||.||...|
@@ -171,9 +171,9 @@ The N-terminal sequence similarity is NOT characterized in the literature. The p
 cyclin box domain but don't mention relationship to AGAP proteins. This N-terminal region (~180 amino acids) that shows high similarity is upstream of the annotated cyclin domain (which starts at residue 204 in CCYL2). This suggests a shared ancestral N-terminal module that predates the gene duplications - and could merit a datafile update.
 
 
-354971-111557 s(244) Q9LET3-Q9UTK7 Length: 293/372
-354971: Rhomboid-like protein 20 {ECO:0000303|PubMed:16895613}; Arabidopsis thaliana (Mouse-ear cress).
-111557: DSC E3 ubiquitin ligase complex subunit 2; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
+Q9LET3-Q9UTK7 s(244) Length: 293/372
+ Rhomboid-like protein 20 {ECO:0000303|PubMed:16895613}; Arabidopsis thaliana (Mouse-ear cress).
+ DSC E3 ubiquitin ligase complex subunit 2; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
 
 
      1  MNGGPSGFHNAPVTKAFVITSALFTVFFGIQGRSSKLGLSYQ-DIFEKFRIWKLIMSTFAFSSTPELMFG
@@ -208,9 +208,9 @@ The UBAC2 family spans plants and fungi with conserved:
 This is a known family connection, but misisng an annotation in this case.
 
 
-318362-165541 s(239) Q8CHJ0-Q5AMR5 Length: 435/398
-318362: GPI-anchor transamidase component PIGU {ECO:0000250|UniProtKB:Q9H490}; Cricetulus griseus (Chinese hamster) (Cricetulus barabensis griseus).
-165541: GPI mannosyltransferase 1; Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast).
+Q8CHJ0-Q5AMR5 s(239) Length: 435/398
+ GPI-anchor transamidase component PIGU {ECO:0000250|UniProtKB:Q9H490}; Cricetulus griseus (Chinese hamster) (Cricetulus barabensis griseus).
+ GPI mannosyltransferase 1; Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast).
 
 
     71  YLFHFLIDYAELVFMITDALTAIALYFAIQDFNKVVFKKQKLLLELDQYAPD-VA-ELIRTPMEMR-YIP
@@ -242,9 +242,9 @@ A 2018 paper by Eisenhaber et al. discovered this relationship using a specializ
 However, note that this relationship is still not reflected in Pfam - PIGU (PF06728) and PIGM (PF05007) remain separate families. So there's still an annotation gap in the databases, even though the paper exists.
 
 
-62833-493419 s(220) O02751-Q32L59 Length: 592/351
-62833: Craniofacial development protein 2; Bos taurus (Bovine).
-493419: Transmembrane and coiled-coil domain-containing protein 5B; Bos taurus (Bovine).
+O02751-Q32L59 s(220) Length: 592/351
+ Craniofacial development protein 2; Bos taurus (Bovine).
+ Transmembrane and coiled-coil domain-containing protein 5B; Bos taurus (Bovine).
 
    455  QRWRSSVQSAKTRPGADCGSDHKLLIAKFRLKLKIIPKTTRPFRVTNEEDATN-EEAKSVLKQNEKEKPE
         ||||||.|||||||||||||||.|||||||||||...|||||||......||. ....|.|........|
@@ -257,9 +257,9 @@ However, note that this relationship is still not reflected in Pfam - PIGU (PF06
 Transposon domain. Misisng annotation. Check sheep. Likely just a recent transposon event.
 
 
-250375-96620 s(209) P81785-Q9SP32 Length: 217/1909
-250375: MLO-like protein; Linum usitatissimum (Flax) (Linum humile).
-96620: Endoribonuclease Dicer homolog 1; Arabidopsis thaliana (Mouse-ear cress).
+P81785-Q9SP32 s(209) Length: 217/1909
+ MLO-like protein; Linum usitatissimum (Flax) (Linum humile).
+ Endoribonuclease Dicer homolog 1; Arabidopsis thaliana (Mouse-ear cress).
 
    157  DIVRASGLVPNRDTSATQTTE-LSKGKLMMADTCLPTEDLVGMVVTAAHSGKRFFVDSIRYD
         |.||||||.|.||.......| ||||||||||.|...|||.|..||||||||||.||||.||
@@ -274,9 +274,9 @@ The MLO C-terminus binds Calmodulin (calcium sensor). Does Dicer-Like 1 (DCL1) a
 Gemini: While the functional crosstalk between MLO and Dicer is an emerging field, the specific structural "fossil" you’ve identified—a shared sequence between the MLO C-terminus and the Dicer PAZ-connector—appears to be a novel observation of a "Rosetta Stone" protein relationship.
 
 
-82492-47622 s(219) Q74ZX0-Q2LD37 Length: 2887/5005
- 82492: Protein CSF1; Eremothecium gossypii (strain ATCC 10895 / CBS 109.51 / FGSC 9923 / NRRL Y-1056) (Yeast) (Ashbya gossypii).
- 47622: Bridge-like lipid transfer protein family member 1 {ECO:0000305}; Homo sapiens (Human).
+Q74ZX0-Q2LD37 s(219) Length: 2887/5005
+ Protein CSF1; Eremothecium gossypii (strain ATCC 10895 / CBS 109.51 / FGSC 9923 / NRRL Y-1056) (Yeast) (Ashbya gossypii).
+ Bridge-like lipid transfer protein family member 1 {ECO:0000305}; Homo sapiens (Human).
 
    434  IDIRIAKESNITVRMAAYPTENGFENILHANLVDTTISTSVNHDTLLKAKSHDITVDFSYPYGWQDKAEW
         ........|...........|||........|......||....|||.|.........|||..|.....|
@@ -328,9 +328,9 @@ The connection was only solidified very recently (around 2021–2022) using two 
     * The sequence alignment you found corresponds to the **Repeating Beta Groove (RBG)** structural motif.
 
 
-123746-16180 s(211) P62693-Q38135 Length: 226/270
- 123746: Endolysin {ECO:0000255|HAMAP-Rule:MF_04110}; Lactococcus phage phivML3 (Lactococcus bacteriophage phi-vML3).
- 16180: N-acetylmuramoyl-L-alanine amidase; Lactococcus phage r1t (Bacteriophage r1t).
+P62693-Q38135 s(211) Length: 226/270
+ Endolysin {ECO:0000255|HAMAP-Rule:MF_04110}; Lactococcus phage phivML3 (Lactococcus bacteriophage phi-vML3).
+ N-acetylmuramoyl-L-alanine amidase; Lactococcus phage r1t (Bacteriophage r1t).
 
     27  WEQMYTIGWGHYGVTAGTTWTQAQADSQLEIDINNKYAPMVDAYVK-GKANQNEFDAL-VSLAYN-CGNV
         |...|..|...|...............|.|.......|.....|.. ..|........ ..|... .||.
@@ -349,9 +349,9 @@ The similarity warrants a datafile update, both lack the annotation for the shar
 
 
 
-201456-328507 s(203) Q62784-Q69ZK0 Length: 939/1650
- 201456: Inositol polyphosphate-4-phosphatase type I A; Rattus norvegicus (Rat).
- 328507: Phosphatidylinositol 3,4,5-trisphosphate-dependent Rac exchanger 1 protein; Mus musculus (Mouse).
+Q62784-Q69ZK0 s(203) Length: 939/1650
+ Inositol polyphosphate-4-phosphatase type I A; Rattus norvegicus (Rat).
+ Phosphatidylinositol 3,4,5-trisphosphate-dependent Rac exchanger 1 protein; Mus musculus (Mouse).
 
    665  LRQLYTIGLLAQFESLLSTYG--EELAMLEDMSLGIMDLRNVTFKVTQ-ATSN-ASSDMLPVITGNRDGF
         |.|....|.|....|||....  ||..||||.......|.||||...| .... |.......|.|.|...
@@ -383,9 +383,9 @@ To prevent users from thinking it is an active phosphatase:
 ## Proteins with very biased sequence
 
 
-17519-139994 s(826) P04065-P08640 Length: 767/1367 [Compositional: T-Biased (42%)]
- 17519: Glucoamylase S1; Saccharomyces cerevisiae (Baker's yeast).
- 139994: Flocculation protein FLO11; Saccharomyces cerevisiae (strain ATCC 204508 / S288c) (Baker's yeast).
+P04065-P08640 s(826) Length: 767/1367 [Compositional: T-Biased (42%)]
+ Glucoamylase S1; Saccharomyces cerevisiae (Baker's yeast).
+ Flocculation protein FLO11; Saccharomyces cerevisiae (strain ATCC 204508 / S288c) (Baker's yeast).
 
     22  FPTALVPRGSSSSNITSSGPSSTPFSSATESFSTGTTVTPSSSKYPGSKTETSVSSTTETTIVPTTTTTS
         .|........||...|...|..|..|..|.|..|.||...|........|....|..|.||.||||||||
@@ -408,9 +408,9 @@ Although this relationship is referenced in the bibliography of the linked P0864
 
 Could a note be added to P04065 clarifying that the C-terminal domain is homologous to the flocculin FLO11? This would greatly clarify the structural and evolutionary context of this enzyme for future users.
 
-297675-463843 s(575) A0A060XQP6-A2VD23 Length: 628/613 [Compositional: D-Biased (40%)]
- 297675: Otolith matrix protein OMM-64 {ECO:0000305}; Oncorhynchus mykiss (Rainbow trout) (Salmo gairdneri).
- 463843: Protein starmaker; Danio rerio (Zebrafish) (Brachydanio rerio).
+A0A060XQP6-A2VD23 s(575) Length: 628/613 [Compositional: D-Biased (40%)]
+ Otolith matrix protein OMM-64 {ECO:0000305}; Oncorhynchus mykiss (Rainbow trout) (Salmo gairdneri).
+ Protein starmaker; Danio rerio (Zebrafish) (Brachydanio rerio).
 
      1  MLSRLLIVPLIFALAGLAISAPVNDGTEADNDERAASLLVHLKGDKDGGGLTGSPDGVSAGTTDGTDSSK
         ||||...||||.|..|..|||||......||||.||............|. ....|| ...||||.||. 
@@ -454,9 +454,9 @@ Could a "Similarity" note be added, such as: "Belongs to the Starmaker family"?
 
 
 
-41747-193413 s(507) Q6FPN0-Q5AL03 Length: 870/919 [Compositional: Diverse]
- 41747: Adhesin AWP1 {ECO:0000303|PubMed:34962966}; Candida glabrata (strain ATCC 2001 / BCRC 20586 / JCM 3761 / NBRC 0622 / NRRL Y-65 / CBS 138) (Yeast) (Nakaseomyces glabratus).
- 193413: Hyphally regulated cell wall protein 1; Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast).
+Q6FPN0-Q5AL03 s(507) Length: 870/919 [Compositional: Diverse]
+ Adhesin AWP1 {ECO:0000303|PubMed:34962966}; Candida glabrata (strain ATCC 2001 / BCRC 20586 / JCM 3761 / NBRC 0622 / NRRL Y-65 / CBS 138) (Yeast) (Nakaseomyces glabratus).
+ Hyphally regulated cell wall protein 1; Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast).
 
      6  IFAFFIKATLVLSLDILTP-TTLTGDQTFNEDVSVVSSLTLND-GSQ-YLFNNLLQIAPSSASVTANALA
         ||.......|...|...|. ....|.|.|..||.|.|..|... |.. ..|...|...............
@@ -515,9 +515,9 @@ Currently, these proteins are annotated as belonging to disparate families (Trim
 Could a "Similarity" note be added to Q6FPN0 indicating that it belongs to the fungal beta-helix adhesin superfamily, similar to the HYR1/IFF or Flo families?
 
 
-484353-498485 s(442) Q1RM03-P37709 Length: 499/1407 [Compositional: ER-Biased (83%)]
- 484353: Trichoplein keratin filament-binding protein; Danio rerio (Zebrafish) (Brachydanio rerio).
- 498485: Trichohyalin; Oryctolagus cuniculus (Rabbit).
+Q1RM03-P37709 s(442) Length: 499/1407 [Compositional: ER-Biased (83%)]
+ Trichoplein keratin filament-binding protein; Danio rerio (Zebrafish) (Brachydanio rerio).
+ Trichohyalin; Oryctolagus cuniculus (Rabbit).
 
     12  SRVRTLEQQLVRQ-REQEARLRRQWEQHSQYFREQDVRSSKQAQWSSRQSFHRSMSAFQRDRMREEKQRK
         ||.|..|.|..|| .|...|..|..|...|..|.|.......... .||.. ...........|.|....
@@ -549,9 +549,9 @@ Could a "Similarity" note be added to Q6FPN0 indicating that it belongs to the f
 
 Current Annotation: Currently, TCHP_DANRE contains a "Trichohyalin/plectin homology domain" annotated only at positions 260–426. The homology extends across the entire length of the TCHP protein (approx. AA 12–490) aligning to the central rod region of Trichohyalin (approx. AA 390–860 in Rabbit).
 
-331975-453674 s(421) C0J7L8-P86949 Length: 406/336 [Compositional: G-Biased (47%)]
- 331975: Prisilkin-39 {ECO:0000312|EMBL:ACJ06766.1}; Pinctada fucata (Akoya pearl oyster) (Pinctada imbricata fucata).
- 453674: Shematrin-like protein 1; Pinctada maxima (Silver-lipped pearl oyster) (White-lipped pearl oyster).
+C0J7L8-P86949 s(421) Length: 406/336 [Compositional: G-Biased (47%)]
+ Prisilkin-39 {ECO:0000312|EMBL:ACJ06766.1}; Pinctada fucata (Akoya pearl oyster) (Pinctada imbricata fucata).
+ Shematrin-like protein 1; Pinctada maxima (Silver-lipped pearl oyster) (White-lipped pearl oyster).
 
     31  VAGATIGALASGGLGAGAGGFG-VGGFPVGVGAVGIPVAVGGGIPYGYGGYSGYGYGYPAGGYGGYSYGY
         |.||..||.|...||...|... |.|...|.|. |.....|...|.||.|....||||....| ||.|||
@@ -572,9 +572,9 @@ Current Annotation: Currently, TCHP_DANRE contains a "Trichohyalin/plectin homol
 Annotation Update: PRSKL_PINFU belongs to the Shematrin/Glycine-rich SMP family
 
 
-67168-116124 s(394) P34504-Q54YG2 Length: 1463/1710 [Compositional: C-Biased (40%)]
- 67168: Chitin binding domain (ChtBD2) containing chtb-1 {ECO:0000312|WormBase:K04H4.2c}; Caenorhabditis elegans.
- 116124: Extracellular matrix protein A; Dictyostelium discoideum (Social amoeba).
+P34504-Q54YG2 s(394) Length: 1463/1710 [Compositional: C-Biased (40%)]
+ Chitin binding domain (ChtBD2) containing chtb-1 {ECO:0000312|WormBase:K04H4.2c}; Caenorhabditis elegans.
+ Extracellular matrix protein A; Dictyostelium discoideum (Social amoeba).
 
    155  IVPKRMSSLSPSTSSPSNTENPCSKCPLGSACRNGNCIPLTTSNLCSDGSPPNNTCTRDPYSCPKGHFCT
         ............|.....|..|... ....||....|.|||..............||.|  ||.....|.
@@ -665,9 +665,9 @@ Biological Context: Dictyostelium stalk tubes are composed of cellulose and chit
 
 Convergent evolution rather than common origin could explain these Cysteine rich matches. Algorithm tends to score them highly because of the normal rarity of C. 
 
-59537-260428 s(194) Q10357-O97388 Length: 297/107 [Compositional: C-Biased (59%)]
- 59537: Superoxide dismutase 1 copper chaperone; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
- 260428: Metallothionein-1; Tetrahymena pyriformis.
+Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
+ Superoxide dismutase 1 copper chaperone; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
+ Metallothionein-1; Tetrahymena pyriformis.
 
    220  NEGSSCCSKKDSS---PSEKPSCCSQEKKSCCSSKKPSCCSQEKKGCCSTEKTSCCSQEK-KSCCTSEKP
         .....||....|.   .||...||...||.||......|.....| ||...|..||...| |.|||....
@@ -680,9 +680,9 @@ Convergent evolution rather than common origin could explain these Cysteine rich
 Possibly worth a note -!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins. 
 Though it's well known that Cadmium and Copper binding are related.
 
-  260476-100730 s(195) P80292-Q67UU9 Length: 61/426 [Compositional: C-Rich (74%)]
- 260476: Metallothionein-2E; Oryctolagus cuniculus (Rabbit).
- 100730: Guanine nucleotide-binding protein subunit gamma 4 {ECO:0000305}; Oryza sativa subsp. japonica (Rice).
+  P80292-Q67UU9 s(195) Length: 61/426 [Compositional: C-Rich (74%)]
+ Metallothionein-2E; Oryctolagus cuniculus (Rabbit).
+ Guanine nucleotide-binding protein subunit gamma 4 {ECO:0000305}; Oryza sativa subsp. japonica (Rice).
 
      3  PNCSCATRDSCACA-SSCKCKECKCTSCKKSCCSCCPAGCTKCA-QGCICKG-ALDKCSC
         ..|.|.....|.|. .||.||.|.|.||....|.|...||..|. ..|.|.| .|..|.|
@@ -697,9 +697,9 @@ Also possibly worth a note -!- SIMILARITY .
 These similarities are intriguing but without further evidence do not warrant a datafile update.
 
 
-530641-325415 s(206) A0A7L9EYL3-S8B3I8 Length: 162/176
-530641: Epoxidase xenD {ECO:0000303|PubMed:34900544}; Xenoacremonium sinensis (Endophyte fungus).
-325415: Oxaleimides biosynthesis cluster protein N {ECO:0000303|PubMed:28365998}; Penicillium oxalicum (strain 114-2 / CGMCC 5302) (Penicillium decumbens).
+A0A7L9EYL3-S8B3I8 s(206) Length: 162/176
+ Epoxidase xenD {ECO:0000303|PubMed:34900544}; Xenoacremonium sinensis (Endophyte fungus).
+ Oxaleimides biosynthesis cluster protein N {ECO:0000303|PubMed:28365998}; Penicillium oxalicum (strain 114-2 / CGMCC 5302) (Penicillium decumbens).
 
                                H       H                                                 
      7  SIRLLRLLPALSSTSVLMFALDEHLIFGTWMHP-TLRER-ANTTLP-PWWTKGGLRWRWVIIIGYPL-TY
