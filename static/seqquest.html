@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SeqQuest: Twilight Zone Protein Homology Findings</title>
+    <link rel="icon" href="./wheel.ico">
     <style>
     :root {
             --bg: #fafafa;
@@ -95,18 +96,20 @@
     <p>
       This site presents protein sequence relationships that appear to have been missed by standard annotation pipelines. 
         They were identified through an all-on-all Smith-Waterman comparison of UniProt Swiss-Prot (~570,000 sequences), 
-        filtered to remove known relationships, and manually curated for biological significance.
+        filtered to remove known relationships. The tree-building method produces not an evolutionary tree, but rather
+        picks out homologies that connect clusters. These weaker links are normally drowned out by the very strong
+        connections within the clusters.
     </p>
     <p>
       The focus is on "twilight zone" similarities (15–30% identity, scores 140–300) where genuine homology 
         is often obscured by sequence divergence or compositional bias. Standard tools tend to dismiss these 
-        as noise; careful analysis reveals that many represent deep evolutionary relationships or annotation omissions.
+        as noise.
     </p>
     <a href="match_explorer.html" class="cta">Browse the findings →</a>
     <h2>What's here</h2>
     <p>
       <strong>6,579 candidate protein pairs</strong>
-      after automated filtering, of which approximately 20 
+      after automated filtering, of which approximately 20 (distilled findings)
         have been identified as warranting annotation updates or representing novel biological insights. Examples include:
     </p>
     <ul>
@@ -121,6 +124,10 @@
       </li>
       <li>Missing domain annotations in fungal biosynthetic enzymes</li>
     </ul>
+        <p>Some of the other 6,579 candidates may be of interest too, though many of them represent similarities that 
+          are more obvious from the names or from other annotations, but just not in a way that the simple filters
+        for 'already known' could pick up.</p>
+
     <h2>Sample alignment</h2>
     <div class="findings-preview">
       P85828-E2ADG2 s(654)  Length: 314/205
@@ -145,7 +152,7 @@
     </div>
     <p style="font-size: 0.9rem; color: var(--muted);">
       The region annotated as "transmembrane" in P85828 (positions 90–112) aligns perfectly with 
-        the signal peptide of the ant ortholog—indicating P85828 is secreted, not membrane-bound.
+        the signal peptide of the ant ortholog - suggesting an annotation update, and that P85828 is secreted, not membrane-bound.
     </p>
     <div class="links">
       <a href="https://github.com/JamesCrook/seqquest">GitHub</a>
@@ -159,9 +166,10 @@
     </div>
     <footer>
       <p>
-        [Your name] · [Year]
+        James Crook · 2025
         <br>
-        Contact: [email or link]
+        Contact:
+        <a href="mailto:james.k.crook@gmail.com">james.k.crook@gmail.com</a>
       </p>
     </footer>
   </body>
