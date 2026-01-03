@@ -239,51 +239,107 @@ async function fetchFindingsList( list ='distilled') {
     }
 }
 
+
+// Fetch a UniProt entry in text format
+async function fetchUniprotEntry(accessionId) {
+    const url = `https://rest.uniprot.org/uniprotkb/${accessionId}.txt`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+    
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`UniProt fetch failed: ${response.status}`);
+        }
+        return await response.text();
+    } catch (error) {
+        clearTimeout(timeoutId);
+        console.error(`Failed to fetch ${accessionId}:`, error.message);
+        return null;
+    }
+}
+
+// Extract the amino acid sequence from UniProt text format
+function extractSequenceFromUniprotText(text) {
+    if (!text) return null;
+    
+    // The sequence section starts after "SQ   SEQUENCE..." line
+    // and ends at "//"
+    // Sequence lines are indented with spaces and contain only amino acids and spaces
+    
+    const lines = text.split('\n');
+    let inSequence = false;
+    let sequence = '';
+    
+    for (const line of lines) {
+        if (line.startsWith('SQ   SEQUENCE')) {
+            inSequence = true;
+            continue;
+        }
+        if (line.startsWith('//')) {
+            break;
+        }
+        if (inSequence) {
+            // Sequence lines start with spaces; remove all whitespace
+            sequence += line.replace(/\s+/g, '');
+        }
+    }
+    
+    return sequence || null;
+}
+
+// Fetch sequence details from UniProt
+async function fetchSequenceDetailsFromUniprot(id1, id2) {
+    if (!usingRealFindings) {
+        return null;
+    }
+
+    // Fetch both entries in parallel
+    const [text1, text2] = await Promise.all([
+        fetchUniprotEntry(id1),
+        fetchUniprotEntry(id2)
+    ]);
+    
+    if (!text1 || !text2) {
+        return null;
+    }
+    
+    const seq1 = extractSequenceFromUniprotText(text1);
+    const seq2 = extractSequenceFromUniprotText(text2);
+    
+    if (!seq1 || !seq2) {
+        return null;
+    }
+    
+    let pairInfo = {
+        sequence1: text1,  // Full UniProt entry
+        sequence2: text2,
+        seq1: seq1,        // Just the amino acid sequence
+        seq2: seq2,
+        // dummy values that will be overwritten
+        score: 101,
+        seq1_start: 12,
+        seq2_start: 15,
+        align1: seq1,
+        align2: seq2,
+        matches: "....|||........"
+    };
+    
+    const alignmentResult = runWasmAlign(seq1, seq2);
+    pairInfo = { ...pairInfo, ...alignmentResult };    
+    
+    return pairInfo;
+}
+
 // Fetch sequence details from server with timeout
 async function fetchSequenceDetailsFromLabServer(id1, id2) {
     // Only fetch from server if we're using real findings data
     if (!usingRealFindings) {
         return null;
     }
-
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-        
-        const response = await fetch(`${API_BASE_URL}/api/comparison/${id1}/${id2}`, {
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-            return await response.json();
-        }
-        return null;
-    } catch (error) {
-        // Silently fail and fall back to mock/no data
-        return null;
-    }
-}
-
-// Fetch sequence details from uniprot
-async function fetchSequenceDetailsFromUniprot(id1, id2) {
-    // Only fetch from server if we're using real findings data
-    if (!usingRealFindings) {
-        return null;
-    }
-
-    let serverData = {};
-    serverData.sequence1 ="ID This is Placeholder data";
-    serverData.sequence2 ="ID This is also Placeholder data";
-    serverData.score = 101;
-    serverData.seq1_start = 12;
-    serverData.seq2_start = 15;
-    serverData.alignment1 = "AAAAAAAAAAAAAAA"
-    serverData.alignment2 = "BBBBBBBBBBBBBBB"
-    serverData.matches    = "....|||........"
-    return serverData;
-
 
     try {
         const controller = new AbortController();
@@ -520,9 +576,9 @@ async function loadSequenceDetails(finding, index) {
     const [, id1, id2, len1, len2] = headerMatch;
     
     // Try to fetch from server
-    let serverData = await fetchSequenceDetailsFromUniprot(id1, id2);
+    let pairInfo = await fetchSequenceDetailsFromUniprot(id1, id2);
     
-    if( !serverData){
+    if( !pairInfo){
         lastLoadedEntry = index;
         isLoadingSequence = false;
         Lcars.loadPartial('RightPanel', './panels/detail_view.html')
@@ -532,15 +588,15 @@ async function loadSequenceDetails(finding, index) {
     let seq1Details, seq2Details, alignment, score;
     
     // Use server data
-    seq1Details = serverData.sequence1;
-    seq2Details = serverData.sequence2;
-    score = serverData.score;
+    seq1Details = pairInfo.sequence1;
+    seq2Details = pairInfo.sequence2;
+    score = pairInfo.score;
     alignment = {
-        seq1_start: serverData.seq1_start,             
-        seq2_start: serverData.seq2_start,             
-        align1: serverData.alignment1,
-        align2: serverData.alignment2,
-        matches: serverData.matches
+        seq1_start: pairInfo.seq1_start,             
+        seq2_start: pairInfo.seq2_start,             
+        align1: pairInfo.align1,
+        align2: pairInfo.align2,
+        matches: pairInfo.matches
     };
     // Calculate stats
     const matches = (alignment.matches.match(/\|/g) || []).length;
@@ -607,7 +663,9 @@ function updateStatus( status, result ){
         resultArea.value = result;
 }
 
-async function getAccessionAsText( accession ) {
+// Not used. We instead always use fetchUniprotEntry
+// Later we should be smart about whether we have a server or not.
+async function fetchAccessionAsText( accession ) {
     const useInternal = false;
     let url;
 
