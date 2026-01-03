@@ -1,9 +1,9 @@
 P85828-E2ADG2 s(654) Length: 314/205
  Prohormone-3; Apis mellifera (Honeybee).
  ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).
-C0HKU1-P85828 s(590) Length: 217/314
- ITG-like peptide {ECO:0000303|PubMed:29466015}; Agrotis ipsilon (Black cutworm moth).
+P85828-C0HKU1 s(590) Length: 217/314
  Prohormone-3; Apis mellifera (Honeybee).
+ ITG-like peptide {ECO:0000303|PubMed:29466015}; Agrotis ipsilon (Black cutworm moth).
 Q2HEW6-A0A345BJN8 s(250) Length: 409/919
  Chaetoglobosin A biosynthesis cluster protein C {ECO:0000303|PubMed:33622536}; Chaetomium globosum (strain ATCC 6205 / CBS 148.51 / DSM 1962 / NBRC 6347 / NRRL 1970) (Soil fungus).
  MFS-type transporter clz9 {ECO:0000303|PubMed:28605916}; Cochliobolus lunatus (Filamentous fungus) (Curvularia lunata).
