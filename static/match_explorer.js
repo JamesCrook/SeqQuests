@@ -217,7 +217,8 @@ async function fetchFindingsList( list ='distilled') {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-        
+  
+// The commented out version fetches the list via API.
 //        const response = await fetch(`${API_BASE_URL}/api/findings`, {
 //            signal: controller.signal
 //        });
@@ -239,7 +240,7 @@ async function fetchFindingsList( list ='distilled') {
 }
 
 // Fetch sequence details from server with timeout
-async function fetchSequenceDetails(id1, id2) {
+async function fetchSequenceDetailsFromLabServer(id1, id2) {
     // Only fetch from server if we're using real findings data
     if (!usingRealFindings) {
         return null;
@@ -260,46 +261,51 @@ async function fetchSequenceDetails(id1, id2) {
         }
         return null;
     } catch (error) {
-        // Silently fail and fall back to mock data
+        // Silently fail and fall back to mock/no data
         return null;
     }
 }
 
-// Mock data based on the provided document
-const findingsData = '';
-// Mock sequence data generator
-function generateMockSequence(length) {
-    const aminoAcids = 'ACDEFGHIKLMNPQRSTVWY';
-    let sequence = '';
-    for (let i = 0; i < length; i++) {
-        sequence += aminoAcids[Math.floor(Math.random() * aminoAcids.length)];
+// Fetch sequence details from uniprot
+async function fetchSequenceDetailsFromUniprot(id1, id2) {
+    // Only fetch from server if we're using real findings data
+    if (!usingRealFindings) {
+        return null;
     }
-    return sequence;
+
+    let serverData = {};
+    serverData.sequence1 ="ID This is Placeholder data";
+    serverData.sequence2 ="ID This is also Placeholder data";
+    serverData.score = 101;
+    serverData.seq1_start = 12;
+    serverData.seq2_start = 15;
+    serverData.alignment1 = "AAAAAAAAAAAAAAA"
+    serverData.alignment2 = "BBBBBBBBBBBBBBB"
+    serverData.matches    = "....|||........"
+    return serverData;
+
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+        
+        const response = await fetch(`${API_BASE_URL}/api/comparison/${id1}/${id2}`, {
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        // Silently fail and fall back to mock/no data
+        return null;
+    }
 }
 
-function generateMockAlignment(seq1, seq2) {
-    const maxLen = Math.max(seq1.length, seq2.length);
-    let align1 = '';
-    let align2 = '';
-    let matches = '';
-    
-    for (let i = 0; i < maxLen; i++) {
-        const aa1 = seq1[i] || '-';
-        const aa2 = seq2[i] || '-';
-        align1 += aa1;
-        align2 += aa2;
-        
-        if (aa1 === aa2 && aa1 !== '-') {
-            matches += '|';
-        } else if (aa1 === '-' || aa2 === '-') {
-            matches += ' ';
-        } else {
-            matches += ':';
-        }
-    }
-    
-    return { align1, align2, matches };
-}
+const findingsData = '';
 
 function formatSequenceWithLineNumbers(sequence, lineLength = 70) {
     let formatted = '';
@@ -513,34 +519,29 @@ async function loadSequenceDetails(finding, index) {
     
     const [, id1, id2, len1, len2] = headerMatch;
     
-    // Try to fetch from server first
-    let serverData = await fetchSequenceDetails(id1, id2);
+    // Try to fetch from server
+    let serverData = await fetchSequenceDetailsFromUniprot(id1, id2);
     
-    let seq1, seq2, alignment, score;
-    
-    if (serverData) {
-        // Use server data
-        seq1 = serverData.sequence1;
-        seq2 = serverData.sequence2;
-        score = serverData.score;
-        seq1Details = seq1;
-        seq2Details = seq2;
-        alignment = {
-            align1: serverData.alignment1,
-            align2: serverData.alignment2,
-            matches: serverData.matches
-        };
-    } else {
-        // Fall back to mock data
-        seq1 = generateMockSequence(parseInt(len1));
-        seq2 = generateMockSequence(parseInt(len2));
-        score = -1;
-        seq1Details = formatSequenceWithLineNumbers(seq1);
-        seq2Details = formatSequenceWithLineNumbers(seq2);
-
-        alignment = generateMockAlignment(seq1, seq2);
+    if( !serverData){
+        lastLoadedEntry = index;
+        isLoadingSequence = false;
+        Lcars.loadPartial('RightPanel', './panels/detail_view.html')
+        return;
     }
+
+    let seq1Details, seq2Details, alignment, score;
     
+    // Use server data
+    seq1Details = serverData.sequence1;
+    seq2Details = serverData.sequence2;
+    score = serverData.score;
+    alignment = {
+        seq1_start: serverData.seq1_start,             
+        seq2_start: serverData.seq2_start,             
+        align1: serverData.alignment1,
+        align2: serverData.alignment2,
+        matches: serverData.matches
+    };
     // Calculate stats
     const matches = (alignment.matches.match(/\|/g) || []).length;
     const identity = ((matches / alignment.align1.length) * 100).toFixed(1);
@@ -548,36 +549,7 @@ async function loadSequenceDetails(finding, index) {
     // Update badges
     if (detailBadge) detailBadge.textContent = `${score} score`;
     if (alignmentBadge) alignmentBadge.textContent = `${matches} matches`;
-    
-    // Build alignment view
-    const alignLines = [];
-    const lineLen = 70;
-
-    // Get starting positions from server data (convert from 0-indexed to 1-indexed)
-    let pos1 = (serverData && serverData.seq1_start || 0) + 1;
-    let pos2 = (serverData && serverData.seq2_start || 0) + 1;
-
-    for (let i = 0; i < alignment.align1.length; i += lineLen) {
-        const chunk1 = alignment.align1.substr(i, lineLen);
-        const chunkMatch = alignment.matches.substr(i, lineLen);
-        const chunk2 = alignment.align2.substr(i, lineLen);
-        
-        // Format current positions
-        const pos1Str = String(pos1).padStart(6, ' ');
-        const pos2Str = String(pos2).padStart(6, ' ');
-        
-        alignLines.push(`${pos1Str}  ${chunk1}`);
-        alignLines.push(`        ${chunkMatch}`);
-        alignLines.push(`${pos2Str}  ${chunk2}\n`);
-        
-        // Update positions for next chunk by counting non-gap characters
-        for (let j = 0; j < chunk1.length; j++) {
-            if (chunk1[j] !== '-') pos1++;
-        }
-        for (let j = 0; j < chunk2.length; j++) {
-            if (chunk2[j] !== '-') pos2++;
-        }
-    }
+    const alignLines = formatAlignment( alignment);
 
     if (alignmentViewer) {
         alignmentViewer.innerHTML = `${alignLines.join('\n')}`;
@@ -627,6 +599,41 @@ async function loadSequenceDetails(finding, index) {
         rightPanel.scrollTop = 0;
     }
 }
+
+function updateStatus( status, result ){
+    if( statusDiv )
+        statusDiv.textContent = status;
+    if( reultArea )
+        resultArea.value = result;
+}
+
+async function getAccessionAsText( accession ) {
+    const useInternal = false;
+    let url;
+
+    if (useInternal) {
+        url = `/api/uniprot/${accession}`;
+    } else {
+        url = `https://rest.uniprot.org/uniprotkb/${accession}.json`;
+    }
+
+    updateStatus( "Loading...",
+        `Fetching from ${useInternal ? 'Lab Server' : 'Swiss-Prot'}...`);
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        updateStatus( "Success.", JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Fetch error:', error);
+        updateStatus( "Error occurred.", `Error fetching data:\n${error.message}`);
+    }
+};
 
 function getMatchText( index ){
     if (index === null || index < 0 || index >= parsedFindings.length) return '';

@@ -163,10 +163,200 @@ function alignLocalJS(seqA, seqB, gapExtend = -10) {
 
     return {
         score: maxScore,
-        alignment1: strAlignedA,
-        alignment2: strAlignedB,
+        align1: strAlignedA,
+        align2: strAlignedB,
         matches: matches,
         seq1_start: indicesA.length > 0 ? indicesA[0] : 0,
         seq2_start: indicesB.length > 0 ? indicesB[0] : 0
     };
 }
+
+function formatAlignment( alignment){
+    // Build alignment view
+    const lineLen = 70;
+    const lines = [];
+
+    // Get starting positions from server data (convert from 0-indexed to 1-indexed)
+    let pos1 = alignment.seq1_start + 1;
+    let pos2 = alignment.seq2_start + 1;
+
+    for (let i = 0; i < alignment.align1.length; i += lineLen) {
+        const chunk1 = alignment.align1.substr(i, lineLen);
+        const chunkMatch = alignment.matches.substr(i, lineLen);
+        const chunk2 = alignment.align2.substr(i, lineLen);
+        
+        // Format current positions
+        const pos1Str = String(pos1).padStart(6, ' ');
+        const pos2Str = String(pos2).padStart(6, ' ');
+        
+        lines.push(`${pos1Str}  ${chunk1}`);
+        lines.push(`        ${chunkMatch}`);
+        lines.push(`${pos2Str}  ${chunk2}\n`);
+        
+        for (let c of chunk1) if (c !== '-') pos1++;
+        for (let c of chunk2) if (c !== '-') pos2++;
+    }
+    return lines;
+}
+
+
+
+// WASM Module Loader
+let wasmModule = null;
+let wasmMemory = null;
+let wasmExports = null;
+
+// Load the Emscripten-generated module
+async function initWasm() {
+    try {
+
+        // Dynamically load the WASM module script
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'sw_align_module.js';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('WASM module not found'));
+            document.head.appendChild(script);
+        });
+
+        wasmModule = await createWasmModule();
+        //console.log("WASM Module keys:", Object.keys(wasmModule)); // Debug
+
+        wasmExports = wasmModule;
+        console.log("WASM Initialized successfully");
+        return true;
+    } catch (e) {
+        console.warn("WASM Init failed:", e);
+        return false;
+    }
+}
+
+function runWasmAlign(seqA, seqB) {
+    const encoder = new TextEncoder();
+    const bytesA = encoder.encode(seqA);
+    const bytesB = encoder.encode(seqB);
+
+    // Use Emscripten's _malloc
+    const ptrA = wasmModule._malloc(bytesA.length + 1);
+    const ptrB = wasmModule._malloc(bytesB.length + 1);
+
+    // Use Emscripten's HEAPU8 view directly
+    wasmModule.HEAPU8.set(bytesA, ptrA);
+    wasmModule.HEAPU8[ptrA + bytesA.length] = 0;
+    wasmModule.HEAPU8.set(bytesB, ptrB);
+    wasmModule.HEAPU8[ptrB + bytesB.length] = 0;
+
+    // Matrix
+    const matrixPtr = wasmModule._malloc(1024 * 4);
+    const flatMatrix = new Float32Array(1024);
+    
+    for (let i = 0; i < PAM250_DATA.alphabet.length; i++) {
+        const charA = PAM250_DATA.alphabet[i];
+        const idxA = charA.charCodeAt(0) & 31;
+
+        for (let j = 0; j < PAM250_DATA.alphabet.length; j++) {
+            const charB = PAM250_DATA.alphabet[j];
+            const idxB = charB.charCodeAt(0) & 31;
+            const score = PAM250_DATA.values[i][j];
+            flatMatrix[idxA * 32 + idxB] = score;
+        }
+    }
+
+    // Copy matrix to WASM memory
+    wasmModule.HEAPF32.set(flatMatrix, matrixPtr / 4);
+
+    // Output pointers
+    const scorePtr = wasmModule._malloc(4);
+    const lenPtr = wasmModule._malloc(4);
+
+    const maxLen = bytesA.length + bytesB.length;
+    const indicesAPtr = wasmModule._malloc(maxLen * 4);
+    const indicesBPtr = wasmModule._malloc(maxLen * 4);
+
+    // Call function
+    wasmModule._align_local_core(
+        ptrA, bytesA.length,
+        ptrB, bytesB.length,
+        matrixPtr, -10.0,
+        scorePtr, lenPtr,
+        indicesAPtr, indicesBPtr
+    );
+
+    // Read results using Emscripten's HEAP views
+    const score = wasmModule.HEAPF32[scorePtr / 4];
+    const len = wasmModule.HEAP32[lenPtr / 4];
+
+    // Copy indices out before freeing
+    const indicesA = new Int32Array(len);
+    const indicesB = new Int32Array(len);
+    for (let k = 0; k < len; k++) {
+        indicesA[k] = wasmModule.HEAP32[indicesAPtr / 4 + k];
+        indicesB[k] = wasmModule.HEAP32[indicesBPtr / 4 + k];
+    }
+
+    // Free memory
+    wasmModule._free(ptrA);
+    wasmModule._free(ptrB);
+    wasmModule._free(matrixPtr);
+    wasmModule._free(scorePtr);
+    wasmModule._free(lenPtr);
+    wasmModule._free(indicesAPtr);
+    wasmModule._free(indicesBPtr);
+
+    // Build alignment strings (reverse order from traceback)
+    let alignedA = "";
+    let alignedB = "";
+    const realIndicesA = [];
+    const realIndicesB = [];
+
+    for (let k = len - 1; k >= 0; k--) {
+        const ia = indicesA[k];
+        const ib = indicesB[k];
+
+        if (ia !== -1) {
+            alignedA += seqA[ia];
+            realIndicesA.push(ia);
+        } else {
+            alignedA += "-";
+        }
+
+        if (ib !== -1) {
+            alignedB += seqB[ib];
+            realIndicesB.push(ib);
+        } else {
+            alignedB += "-";
+        }
+    }
+
+    // Generate match string
+    let matches = '';
+    for (let k = 0; k < alignedA.length; k++) {
+        const a = alignedA[k];
+        const b = alignedB[k];
+        if (a === b) matches += '|';
+        else if (a === '-' || b === '-') matches += ' ';
+        else matches += '.';
+    }
+
+    return {
+        score: score,
+        align1: alignedA,
+        align2: alignedB,
+        matches: matches,
+        seq1_start: realIndicesA.length > 0 ? realIndicesA[0] : 0,
+        seq2_start: realIndicesB.length > 0 ? realIndicesB[0] : 0
+    };
+}      
+
+function calculateIdentity(data) {
+    let matches = 0;
+    let len = 0;
+    for (let i = 0; i < data.align1.length; i++) {
+        if (data.align1[i] !== '-' && data.align2[i] !== '-') {
+            len++;
+            if (data.align1[i] === data.align2[i]) matches++;
+        }
+    }
+    return len > 0 ? ((matches / len) * 100).toFixed(1) : "0.0";
+}
+
