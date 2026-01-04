@@ -130,4 +130,4 @@ See the 'Running the Server' section for details/alternatives. When it has compl
 
 # Docs
 
-There is more documentation in the [docs](./docs) folder, though as of Jan 2025 these docs and the additional software they describe are very much a work in progress.
+There is more documentation in the [docs](./docs) folder, though as of Jan 2026 these docs and the additional software they describe are very much a work in progress.

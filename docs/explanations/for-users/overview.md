@@ -7,7 +7,7 @@ SeqQuests provides:
 * Methods for making, browsing and reducing an all-on-all Swiss-Prot protein sequence comparison 
 * LCARs (Star Trek TNG) inspired web user interface for protein sequence work.
 
-Some preliminary results from using the all-on-all comparison pipeline are included in the repository  in the /results folder.
+Some preliminary results from using the all-on-all comparison pipeline are included in the repository  in the /findings folder.
 
 SeqQuests was developed for local use rather than for use by many people connecting over the internet. 
 
