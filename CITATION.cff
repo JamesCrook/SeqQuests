@@ -1,15 +1,17 @@
 cff-version: 1.2.0
 type: dataset
-title: "SeqQuests Findings: Protein sequence relationships missed by standard annotation pipelines"
+title: "SeqQuests: Missed Protein Annotations"
 message: "If you wish to cite this work:"
 authors:
   - family-names: Crook
     given-names: James
 repository-code: https://github.com/JamesCrook/SeqQuests
 abstract: >-
-  Protein sequence relationships that appear to have been missed
-  by standard annotation pipelines, identified using novel
-  sequence analysis software.
+  Protein sequence relationships identified using a fast
+  Smith-Waterman algorithm combined with maximum-scoring spanning
+  trees to reveal links between sequence clusters. These connections
+  appear to have been missed by standard annotation pipelines.
+  The dataset includes proposed Swiss-Prot annotation updates.
 keywords:
   - sequence analysis
   - bioinformatics
@@ -17,5 +19,5 @@ keywords:
   - protein annotation
 license: CC-BY-4.0
 version: "0.1"
-date-released: "2026-01-02"
+date-released: "2026-01-04"
 # doi: 10.5281/zenodo.XXXXXXX  # Uncomment and fill after Zenodo mints it
