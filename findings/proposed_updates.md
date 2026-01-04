@@ -36,6 +36,7 @@ If browsing the distilled results in the [online browser](http://www.catalase.co
 
 In the folowing s(654) and similar are the sequence similarity score.
 
+### Honeybee Prohormone / ITG-like peptides
 ```
 P85828-E2ADG2 s(654) Length: 314/205
  Prohormone-3; Apis mellifera (Honeybee).
@@ -121,6 +122,7 @@ C0HKU1-P85828 s(590) Length: 217/314
         KRITGQGNRLFKR
 ```
 
+### Fungal Biosynthesis and Transporter
 ```
 Q2HEW6-A0A345BJN8 s(250) Length: 409/919
  Chaetoglobosin A biosynthesis cluster protein C {ECO:0000303|PubMed:33622536}; Chaetomium globosum (strain ATCC 6205 / CBS 148.51 / DSM 1962 / NBRC 6347 / NRRL 1970) (Soil fungus).
@@ -137,6 +139,7 @@ Q2HEW6-A0A345BJN8 s(250) Length: 409/919
 
 Gemini: "Clz9 has an unannotated HTH domain sitting between its MFS transporter and its DDE endonuclease domain. The Pfam/InterPro annotation missed it. ~507-610: HTH DNA-binding domain (NOT annotated). This makes Clz9 a complete pogo-like transposase (HTH + DDE) that has been fused to an MFS transporter - presumably a domestication event where a transposase got co-opted into a biosynthetic cluster and acquired a transporter domain."
 
+### Histone demethylase and a UPF
 ```
 Q6UX73-Q6B4Z3 s(247) Length: 402/1079
  UPF0764 protein C16orf89; Homo sapiens (Human).
@@ -155,6 +158,7 @@ C16orf89's DUF4735 domain = UTY C-terminal domain
 This domain should be named and linked across both protein families
 The UPF0764 family is not "uncharacterized" - it's related to UTX/UTY proteins
 
+### Pectin Lyase-like
 ```
 K9L8K6-P44242 s(245) Length: 883/623
  Depolymerase, capsule K63-specific {ECO:0000305}; Klebsiella phage KP36 (Bacteriophage KP36).
@@ -181,6 +185,7 @@ Functional annotation: probable capsule depolymerase
 
 This finding links an orphan prophage protein to a characterized enzymatic fold with clear functional implications.
 
+### Cyclin-Y
 ```
 Q4R871-Q96P64 s(507) Length: 360/663
  Cyclin-Y-like protein 2; Macaca fascicularis (Crab-eating macaque) (Cynomolgus monkey).
@@ -207,6 +212,7 @@ However, it seems SIMAP is no longer maintained, and may be related to why this 
 
 The N-terminal sequence similarity is NOT characterized in the literature. The papers on Cyclin-Y discuss its conserved cyclin box domain but don't mention relationship to AGAP proteins. This N-terminal region (~180 amino acids) that shows high similarity is upstream of the annotated cyclin domain (which starts at residue 204 in CCYL2). This suggests a shared ancestral N-terminal module that predates the gene duplications - and could merit a datafile update.
 
+### Rhomboid Planty/Yeast Ortholog
 ```
 Q9LET3-Q9UTK7 s(244) Length: 293/372
  Rhomboid-like protein 20 {ECO:0000303|PubMed:16895613}; Arabidopsis thaliana (Mouse-ear cress).
@@ -228,10 +234,13 @@ Q9LET3-Q9UTK7 s(244) Length: 293/372
 What this suggests:
 
 DSC2 - should have:
+```
 InterPro: IPR022764 (Peptidase S54 rhomboid domain)
 SUPFAM: SSF144091 (Rhomboid-like)
+```
 
 Annotation correction needed:
+
 DSC2_SCHPO should have rhomboid domain annotations added. Currently it's only annotated as "DSC complex subunit" without the structural classification. This is an orthology call that unifies a plant "orphan" with a functionally characterized yeast protein.
 
 The "inactive rhomboid" in Arabidopsis and the DSC complex member in yeast are orthologs - this connects plant stress response (heat acclimation, fungal defense) to yeast SREBP signaling.
@@ -243,6 +252,7 @@ The UBAC2 family spans plants and fungi with conserved:
 
 This is a known family connection, but misisng an annotation in this case.
 
+### Two GPI proteins
 ```
 Q8CHJ0-Q5AMR5 s(239) Length: 435/398
  GPI-anchor transamidase component PIGU {ECO:0000250|UniProtKB:Q9H490}; Cricetulus griseus (Chinese hamster) (Cricetulus barabensis griseus).
@@ -278,6 +288,7 @@ A 2018 paper by Eisenhaber et al. discovered this relationship using a specializ
 
 However, note that this relationship is still not reflected in Pfam - PIGU (PF06728) and PIGM (PF05007) remain separate families. So there's still an annotation gap in the databases, even though the paper exists.
 
+### Likely Transposon annotation
 ```
 O02751-Q32L59 s(220) Length: 592/351
  Craniofacial development protein 2; Bos taurus (Bovine).
@@ -294,6 +305,7 @@ O02751-Q32L59 s(220) Length: 592/351
 
 Transposon domain. Misisng annotation. Check sheep. Likely just a recent transposon event.
 
+### Concrete MLO/Dicer connection
 ```
 P81785-Q9SP32 s(209) Length: 217/1909
  MLO-like protein; Linum usitatissimum (Flax) (Linum humile).
@@ -311,6 +323,7 @@ The MLO C-terminus binds Calmodulin (calcium sensor). Does Dicer-Like 1 (DCL1) a
 
 Gemini: While the functional crosstalk between MLO and Dicer is an emerging field, the specific structural "fossil" you’ve identified—a shared sequence between the MLO C-terminus and the Dicer PAZ-connector—appears to be a novel observation of a "Rosetta Stone" protein relationship.
 
+### Vps13 Family Homologs
 ```
 Q74ZX0-Q2LD37 s(219) Length: 2887/5005
  Protein CSF1; Eremothecium gossypii (strain ATCC 10895 / CBS 109.51 / FGSC 9923 / NRRL Y-1056) (Yeast) (Ashbya gossypii).
@@ -333,11 +346,7 @@ Q74ZX0-Q2LD37 s(219) Length: 2887/5005
    617  IHDTG
 ```
 
-Similarity known, but could be more clearly documented in the datafiles.
-
-Q2LD37 is a high profile sequence, relevant to celiac disease: 
-CC   -!- MISCELLANEOUS: KIAA1109 is mapped in the genomic region associated with
-CC       susceptibility to celiac disease (CELIAC6).
+Similarity is known, but could be more clearly documented in the datafiles.
 
 Conserved "Barrel" Signature
 The region aligned (approx. residues 570–640 in CSF1 and 550–620 in BLTP1) corresponds to a highly specific structural feature found in lipid transfer proteins: a beta-barrel or "cupin-like" fold used to shield hydrophobic lipids.
@@ -350,7 +359,7 @@ For years, these proteins sat in databases as "uncharacterized" because standard
 * **The Problem:** The sequence identity between Yeast CSF1 and Human BLTP1 is ~20–25%. This is the "Twilight Zone" of homology, where standard BLAST results are indistinguishable from random noise (high E-values).
 * **The Result:** If you ran BLASTP in 2010, it likely returned "No significant similarity found" or buried the hit so deep in the list that no one noticed it.
 
-### How did researchers find it?
+#### How did researchers find it?
 The connection was only solidified very recently (around 2021–2022) using two methods that are far more sensitive than BLAST:
 
 * **Method A: HHpred (Profile HMMs)**
@@ -365,6 +374,7 @@ The connection was only solidified very recently (around 2021–2022) using two 
     * Both proteins form a giant "taco shell" or "slide" shape (a long hydrophobic groove made of beta-sheets) used to transport lipids.
     * The sequence alignment you found corresponds to the **Repeating Beta Groove (RBG)** structural motif.
 
+### Cell Wall Binding Domain (CBD) in two Lactococcus phage proteins
 ```
 P62693-Q38135 s(211) Length: 226/270
  Endolysin {ECO:0000255|HAMAP-Rule:MF_04110}; Lactococcus phage phivML3 (Lactococcus bacteriophage phi-vML3).
@@ -386,6 +396,7 @@ P62693-Q38135 s(211) Length: 226/270
 The similarity warrants a datafile update, both lack the annotation for the shared C-terminal Cell Wall Binding Domain (CBD).
 
 
+### Phosphatase related similarity
 ```
 Q62784-Q69ZK0 s(203) Length: 939/1650
  Inositol polyphosphate-4-phosphatase type I A; Rattus norvegicus (Rat).
@@ -421,6 +432,7 @@ To prevent users from thinking it is an active phosphatase:
 
 ## Proteins with very biased sequence
 
+### Flocculin and Glucoamylase
 ```
 P04065-P08640 s(826) Length: 767/1367 [Compositional: T-Biased (42%)]
  Glucoamylase S1; Saccharomyces cerevisiae (Baker's yeast).
@@ -447,6 +459,7 @@ Although this relationship is referenced in the bibliography of the linked P0864
 
 Could a note be added to P04065 clarifying that the C-terminal domain is homologous to the flocculin FLO11? This would greatly clarify the structural and evolutionary context of this enzyme for future users.
 
+### Starmaker and Otolith
 ```
 A0A060XQP6-A2VD23 s(575) Length: 628/613 [Compositional: D-Biased (40%)]
  Otolith matrix protein OMM-64 {ECO:0000305}; Oncorhynchus mykiss (Rainbow trout) (Salmo gairdneri).
@@ -493,6 +506,7 @@ Currently, this entry is treated as a standalone otolith matrix protein. However
 
 Could a "Similarity" note be added, such as: "Belongs to the Starmaker family"?
 
+### Fungal Adhesion proteins
 ```
 Q6FPN0-Q5AL03 s(507) Length: 870/919 [Compositional: Diverse]
  Adhesin AWP1 {ECO:0000303|PubMed:34962966}; Candida glabrata (strain ATCC 2001 / BCRC 20586 / JCM 3761 / NBRC 0622 / NRRL Y-65 / CBS 138) (Yeast) (Nakaseomyces glabratus).
@@ -555,6 +569,7 @@ Currently, these proteins are annotated as belonging to disparate families (Trim
 
 Could a "Similarity" note be added to Q6FPN0 indicating that it belongs to the fungal beta-helix adhesin superfamily, similar to the HYR1/IFF or Flo families?
 
+### Extended Trichohyalin/plectin homology
 ```
 Q1RM03-P37709 s(442) Length: 499/1407 [Compositional: ER-Biased (83%)]
  Trichoplein keratin filament-binding protein; Danio rerio (Zebrafish) (Brachydanio rerio).
@@ -591,6 +606,7 @@ Q1RM03-P37709 s(442) Length: 499/1407 [Compositional: ER-Biased (83%)]
 
 Current Annotation: Currently, TCHP_DANRE contains a "Trichohyalin/plectin homology domain" annotated only at positions 260–426. The homology extends across the entire length of the TCHP protein (approx. AA 12–490) aligning to the central rod region of Trichohyalin (approx. AA 390–860 in Rabbit).
 
+### Two Shematrin proteins
 ```
 C0J7L8-P86949 s(421) Length: 406/336 [Compositional: G-Biased (47%)]
  Prisilkin-39 {ECO:0000312|EMBL:ACJ06766.1}; Pinctada fucata (Akoya pearl oyster) (Pinctada imbricata fucata).
@@ -615,6 +631,7 @@ C0J7L8-P86949 s(421) Length: 406/336 [Compositional: G-Biased (47%)]
 
 Annotation Update: PRSKL_PINFU belongs to the Shematrin/Glycine-rich SMP family
 
+### Chitin-binding domains
 ```
 P34504-Q54YG2 s(394) Length: 1463/1710 [Compositional: C-Biased (40%)]
  Chitin binding domain (ChtBD2) containing chtb-1 {ECO:0000312|WormBase:K04H4.2c}; Caenorhabditis elegans.
@@ -710,6 +727,7 @@ Biological Context: Dictyostelium stalk tubes are composed of cellulose and chit
 
 Convergent evolution rather than common origin could explain these Cysteine rich matches. Algorithm tends to score them highly because of the normal rarity of C. 
 
+### Metalothionein in two unicellular eukaryotes
 ```
 Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
  Superoxide dismutase 1 copper chaperone; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
@@ -727,6 +745,7 @@ Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
 Possibly worth a note -!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins. 
 Though it's well known that Cadmium and Copper binding are related.
 
+### Metalothionein in rabbit and rice!
 ```
   P80292-Q67UU9 s(195) Length: 61/426 [Compositional: C-Rich (74%)]
  Metallothionein-2E; Oryctolagus cuniculus (Rabbit).
@@ -744,6 +763,7 @@ Also possibly worth a note -!- SIMILARITY .
 
 This similarity is intriguing but without further evidence does not warrant a datafile update - though Gemini thinks it does.
 
+### Two fungal biosynthetic proteins
 ```
 A0A7L9EYL3-S8B3I8 s(206) Length: 162/176
  Epoxidase xenD {ECO:0000303|PubMed:34900544}; Xenoacremonium sinensis (Endophyte fungus).

@@ -113,7 +113,7 @@ python py/tree_builder.py
 python py/filter_twilight.py
 ```
 
-See `GETTING_STARTED.md` for full details.
+See [GETTING_STARTED.md](../GETTING_STARTED.md) for full details.
 
 ## Browsing the Findings
 
@@ -135,7 +135,7 @@ python py/web_server.py
 ## Release Contents
 
 ```
-seqquests/
+/
 ├── GETTING_STARTED.md              # Reproduction instructions
 ├── pyproject.toml                  # Dependencies
 │

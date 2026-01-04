@@ -40,12 +40,12 @@ The web UI uses API-endpoints provided by a FastAPI web server. The web UI falls
 
 ## Getting started
 
-See /GETTING_STARTED.md in this directory and /docs/tutorials/getting_started.md for instructions on getting started.
+See [GETTING_STARTED.md](./GETTING_STARTED.md) in this directory and [docs/tutorials/getting_started.md](./docs/tutorials/getting_started.md) for instructions on getting started.
 
 ## Links for AI Assistants
 Much of the code was created with AI assistance (Claude, Gemini, Jules). AIs also helped with tracking down many cases where protein similarities were already known
 
 AI assistants are guided to instructions they should follow by text like the text below:
 
-See `/docs/reference/specs/specs.md` for IMPORTANT REQUIREMENTS for AI assistant work.
+See [docs/reference/specs/specs.md](./docs/reference/specs/specs.md) for IMPORTANT REQUIREMENTS for AI assistant work.
 
