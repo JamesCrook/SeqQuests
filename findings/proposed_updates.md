@@ -1,27 +1,42 @@
 # Method
 
-* Sensitive Smith-Waterman all-on-all comparison of Uniprot ~570,000 proteins
-* Maximal scoring tree to cluster - to find links between families
-* Automatic removal of relations clearly already known, based on the names and the annotations. I also removed uncharacterised proteins.
+See METHODS.md in this repo to reproduce the steps.
 
-Reduces to 6,579 'finds', scoring from 4,089 down to 110. The high scores are well known, low scores well known, and scores of most interest between 140 and 300. This also produced a list of 4,207 finds with biased sequences. 
+* Sensitive Smith-Waterman all-on-all comparison of Uniprot ~570,000 proteins, UniProt Swiss-Prot 2025-04, downloaded 27-Oct-2025. 
+* Maximal scoring tree to cluster - to find links between families/clusters
+* Automatic simple removal of relations clearly already known, based on the names and the annotations. I also removed uncharacterised proteins.
 
-* Next sift twilight manually, with a web-based browsing interface, looking for clumping and biological insight.
+Reduces to 6,579 'finds', scoring from 4,089 down to 110. These will still have known similarities in them. The high scores are well known, lowest scores are too tenuous to be useful, and scores of most interest between 140 and 300. This also produced a list of 4,207 finds with biased sequences. 
 
-In this stage I use AI assistance to find out more about the relationship, cutting and pasting promising pairs into Claude and/or Gemini for comment on the similarity. Both engines are very dismissive of 'coiled coil' similarities as 'just indicating shared evolutionary pressure, and not shared origin.'. Sometimes I have to highlight islands of matching to get AI to engage with the similarity. The AI does provide a more sensitive check of 'is this already known?' than merely looking for pfam matches in the datafiles, and it helped to refine the 'is it already known?' heuristics. For example Claude finds clues from the annotations that would alert someone familiar with the specific biochemistry of the related proteins to the connections.
+* Next sift twilight finds manually, with a web-based browsing interface, looking for clumping in the alignement, biological insight and connections that seem prima facie less likely to be well known.
 
-AI also suggested text for updates, based on the sequence files and similarities found.
+In this stage I use AI assistance to find out more about the relationship, not with an automated pipeline, but by cutting and pasting promising pairs into Claude and/or Gemini for comment on the similarity, and then discussion. Both engines are very dismissive of 'coiled coil' similarities as 'just indicating shared evolutionary pressure, and not shared origin.'. Sometimes I have to highlight islands of matching to get AI to engage with the similarity. The AI does provide a more sensitive check of 'is this already known?' than does looking for name/pfam/eggNOG etc matches in the datafiles, and the AI feedback helped to refine my automated 'is it already known?' heuristics.
+
+The AI was not applied to all 6,579, just to selected ones that I wanted to look at further. I for example skipped many pairs, such as Evasins, that clearly are known homologs, but where the algorithm for marking finds as almost certainly known already didn't see the name similarity. 
+
+AI also gave background and suggested text for updates, based on the sequence files and similarities found. I've included some of that text here.
+
+## Proposed Updates
+
+The proposed updates are proposed based on sequence homology, reading of the existing protein data files and comments/feedback from LLMs. That LLM feedback has mostly been to say that the similarities are known or implicit in the data files. The ones chosen for presentation here by me are all ones where the LLM did not think the similarity had already been captured in the annotations - e.g. by shared family name.
+
+The proposed updates are based on sequence homology, not labwork.
 
 ## Summary of Results
 
-10 Data file updates proposed, based on homology
- 6 Data file updates proposed, based on homology, with the strong sequence bias similarities.
+* 10 Data file updates proposed, based on homology
+* 10 Data file updates proposed, based on homology, with the strong sequence bias similarities.
 
-In this file I also placed:
- 3 additional twilight zone similarities.
+In this file I also placed at the end:
+* 1 additional twilight zone similarity (25.5% identity) between two fungal biosynthetic oxidoreductases
+
+If browsing the distilled results in the [online browser](http://www.catalase.com/seqquest/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
 
 # Similarities and Proposed Updates
 
+In the folowing s(654) and similar are the sequence similarity score.
+
+```
 P85828-E2ADG2 s(654) Length: 314/205
  Prohormone-3; Apis mellifera (Honeybee).
  ITG-like peptide {ECO:0000303|PubMed:25641051}; Camponotus floridanus (Florida carpenter ant).
@@ -41,7 +56,7 @@ P85828-E2ADG2 s(654) Length: 314/205
    299  GQGNRIFKR
         |||||.|||
    193  GQGNRLFKR
-
+```
 
 P85828 is annotated as a single-pass membrane protein with a TRANSMEM region at 90-112.
 E2ADG2 is annotated as a secreted protein.
@@ -49,10 +64,33 @@ E2ADG2 is annotated as a secreted protein.
 It appears the Apis entry (P85828) contains an incorrect N-terminal extension. The region annotated as transmembrane (90-112) aligns with the Signal Peptide of the Camponotus entry. This suggests P85828 is also a secreted neuropeptide precursor, and the "membrane" classification is a computational artifact arising from the extended gene model. Another 
 possibility is that the Apis entry is a polyprotein that is cleaved, and that the N terminal has some additional role.
 
-??Or is Prohormone already indicating this is a known polyprotein??  
+Gemini suggests renaming the bee protein to "Prohormone-3 (ITG-like peptide)", and that it may be a chimeric annotation.
 
-This same miss in the data file was also reported against Black cutworm moth. I've assembled the two together...
+Further pressing of Gemini of whether it is already known yields this:
 
+"While the UniProt (P85828) entry you are looking at still lists the 314 AA sequence, the NCBI RefSeq (XP_001122204) and modern honeybee genome assemblies (specifically Amel_HAv3.1) have effectively corrected this.
+
+1. The NCBI "Stealth" Update
+If you look at the most recent version of the honeybee genome annotation (NCBI Release 104), the gene model for LOC726472 (which encodes your protein) has been refined.
+
+Original 2006 Model: 314 AA (Used the incorrect upstream start codon).
+
+Current RefSeq Model: The newer protein versions (XP_001122204.2) are shorter. The automated pipeline now recognizes that the real signal peptide starts at what you identified..."
+
+"In the peptidomics community, this is a well-known "ghost" extension. Researchers working on Apis mellifera neuropeptides generally ignore the first 89 residues and treat the protein as a ~225 AA precursor."
+
+https://www.ncbi.nlm.nih.gov/protein/XP_001122204.2
+Their automated method actually starts 4 aa earlier at:
+
+```
+85  89
+:   :
+MGQKMYTCVALTVVALVSTM
+```
+
+This sequence also aligns against Black cutworm moth. In my comparison the moth and ant are closer to the bee in this sequence than they are to each other. I've assembled the three together...
+
+```
 C0HKU1-P85828 s(590) Length: 217/314
  ITG-like peptide {ECO:0000303|PubMed:29466015}; Agrotis ipsilon (Black cutworm moth).
  Prohormone-3; Apis mellifera (Honeybee).
@@ -61,14 +99,14 @@ C0HKU1-P85828 s(590) Length: 217/314
      1  MHRTMAVTAVLVLSAAG-AAHAWGGLFNRFSSDMLANLGYGRSPYRHYPYGQEPEEVYAEALEGNRLDDV cutworm moth
         |....|.|.|...|... ...||||||||||..||.|||||... .|............... |...|. 
     89  MYTCVALTVVALVSTMHFGVEAWGGLFNRFSPEMLSNLGYGSHG-DHISKSGLYQRPLSTSY-GYSYDS- honeybee
-        |....|.|.|....|...|||||||||||||||||||||||.||......||.|......||......||
-     1  MRVYAAITLVLVANTAYIGVEAWGGLFNRFSPEMLSNLGYGGHGSYMNRPGLLQEGYDGIYGEGAEPTEE carpenter ant
+        |....|.|.|....|...|||||||||||||||||||||||.|| ......||.|......| |.....
+     1  MRVYAAITLVLVANTAYIGVEAWGGLFNRFSPEMLSNLGYGGHG-SYMNRPGLLQEGYDGIY-GEGAEP- carpenter ant
 
     70  IDEPGHCYSAPCTTNGDCCRGLLCLDTE-DGGRCLPAFAGRKLGEICNRENQCDAGLVCEEVVPGEMHVC
         ..|...||...||.|..||.|..|.... |.|.|.... |.|.||.|...|.|..||.|.||...|...|
    156  LEEVIPCYERKCTLNEHCCPGSICMNVDGDVGHCVFEL-GQKQGELCRNDNDCETGLMCAEVAGSETRSC
-             |||||||..|.||||||||||..|..|.||... |.||||||.|.||||||||||..|          
-       71  --PCYERKCMYNDHCCPGSICMNFNGVTGTCVSDF-GMTQGELCRRDSDCETGLMCAEMSG------
+         ||  |||||||..|.||||||||||..|..|.||... |.||||||.|.||||||||||..|          
+    71  TEE--PCYERKCMYNDHCCPGSICMNFNGVTGTCVSDF-GMTQGELCRRDSDCETGLMCAEMSG------
 
    139  RPPTAGRKQYNEDCNSSSECDVTRGLCCIMQRRHRQKPRKSCGYFKEPLVCIGPVATDQIREFVQHTAGE
         ..|....|.|||.||.|.|||..|||||..||||||.|||.|.|||.|||||||||||||...||.|.||
@@ -81,8 +119,9 @@ C0HKU1-P85828 s(590) Length: 217/314
    295  KRITGQGNRIFKR
         |||||||||.|||
         KRITGQGNRLFKR
+```
 
-
+```
 Q2HEW6-A0A345BJN8 s(250) Length: 409/919
  Chaetoglobosin A biosynthesis cluster protein C {ECO:0000303|PubMed:33622536}; Chaetomium globosum (strain ATCC 6205 / CBS 148.51 / DSM 1962 / NBRC 6347 / NRRL 1970) (Soil fungus).
  MFS-type transporter clz9 {ECO:0000303|PubMed:28605916}; Cochliobolus lunatus (Filamentous fungus) (Curvularia lunata).
@@ -94,11 +133,11 @@ Q2HEW6-A0A345BJN8 s(250) Length: 409/919
     96  ERDAPPVGKLWAHNFVKRQPQLRTRRTRRYDYQRA
         .|...|||..|..||||............|....|
    577  TRGGSPVGRDWPRNFVKHKAKYSILDEDVYSFDEA
+```
 
+Gemini: "Clz9 has an unannotated HTH domain sitting between its MFS transporter and its DDE endonuclease domain. The Pfam/InterPro annotation missed it. ~507-610: HTH DNA-binding domain (NOT annotated). This makes Clz9 a complete pogo-like transposase (HTH + DDE) that has been fused to an MFS transporter - presumably a domestication event where a transposase got co-opted into a biosynthetic cluster and acquired a transporter domain."
 
-Clz9 has an unannotated HTH domain sitting between its MFS transporter and its DDE endonuclease domain. The Pfam/InterPro annotation missed it. ~507-610: HTH DNA-binding domain (NOT annotated). This makes Clz9 a complete pogo-like transposase (HTH + DDE) that has been fused to an MFS transporter - presumably a domestication event where a transposase got co-opted into a biosynthetic cluster and acquired a transporter domain.
-
-
+```
 Q6UX73-Q6B4Z3 s(247) Length: 402/1079
  UPF0764 protein C16orf89; Homo sapiens (Human).
  Histone demethylase UTY; Pan troglodytes (Chimpanzee).
@@ -110,17 +149,16 @@ Q6UX73-Q6B4Z3 s(247) Length: 402/1079
    395  SGSQSVGL
         |.|||.|.
   1064  SASQSAGI
-
+```
 
 C16orf89's DUF4735 domain = UTY C-terminal domain
 This domain should be named and linked across both protein families
 The UPF0764 family is not "uncharacterized" - it's related to UTX/UTY proteins
 
-
+```
 K9L8K6-P44242 s(245) Length: 883/623
  Depolymerase, capsule K63-specific {ECO:0000305}; Klebsiella phage KP36 (Bacteriophage KP36).
  Mu-like prophage FluMu defective tail fiber protein; Haemophilus influenzae (strain ATCC 51907 / DSM 11121 / KW20 / Rd).
-
 
    184  LANPDGFRHIGRCKDIATLRTIEPVESRQVIEVLSYYNGLAQGGGTFWYDPNDSVTEDNGGSC-IVTNGG
         |...||...|||||..|.||||.|.|..|.|.|..||.|...|||.|..|..|..|.|.||.| .|.|.|
@@ -133,6 +171,7 @@ K9L8K6-P44242 s(245) Length: 883/623
    323  SIAPSTAGFMAGSIFAPGNYHPDFWEEVPKVAATTTLGSANITLADPNI
         .............|...|| |..| |.........|....|..|.....
    222  GVLAGYKNKHGTRITGNGN-HNIF-EQMGGELQHITYSLKNFALSGGIV
+```
 
 VPS_HAEIN needs:
 
@@ -142,9 +181,7 @@ Functional annotation: probable capsule depolymerase
 
 This finding links an orphan prophage protein to a characterized enzymatic fold with clear functional implications.
 
-
-
-
+```
 Q4R871-Q96P64 s(507) Length: 360/663
  Cyclin-Y-like protein 2; Macaca fascicularis (Crab-eating macaque) (Cynomolgus monkey).
  Arf-GAP with GTPase, ANK repeat and PH domain-containing protein 4 {ECO:0000312|HGNC:HGNC:23459}; Homo sapiens (Human).
@@ -160,21 +197,20 @@ Q4R871-Q96P64 s(507) Length: 360/663
    141  MTLKSVTLAIYYHIKQRDADRSLGIFDERLHPLTREEV
         ||..||||.|..||.||||||||.|.||.||......|
    139  MTIISVTLEIPHHITQRDADRSLSIPDEQLHSFAVSTV
+```
 
 This is known (GeneCards). GeneCards shows:
 
 SIMAP paralogs for CCNYL2 Gene using alignment 
 CCNYL1 CTGLF11P AGAP8 AGAP4 CCNYL3 CCNY FLJ00312 AGAP10
-However, it seems Simap is no longer maintained.
+However, it seems SIMAP is no longer maintained, and may be related to why this similarity has not propagated back to SwissProt.
 
-The N-terminal sequence similarity is NOT characterized in the literature. The papers on Cyclin-Y discuss its conserved 
-cyclin box domain but don't mention relationship to AGAP proteins. This N-terminal region (~180 amino acids) that shows high similarity is upstream of the annotated cyclin domain (which starts at residue 204 in CCYL2). This suggests a shared ancestral N-terminal module that predates the gene duplications - and could merit a datafile update.
+The N-terminal sequence similarity is NOT characterized in the literature. The papers on Cyclin-Y discuss its conserved cyclin box domain but don't mention relationship to AGAP proteins. This N-terminal region (~180 amino acids) that shows high similarity is upstream of the annotated cyclin domain (which starts at residue 204 in CCYL2). This suggests a shared ancestral N-terminal module that predates the gene duplications - and could merit a datafile update.
 
-
+```
 Q9LET3-Q9UTK7 s(244) Length: 293/372
  Rhomboid-like protein 20 {ECO:0000303|PubMed:16895613}; Arabidopsis thaliana (Mouse-ear cress).
  DSC E3 ubiquitin ligase complex subunit 2; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
-
 
      1  MNGGPSGFHNAPVTKAFVITSALFTVFFGIQGRSSKLGLSYQ-DIFEKFRIWKLIMSTFAFSSTPELMFG
         |........|...||....|.....|..|............. ........|......|......|....
@@ -187,7 +223,7 @@ Q9LET3-Q9UTK7 s(244) Length: 293/372
    138  PVSTRFRVFGVNFSDKSFIYLAGVQLLLSSWKRSIFPGICGIIAGSLYRLNILGIRKAKFP-EFVASFFS
         |.....|.|...|.||.........|..|...........|...|..|.|..|.......| .||....|
    141  PSTVFVRLFNIKFTDKFQMVIPMIGLAFSHFPSTFINAFLGWTMGMFYHLSLLPGTSWRLPIRFVKPALS
-
+```
 
 What this suggests:
 
@@ -196,7 +232,7 @@ InterPro: IPR022764 (Peptidase S54 rhomboid domain)
 SUPFAM: SSF144091 (Rhomboid-like)
 
 Annotation correction needed:
-DSC2_SCHPO should have rhomboid domain annotations added. Currently it's only annotated as "DSC complex subunit" without the structural classification.  This is an orthology call that unifies a plant "orphan" with a functionally characterized yeast protein.
+DSC2_SCHPO should have rhomboid domain annotations added. Currently it's only annotated as "DSC complex subunit" without the structural classification. This is an orthology call that unifies a plant "orphan" with a functionally characterized yeast protein.
 
 The "inactive rhomboid" in Arabidopsis and the DSC complex member in yeast are orthologs - this connects plant stress response (heat acclimation, fungal defense) to yeast SREBP signaling.
 
@@ -207,7 +243,7 @@ The UBAC2 family spans plants and fungi with conserved:
 
 This is a known family connection, but misisng an annotation in this case.
 
-
+```
 Q8CHJ0-Q5AMR5 s(239) Length: 435/398
  GPI-anchor transamidase component PIGU {ECO:0000250|UniProtKB:Q9H490}; Cricetulus griseus (Chinese hamster) (Cricetulus barabensis griseus).
  GPI mannosyltransferase 1; Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast).
@@ -236,12 +272,13 @@ Q8CHJ0-Q5AMR5 s(239) Length: 435/398
    407  Y
         .
    384  F
+```
 
 A 2018 paper by Eisenhaber et al. discovered this relationship using a specialized tool called dissectHMMER. They found that a sequence module with 10 TMs in PIG-W is homologous to PIG-U, a transamidase subunit, and to mannosyltransferases PIG-B, PIG-M, PIG-V and PIG-Z. They concluded that this new membrane-embedded domain named "BindGPILA" functions as the unit for recognizing, binding and stabilizing the GPI lipid anchor.
 
 However, note that this relationship is still not reflected in Pfam - PIGU (PF06728) and PIGM (PF05007) remain separate families. So there's still an annotation gap in the databases, even though the paper exists.
 
-
+```
 O02751-Q32L59 s(220) Length: 592/351
  Craniofacial development protein 2; Bos taurus (Bovine).
  Transmembrane and coiled-coil domain-containing protein 5B; Bos taurus (Bovine).
@@ -253,10 +290,11 @@ O02751-Q32L59 s(220) Length: 592/351
    524  ANVPSTVSSV
         ..........
    273  KTIVKKQKRI
+```
 
 Transposon domain. Misisng annotation. Check sheep. Likely just a recent transposon event.
 
-
+```
 P81785-Q9SP32 s(209) Length: 217/1909
  MLO-like protein; Linum usitatissimum (Flax) (Linum humile).
  Endoribonuclease Dicer homolog 1; Arabidopsis thaliana (Mouse-ear cress).
@@ -264,7 +302,7 @@ P81785-Q9SP32 s(209) Length: 217/1909
    157  DIVRASGLVPNRDTSATQTTE-LSKGKLMMADTCLPTEDLVGMVVTAAHSGKRFFVDSIRYD
         |.||||||.|.||.......| ||||||||||.|...|||.|..||||||||||.||||.||
   1172  DVVRASGLLPVRDAFEKEVEEDLSKGKLMMADGCMVAEDLIGKIVTAAHSGKRFYVDSICYD
-
+```
 
 This connects two major plant pathways (Immunity/Cell Death and RNA Silencing).
 "The Plant Dicer PAZ domain contains a 'fossilized' MLO C-terminus."
@@ -273,7 +311,7 @@ The MLO C-terminus binds Calmodulin (calcium sensor). Does Dicer-Like 1 (DCL1) a
 
 Gemini: While the functional crosstalk between MLO and Dicer is an emerging field, the specific structural "fossil" you’ve identified—a shared sequence between the MLO C-terminus and the Dicer PAZ-connector—appears to be a novel observation of a "Rosetta Stone" protein relationship.
 
-
+```
 Q74ZX0-Q2LD37 s(219) Length: 2887/5005
  Protein CSF1; Eremothecium gossypii (strain ATCC 10895 / CBS 109.51 / FGSC 9923 / NRRL Y-1056) (Yeast) (Ashbya gossypii).
  Bridge-like lipid transfer protein family member 1 {ECO:0000305}; Homo sapiens (Human).
@@ -293,13 +331,13 @@ Q74ZX0-Q2LD37 s(219) Length: 2887/5005
    641  FNIKG
         ....|
    617  IHDTG
+```
 
 Similarity known, but could be more clearly documented in the datafiles.
 
 Q2LD37 is a high profile sequence, relevant to celiac disease: 
 CC   -!- MISCELLANEOUS: KIAA1109 is mapped in the genomic region associated with
 CC       susceptibility to celiac disease (CELIAC6).
-
 
 Conserved "Barrel" Signature
 The region aligned (approx. residues 570–640 in CSF1 and 550–620 in BLTP1) corresponds to a highly specific structural feature found in lipid transfer proteins: a beta-barrel or "cupin-like" fold used to shield hydrophobic lipids.
@@ -327,7 +365,7 @@ The connection was only solidified very recently (around 2021–2022) using two 
     * Both proteins form a giant "taco shell" or "slide" shape (a long hydrophobic groove made of beta-sheets) used to transport lipids.
     * The sequence alignment you found corresponds to the **Repeating Beta Groove (RBG)** structural motif.
 
-
+```
 P62693-Q38135 s(211) Length: 226/270
  Endolysin {ECO:0000255|HAMAP-Rule:MF_04110}; Lactococcus phage phivML3 (Lactococcus bacteriophage phi-vML3).
  N-acetylmuramoyl-L-alanine amidase; Lactococcus phage r1t (Bacteriophage r1t).
@@ -343,12 +381,12 @@ P62693-Q38135 s(211) Length: 226/270
    161  G-LDNSGKAKHWYVSDGVSVRHVRTIRMLENYQNKWAKLNLPVDTMFIAEIEAEFG
         . |......|.||...|...|...|.|.|.||||.|.|..|||||||.||...|||
    202  TYLIFAKDTKRWYITNGIEIRYIKTGRVLGNYQNQWLKFKLPVDTMFQAEVDKEFG
-
+```
 
 The similarity warrants a datafile update, both lack the annotation for the shared C-terminal Cell Wall Binding Domain (CBD).
 
 
-
+```
 Q62784-Q69ZK0 s(203) Length: 939/1650
  Inositol polyphosphate-4-phosphatase type I A; Rattus norvegicus (Rat).
  Phosphatidylinositol 3,4,5-trisphosphate-dependent Rac exchanger 1 protein; Mus musculus (Mouse).
@@ -368,6 +406,7 @@ Q62784-Q69ZK0 s(203) Length: 939/1650
    852  VRFTSCKSAKDRTAMSVTLEQCLILQHEHGMAPQVFTQALECMRSEGCRRENTMKNV
         ...|.|.....|...||.|||..||...||..|....||...||..|.|.|...||.
   1569  CQITMCGTGMQRSTLSVSLEQAAILARSHGLLPKCVMQATDIMRKQGPRVEILAKNL
+```
 
 Proposal:
 
@@ -382,7 +421,7 @@ To prevent users from thinking it is an active phosphatase:
 
 ## Proteins with very biased sequence
 
-
+```
 P04065-P08640 s(826) Length: 767/1367 [Compositional: T-Biased (42%)]
  Glucoamylase S1; Saccharomyces cerevisiae (Baker's yeast).
  Flocculation protein FLO11; Saccharomyces cerevisiae (strain ATCC 204508 / S288c) (Baker's yeast).
@@ -402,12 +441,13 @@ P04065-P08640 s(826) Length: 767/1367 [Compositional: T-Biased (42%)]
    232  TTTVPCSTGTGEYTTEATAPVTTAVTTTVVTTESSTGTNSAGKTTTSYTTKSVPTTYV
         ||||||||||||||||||..||||||||||||||||||||||||||.|||||||||||
   1115  TTTVPCSTGTGEYTTEATTLVTTAVTTTVVTTESSTGTNSAGKTTTGYTTKSVPTTYV
-
+```
 
 Although this relationship is referenced in the bibliography of the linked P08640 entry (specifically Yamashita I., et al., J. Bacteriol. 169:2142-2149(1987), "Gene fusion is a possible mechanism underlying the evolution of STA1"), it is not currently described in the CC -!- SIMILARITY or CC -!- DOMAIN sections of P04065.
 
 Could a note be added to P04065 clarifying that the C-terminal domain is homologous to the flocculin FLO11? This would greatly clarify the structural and evolutionary context of this enzyme for future users.
 
+```
 A0A060XQP6-A2VD23 s(575) Length: 628/613 [Compositional: D-Biased (40%)]
  Otolith matrix protein OMM-64 {ECO:0000305}; Oncorhynchus mykiss (Rainbow trout) (Salmo gairdneri).
  Protein starmaker; Danio rerio (Zebrafish) (Brachydanio rerio).
@@ -447,13 +487,13 @@ A0A060XQP6-A2VD23 s(575) Length: 628/613 [Compositional: D-Biased (40%)]
    557  GADSHTVVDEIDGEETMTPDSEEIMKSGEMDSVVEATEVPADILDQPDQQDDMTQGASQA
         ....||.............|...|........|...|.........||..||.|.|....
    546  SSEDHTAEKTDEDSHDVSDDDDDIDAHDDEAGVEHGTDEASKPHQEPDHHDDTTHGSDDG
+```
 
 Currently, this entry is treated as a standalone otolith matrix protein. However, here is strong evidence that it is the ortholog of the well-characterized Zebrafish protein Starmaker (A2VD23).
 
 Could a "Similarity" note be added, such as: "Belongs to the Starmaker family"?
 
-
-
+```
 Q6FPN0-Q5AL03 s(507) Length: 870/919 [Compositional: Diverse]
  Adhesin AWP1 {ECO:0000303|PubMed:34962966}; Candida glabrata (strain ATCC 2001 / BCRC 20586 / JCM 3761 / NBRC 0622 / NRRL Y-65 / CBS 138) (Yeast) (Nakaseomyces glabratus).
  Hyphally regulated cell wall protein 1; Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast).
@@ -509,12 +549,13 @@ Q6FPN0-Q5AL03 s(507) Length: 870/919 [Compositional: Diverse]
    833  APGTAPGTAVVT
         .|.|.......|
    832  NPVTTSTESDTT
+```
 
 Currently, these proteins are annotated as belonging to disparate families (Trimer_LpxA-like vs. Hyphal_reg_CWP). However, structural and architectural evidence suggests they are homologs within the broader fungal adhesin superfamily.
 
 Could a "Similarity" note be added to Q6FPN0 indicating that it belongs to the fungal beta-helix adhesin superfamily, similar to the HYR1/IFF or Flo families?
 
-
+```
 Q1RM03-P37709 s(442) Length: 499/1407 [Compositional: ER-Biased (83%)]
  Trichoplein keratin filament-binding protein; Danio rerio (Zebrafish) (Brachydanio rerio).
  Trichohyalin; Oryctolagus cuniculus (Rabbit).
@@ -546,9 +587,11 @@ Q1RM03-P37709 s(442) Length: 499/1407 [Compositional: ER-Biased (83%)]
    428  EGLRTARIQEIDNQVEQRRKEQWEQQQTLEQEEAQEREELRLQEEELRL-ETDRMIRQGFQERIHSRPR
         ........||.......|.................|.|.||.||.|..| |.....||..||....|.|
    798  LREEEQLLQEREEERLRRQERERKLREEEQLLQEREEERLRRQERERKLREEEQLLRQEEQELRQERAR
+```
 
 Current Annotation: Currently, TCHP_DANRE contains a "Trichohyalin/plectin homology domain" annotated only at positions 260–426. The homology extends across the entire length of the TCHP protein (approx. AA 12–490) aligning to the central rod region of Trichohyalin (approx. AA 390–860 in Rabbit).
 
+```
 C0J7L8-P86949 s(421) Length: 406/336 [Compositional: G-Biased (47%)]
  Prisilkin-39 {ECO:0000312|EMBL:ACJ06766.1}; Pinctada fucata (Akoya pearl oyster) (Pinctada imbricata fucata).
  Shematrin-like protein 1; Pinctada maxima (Silver-lipped pearl oyster) (White-lipped pearl oyster).
@@ -568,10 +611,11 @@ C0J7L8-P86949 s(421) Length: 406/336 [Compositional: G-Biased (47%)]
    236  GYSYYSSPAPSYYSSGSMTPGYGYYSSGSGI-GGGM-GSGYSYYSSPA
         . . .|.....|........|||.|..|.|| |||. |||...||..|
    283  S-P-TSGVTIPYGGALGLYGGYGSYGYGPGIYGGGIYGSGGGIYSGGA
+```
 
 Annotation Update: PRSKL_PINFU belongs to the Shematrin/Glycine-rich SMP family
 
-
+```
 P34504-Q54YG2 s(394) Length: 1463/1710 [Compositional: C-Biased (40%)]
  Chitin binding domain (ChtBD2) containing chtb-1 {ECO:0000312|WormBase:K04H4.2c}; Caenorhabditis elegans.
  Extracellular matrix protein A; Dictyostelium discoideum (Social amoeba).
@@ -649,6 +693,7 @@ P34504-Q54YG2 s(394) Length: 1463/1710 [Compositional: C-Biased (40%)]
   1312  NGKCCSPSSNKPAG-L-LQSKCPSGDTAVSGCFPNGSC-GTGYECVSSLNLC
         ..||.........| . ....|.|.......| ..|.| .....|....|.|
   1510  KDKCSISQCDSAKGCIEVPMNCTSDKCNEASC-CDGVCTSKPISCPKPKNKC
+```
 
 Current annotation identifies this protein as containing 66 "Cys-rich" repeats (FT REPEAT). However, sequence analysis indicates that these are not generic repeats, but are in fact Chitin-binding Peritrophin-A domains (CBM14 / ChtBD2).
 
@@ -665,6 +710,7 @@ Biological Context: Dictyostelium stalk tubes are composed of cellulose and chit
 
 Convergent evolution rather than common origin could explain these Cysteine rich matches. Algorithm tends to score them highly because of the normal rarity of C. 
 
+```
 Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
  Superoxide dismutase 1 copper chaperone; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
  Metallothionein-1; Tetrahymena pyriformis.
@@ -676,10 +722,12 @@ Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
    286  SCCSNGKSTVC
         .||...|...|
     81  GCCCSSKTNKC
+```
 
 Possibly worth a note -!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins. 
 Though it's well known that Cadmium and Copper binding are related.
 
+```
   P80292-Q67UU9 s(195) Length: 61/426 [Compositional: C-Rich (74%)]
  Metallothionein-2E; Oryctolagus cuniculus (Rabbit).
  Guanine nucleotide-binding protein subunit gamma 4 {ECO:0000305}; Oryza sativa subsp. japonica (Rice).
@@ -687,16 +735,16 @@ Though it's well known that Cadmium and Copper binding are related.
      3  PNCSCATRDSCACA-SSCKCKECKCTSCKKSCCSCCPAGCTKCA-QGCICKG-ALDKCSC
         ..|.|.....|.|. .||.||.|.|.||....|.|...||..|. ..|.|.| .|..|.|
    214  SQCNCSSPNCCTCTLPSCSCKGCACPSCGCNGCGCPSCGCNGCGCPSCGCNGCGLPSCGC
+```
 
 Also possibly worth a note -!- SIMILARITY .
 (The 'enhanced tolerance to copper and cadmium' likely from the metallothionein-like fragment.) 
 
-
 ## Below the fold
 
-These similarities are intriguing but without further evidence do not warrant a datafile update.
+This similarity is intriguing but without further evidence does not warrant a datafile update - though Gemini thinks it does.
 
-
+```
 A0A7L9EYL3-S8B3I8 s(206) Length: 162/176
  Epoxidase xenD {ECO:0000303|PubMed:34900544}; Xenoacremonium sinensis (Endophyte fungus).
  Oxaleimides biosynthesis cluster protein N {ECO:0000303|PubMed:28365998}; Penicillium oxalicum (strain 114-2 / CGMCC 5302) (Penicillium decumbens).
@@ -714,11 +762,12 @@ A0A7L9EYL3-S8B3I8 s(206) Length: 162/176
    142  RALITDLPAWVCFITAALKVL
         |..|.|.|.||....|.|..|
    154  RFWIVDVPFWVVGVWATLEGL
+```
 
 In twilight. Argument for is not clear, but could be orthologs based on near end-to-end correspondence and 'conserved' Histidine spacing.
 
 
-Gemnini Says:
+Gemnini however says:
 
 This match is far from the "twilight zone"—it is actually a high-value hit that connects two specific **secondary metabolite biosynthetic gene clusters (BGCs)**. While the sequence identity might look "weak" to a general algorithm, in the context of fungal natural products, this is a "smoking gun" for a shared enzymatic mechanism.
 
@@ -739,6 +788,8 @@ Notice the **H (Histidine)** residues highlighted in your alignment (residues 36
 
 * **Non-Heme Iron Coordination:** Many of these biosynthetic oxidases (like the P450s or α-ketoglutarate-dependent dioxygenases) use histidines to hold a metal ion in place to activate oxygen.
 * **Active Site Architecture:** The fact that the histidines align suggests that the **chemical reaction mechanism** is identical, even if the surrounding "pocket" (the L and V residues) has drifted to accommodate different-sized molecules.
+
+(My note: They don't align, but the spacing of the marked Histidines is similar)
 
 ---
 
