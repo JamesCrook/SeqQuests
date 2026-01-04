@@ -17,8 +17,5 @@ This document outlines the technical debt identified in the SeqQuests project. T
     - `py/sw_align.py` and `c_src/sw.metal` rely on constants like `THREADS` and `UNROLL`.
     - *Action:* Ensure these match or are passed dynamically to avoid mismatches between host and device code. Note that they ultimately come from compile.sh
 
-- [ ] **Database Node Numbers:**
-    - The tree building code produces files with 'node numbers' in them - but these numbers are only of internal interest and do not have enduring value. Instead files for search results and analysis should present accession IDs, and code to browse these should use accession IDs, dropping the node numbers and so being shorter. Code that currently takes 'node numbers' as input parameters should also take accession IDs instead - which should become the default way of using them. This will require changes to regexps that currently search for node numbers.
-
 - [ ] **Clunky Indexing Step:**
     - The current code for creating indexed protein data, sorted by size descending, and easily binary readable amino acid similarity tables is clunky. For example it reads and indexes from the FastA format derived data rather than using the 'single source of truth' SwissProt file. The preparation needs to be organised to handle more choices of similarity tables, and choice of database, e.g. local database or collection of epitopes vs SwissProt in both all-on-all and database vs database mode.
