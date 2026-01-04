@@ -1,11 +1,11 @@
 cff-version: 1.2.0
 type: dataset
-title: "SeqQuest Findings: Protein sequence relationships missed by standard annotation pipelines"
+title: "SeqQuests Findings: Protein sequence relationships missed by standard annotation pipelines"
 message: "If you wish to cite this work:"
 authors:
   - family-names: Crook
     given-names: James
-repository-code: https://github.com/JamesCrook/SeqQuest
+repository-code: https://github.com/JamesCrook/SeqQuests
 abstract: >-
   Protein sequence relationships that appear to have been missed
   by standard annotation pipelines, identified using novel

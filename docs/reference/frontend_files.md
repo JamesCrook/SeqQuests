@@ -1,6 +1,6 @@
 # Frontend Files
 
-The frontend of SeqQuest is built using vanilla JavaScript and HTML.
+The frontend of SeqQuests is built using vanilla JavaScript and HTML.
 
 * [app.js](../../static/app.js) - The main application logic.
 * [lcars.js](../../static/lcars.js) - The LCARS UI framework logic.

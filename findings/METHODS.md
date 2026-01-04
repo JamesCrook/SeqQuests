@@ -1,4 +1,4 @@
-# SeqQuest Protein Homology Findings: Methods
+# SeqQuests Protein Homology Findings: Methods
 
 ## Overview
 
@@ -86,8 +86,8 @@ Many similarities where the pairs of protein names suggested the similarity was 
 ### Installation
 
 ```bash
-git clone https://github.com/JamesCrook/seqquest
-cd seqquest
+git clone https://github.com/JamesCrook/seqquests
+cd seqquests
 pip install -e .
 ```
 
@@ -121,8 +121,8 @@ See `GETTING_STARTED.md` for full details.
 
 This is for the files already in the findings folder
 
-* **GitHub:** [SeqQuest Findings](github.com/jamescrook/seqquest/findings)
-* **Dynamic:** [Online Browser](www.catalase.com/seqquest/match_explorer.html)
+* **GitHub:** [SeqQuests Findings](github.com/jamescrook/seqquests/findings)
+* **Dynamic:** [Online Browser](www.catalase.com/seqquests/match_explorer.html)
 
 ### Local
 
@@ -135,7 +135,7 @@ python py/web_server.py
 ## Release Contents
 
 ```
-seqquest/
+seqquests/
 ├── GETTING_STARTED.md              # Reproduction instructions
 ├── pyproject.toml                  # Dependencies
 │
@@ -175,7 +175,7 @@ See [findings](./findings/proposed_updates.md) for full details and justificatio
 
 ## Citation
 
-> James Crook. SeqQuest Protein Homology Findings, v0.1. Zenodo. [DOI]
+> James Crook. SeqQuests Protein Homology Findings, v0.1. Zenodo. [DOI]
 
 ## Contact
 

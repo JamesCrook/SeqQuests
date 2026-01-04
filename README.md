@@ -11,10 +11,10 @@ The code can be run via CLI/bash without using the web UI. However, the web UI m
 
 ## Current Status
 
-Right now the part of SeqQuest of most interest is likely to be the /findings/ folder. 
+Right now the part of SeqQuests of most interest is likely to be the /findings/ folder. 
 
 * [Proposed updates](./findings/proposed_updates.md) to SwissProt data files, based on an all-on-all comparison of proteins. 
-* An [online browser](http://www.catalase.com/seqquest/match_explorer.html) with finds, alignments and sequence data files.
+* An [online browser](http://www.catalase.com/seqquests/match_explorer.html) with finds, alignments and sequence data files.
 
 ## Project Structure
 
@@ -27,11 +27,11 @@ Right now the part of SeqQuest of most interest is likely to be the /findings/ f
 │  └─ sw_finds_distilled.txt  # 22 curated finds
 ├─ py/                        # Python source code for the application logic and web server.
 ├─ docs/                      # User documentation
-│  ├─ explanations/           # SeqQuest splits explanations into for-users and for-devs
+│  ├─ explanations/           # SeqQuests splits explanations into for-users and for-devs
 │  ├─ how-to/                 # Recipes organised by related topics
 │  ├─ reference/              # Describes parameters for the various programs 
 │  └─ tutorials/              # Tutorial content, foundations to special case uses.
-└─ static/                    # Files for SeqQuest's web interface (HTML, CSS, JavaScript).
+└─ static/                    # Files for SeqQuests' web interface (HTML, CSS, JavaScript).
 ```
 
 C++/Objective-C provides accelerated versions of code that needs to be fast.

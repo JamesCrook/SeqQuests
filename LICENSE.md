@@ -15,7 +15,7 @@ Docs and images in the /docs folder are copyright James Crook 2026 and are CC-BY
 
 ## Software 
 
-SeqQuest software is MIT Licensed:
+SeqQuests software is MIT Licensed:
 
 Copyright 2026 James Crook
 

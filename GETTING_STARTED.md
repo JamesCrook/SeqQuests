@@ -42,8 +42,8 @@ For accelerated Smith-Waterman searches on Apple Silicon (M1/M2/M3/M4):
 
 ## 3. Running Tools via CLI
 
-SeqQuest is built on top of command line tools. See /docs/tutorials/cli for more details.
-A typical SeqQuest command can be run from the top level of the repository using:
+SeqQuests is built on top of command line tools. See /docs/tutorials/cli for more details.
+A typical SeqQuests command can be run from the top level of the repository using:
 
 ```bash
 python py/tree_builder.py --help

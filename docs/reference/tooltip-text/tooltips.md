@@ -1,6 +1,6 @@
 # Tooltip Text
 
-SeqQuest has tooltips built in to the ui. 'Help' will show arrows indicating what the different parts of the user interface do and are for. These are used both in-program and for the user documentation. Images from the UI are captured using playwright, and include these tooltips.
+SeqQuests has tooltips built in to the ui. 'Help' will show arrows indicating what the different parts of the user interface do and are for. These are used both in-program and for the user documentation. Images from the UI are captured using playwright, and include these tooltips.
 
 The tooltips are stored as JSON files, text describing different UI elements and then object identifiers that pick out the relevant DOM element from the html. 
 

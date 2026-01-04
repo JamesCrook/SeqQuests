@@ -1,6 +1,6 @@
 # Shared Server
 
-SeqQuest is designed to run its FastAPI web server on the user's machine. Its original design is not intended for shared use by multiple people.
+SeqQuests is designed to run its FastAPI web server on the user's machine. Its original design is not intended for shared use by multiple people.
 
 It could be used in lab setting as a shared resource. It has no logins, no idea of user accounts. Anyone with access to the UI can start, inspect, pause and delete any of the batch jobs. 
 
@@ -37,8 +37,8 @@ Complete and try out the standard installation as your admin user first (see GET
 ```bash
 # As your normal admin user
 cd /Users/yourname
-git clone <repo> seqquest
-cd seqquest
+git clone <repo> seqquests
+cd seqquests
 pip install -e .
 ./compile.sh
 ./get_uniprot.sh
@@ -62,14 +62,14 @@ sudo chown labserver:staff /Users/labserver
 
 **2. Set permissions on the project**
 ```bash
-# Assuming your project is at /Users/yourname/seqquest
+# Assuming your project is at /Users/yourname/seqquests
 
 # Let labserver read the code and executables
-chmod -R o+rX /Users/yourname/seqquest
+chmod -R o+rX /Users/yourname/seqquests
 
 # Create a dedicated output directory labserver can write to
-mkdir /Users/yourname/seqquest/output
-chown labserver:staff /Users/yourname/seqquest/output
+mkdir /Users/yourname/seqquests/output
+chown labserver:staff /Users/yourname/seqquests/output
 
 # Ensure the data directory is readable (and read only):
 chmod -R o+rX /Users/yourname/data/seqquests
@@ -84,7 +84,7 @@ SEQQUESTS_DATA_DIR=/Users/yourname/data/seqquests
 
 **3. Run the server as that user**
 ```bash
-cd /Users/yourname/seqquest/
+cd /Users/yourname/seqquests/
 sudo -u labserver python py/web_server.py --host 192.168.1.50 --port 8006
 ```
 
@@ -94,11 +94,11 @@ sudo -u labserver python py/web_server.py --host 192.168.1.50 --port 8006
 # Find the right python that has all the dependencies 
 which python3
 # You will get a path like:
-# /Users/yourname/seqquest/.venv/bin/python
+# /Users/yourname/seqquests/.venv/bin/python
 # which you will use in the .plist file
 
 # Create a launch daemon to start on boot
-sudo nano /Library/LaunchDaemons/com.lab.seqquest.plist
+sudo nano /Library/LaunchDaemons/com.lab.seqquests.plist
 ```
 
 ```xml
@@ -107,13 +107,13 @@ sudo nano /Library/LaunchDaemons/com.lab.seqquest.plist
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.lab.seqquest</string>
+    <string>com.lab.seqquests</string>
     <key>UserName</key>
     <string>labserver</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/yourname/seqquest/.venv/bin/python</string>
-        <string>/Users/yourname/seqquest/py/web_server.py</string>
+        <string>/Users/yourname/seqquests/.venv/bin/python</string>
+        <string>/Users/yourname/seqquests/py/web_server.py</string>
         <string>--host</string>
         <string>0.0.0.0</string>
         <string>--port</string>
@@ -124,13 +124,13 @@ sudo nano /Library/LaunchDaemons/com.lab.seqquest.plist
     <key>KeepAlive</key>
     <true/>
 	<key>WorkingDirectory</key>
-	<string>/Users/yourname/seqquest</string>
+	<string>/Users/yourname/seqquests</string>
 </dict>
 </plist>
 ```
 
 ```bash
-sudo launchctl load /Library/LaunchDaemons/com.lab.seqquest.plist
+sudo launchctl load /Library/LaunchDaemons/com.lab.seqquests.plist
 ```
 
 ## Network binding note

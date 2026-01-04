@@ -14,5 +14,5 @@ In python I readily use python libraries and their ecosystem. For C++ and javasc
 * [New widgets](./new-widgets.md) - Unifying different widgets, d3.js style
 * [Python, JavaScript, C++, Who cares?](./code-translation.md) - Why AI encourages 'the same code' in different formats.
 * [Accessibility](./accessibility.md) - Handling accessibility when developing novel UI
-* [Biopython](./biopython.md) - Perspectives on Biopython and its relation to the SeqQuest tools
-* [Shared Lab Server](./shared-server.md) - Setting SeqQuest up on a Mac Mini to share as a lab server 
+* [Biopython](./biopython.md) - Perspectives on Biopython and its relation to the SeqQuests tools
+* [Shared Lab Server](./shared-server.md) - Setting SeqQuests up on a Mac Mini to share as a lab server 

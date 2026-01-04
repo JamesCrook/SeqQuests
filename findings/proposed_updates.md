@@ -30,7 +30,7 @@ The proposed updates are based on sequence homology, not labwork.
 In this file I also placed at the end:
 * 1 additional twilight zone similarity (25.5% identity) between two fungal biosynthetic oxidoreductases
 
-If browsing the distilled results in the [online browser](http://www.catalase.com/seqquest/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
+If browsing the distilled results in the [online browser](http://www.catalase.com/seqquests/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
 
 # Similarities and Proposed Updates
 
