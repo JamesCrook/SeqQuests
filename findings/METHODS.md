@@ -29,7 +29,7 @@ Metal-accelerated Smith-Waterman alignment using `sw_search.py` (C++/Metal backe
 Pairwise scores assembled into a maximal scoring tree using `tree_builder.py`. This identifies connections *between* protein families rather than redundantly capturing relationships *within* families.
 
 **Outputs:**
-- `sw_results/sw_raw_finds.txt` — Tree-reduced finds (three-line format)
+- `sw_results/sw_finds_raw.txt` — Tree-reduced finds (three-line format)
 - `sw_results/sw_tree.txt` — Same data in tree format (~0.8 GB)
 
 ### 4. Automated Filtering
@@ -60,8 +60,8 @@ Filter statistics were logged to `sw_results/filter_reasons.txt`.
 Additionally the filtering does alignments and counts amino acids matches, building a composition of the matches used. This composition is then used to mark some sequence pairs as biased. This is hoped to be more sensitive than just checking composition, as it shows the residues the alignment actually relied on. 
 
 **Outputs:**
-- `sw_results/sw_finds.txt` — **6,579 candidate finds** (scores 110-4,089)
-- `sw_results/biased_alignment.txt` — **4,207 compositionally biased finds** (flagged separately)
+- `sw_results/sw_finds_standard.txt` — **6,579 candidate finds** (scores 110-4,089)
+- `sw_results/sw_finds_biased.txt` — **4,207 compositionally biased finds** (flagged separately)
 
 ### 5. Manual Curation
 
@@ -96,8 +96,12 @@ This installs dependencies including PyObjC for Metal acceleration.
 ### Running the Pipeline
 
 ```bash
-# 1. Download UniProt Swiss-Prot
+# 1. Gather prerequisites
+#    Set environment variables 
+#    Download UniProt Swiss-Prot
 #    (manual download from uniprot.org or use provided script)
+#    Download metal headers from Apple
+#    Compile executables and prepare binary versions of data
 
 # 2. All-on-all Smith-Waterman (~30 hours)
 python py/sw_search.py
@@ -155,7 +159,7 @@ seqquest/
     └── filter_twilight.py          # Annotation-based filtering
 ```
 
-**Not included:** Raw `sw_results.csv` (3.8 GB) and `sw_tree.txt` (0.8 GB). These are regenerable via the pipeline above.
+**Not included:** Raw `sw_results.csv` (3.8 GB) and `sw_tree.txt` (0.8 GB). These are regeneratable via the pipeline above.
 
 ## Proposed Annotation Updates
 
@@ -167,7 +171,7 @@ seqquest/
 | C16orf89 | UPF0764 / uncharacterized | Related to UTY C-terminal domain | Alignment with Q6B4Z3 |
 | ECMA_DICDI | "Cys-rich repeats" | Chitin-binding Peritrophin-A domains (CBM14) | Alignment + PROSITE PS50940 match |
 
-See `findings/proposed_updates.md` for full details and justifications.
+See [findings](./findings/proposed_updates.md) for full details and justifications.
 
 ## Citation
 

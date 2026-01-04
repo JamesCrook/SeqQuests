@@ -63,13 +63,13 @@ python py/sw_search.py
 ```
 It is designed to pick up where it left off, if it is stopped and restarted.
 
-If you want to monitor progress, you can use:
+To monitor progress of this search, you can use:
 
 ```bash
 tail sw_results/sw_results.csv
 ```
 
-Running instead from the web dashboard has the advantage that you get clearer information about progress, and as with the CLI, you can stop it and start it again and it will pick up from where it left off.
+There is also a nicer way to run the search, via a web interface. You start the web dashboard and start a Smith-Waterman job. Running from the web dashboard has the advantage that you get clearer information about progress, and as with the CLI, you can stop it and start it again and it will pick up from where it left off.
 
 ## 5. Explore
 
@@ -111,9 +111,11 @@ Here is a sample of what it may output.
 ------------------------------------------------------------
 ```
 
-At this point, with all checks green, 
-
-
+At this point, with all checks green, you can run the search.
+```bash
+python py/sw_search.py
+```
+See the 'Running the Server' section for details/alternatives. When it has completed the 'ready_to_rock.py' script, if run, will report additional steps:
 
 ```
 ============================================================

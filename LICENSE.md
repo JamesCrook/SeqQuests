@@ -1,6 +1,6 @@
 ## Data
 
-This repo includes data derived from Uniprot, including accession IDs and protein titles. 
+This repo includes data derived from Uniprot, including accession IDs, protein titles and some sequence data. 
 
 The UniProt Consortium
 UniProt: the Universal Protein Knowledgebase in 2025
@@ -10,12 +10,12 @@ Their data is copyright and licensed CC-BY-4.0. Cite UniProt if you use this der
 
 ## Docs
 
-Docs and images in the /docs folder are copyright James Crook 2026, CC-BY-4.0.
+Docs and images in the /docs folder are copyright James Crook 2026 and are CC-BY-4.0. The general pattern is that documents are CC-BY-4.0 and software MIT, whilst citing/respecting copyrights of original sources.
 
 
 ## Software 
 
-Remainder of repo is MIT Licensed:
+SeqQuest software is MIT Licensed:
 
 Copyright 2026 James Crook
 
