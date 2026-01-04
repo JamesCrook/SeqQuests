@@ -71,13 +71,9 @@ tail sw_results/sw_results.csv
 
 There is also a nicer way to run the search, via a web interface. You start the web dashboard and start a Smith-Waterman job. Running from the web dashboard has the advantage that you get clearer information about progress, and as with the CLI, you can stop it and start it again and it will pick up from where it left off.
 
-## 5. Explore
+# Ready to Rock Script
 
-There is more documentation at /docs/ though these docs and the software are very much a work in progress.
-
-# Automated
-
-There is a script py/ready_to_rock.py that attempts to automate these steps. It runs through a checklist of steps, and if one fails, reports on the failure with what (it believes) needs doing to fix it.
+The script py/ready_to_rock.py attempts to automate these steps. It runs through a checklist of steps, and if one fails, reports on the failure with what (it believes) needs doing to fix it.
 
 Here is a sample of what it may output.
 
@@ -131,3 +127,7 @@ See the 'Running the Server' section for details/alternatives. When it has compl
   🔬 Analysis complete! Results ready for review in the web UI.
 ------------------------------------------------------------
 ```
+
+# Docs
+
+There is more documentation in the [docs](./docs) folder, though as of Jan 2025 these docs and the additional software they describe are very much a work in progress.

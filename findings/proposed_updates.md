@@ -1,6 +1,7 @@
-# Method
+# Proposed Annotation Updates
+### *Method*
 
-See METHODS.md in this repo to reproduce the steps.
+See [METHODS.md](./METHODS.md) in this repo to reproduce the steps.
 
 * Sensitive Smith-Waterman all-on-all comparison of Uniprot ~570,000 proteins, UniProt Swiss-Prot 2025-04, downloaded 27-Oct-2025. 
 * Maximal scoring tree to cluster - to find links between families/clusters
@@ -16,11 +17,13 @@ The AI was not applied to all 6,579, just to selected ones that I wanted to look
 
 AI also gave background and suggested text for updates, based on the sequence files and similarities found. I've included some of that text here.
 
-## Proposed Updates
+## The Proposed Updates
 
 The proposed updates are proposed based on sequence homology, reading of the existing protein data files and comments/feedback from LLMs. That LLM feedback has mostly been to say that the similarities are known or implicit in the data files. The ones chosen for presentation here by me are all ones where the LLM did not think the similarity had already been captured in the annotations - e.g. by shared family name.
 
 The proposed updates are based on sequence homology, not labwork.
+
+The comments with the finds are mostly from Gemini and should be treated with some caution. The similarities found though are from my search and filter.
 
 ## Summary of Results
 
@@ -29,6 +32,30 @@ The proposed updates are based on sequence homology, not labwork.
 
 In this file I also placed at the end:
 * 1 additional twilight zone similarity (25.5% identity) between two fungal biosynthetic oxidoreductases
+
+| Found similarity |
+| --- |
+| Honeybee Prohormone / ITG-like peptides |
+| Fungal Biosynthesis and Transporter |
+| Histone demethylase and a UPF |
+| Pectin Lyase-like |
+| Cyclin-Y |
+| Rhomboid Planty/Yeast Ortholog |
+| Two GPI proteins |
+| Likely Transposon annotation |
+| Concrete MLO/Dicer connection |
+| Vps13 Family Homologs |
+| Cell Wall Binding Domain (CBD) in two Lactococcus phage proteins |
+| Phosphatase related similarity |
+| Flocculin and Glucoamylase |
+| Starmaker and Otolith |
+| Fungal Adhesion proteins |
+| Extended Trichohyalin/plectin homology |
+| Two Shematrin proteins |
+| Chitin-binding domains |
+| Metalothionein in two unicellular eukaryotes |
+| Metalothionein in rabbit and rice! |
+| Two fungal biosynthetic proteins |
 
 If browsing the distilled results in the [online browser](http://www.catalase.com/seqquests/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
 
@@ -81,6 +108,7 @@ Current RefSeq Model: The newer protein versions (XP_001122204.2) are shorter. T
 "In the peptidomics community, this is a well-known "ghost" extension. Researchers working on Apis mellifera neuropeptides generally ignore the first 89 residues and treat the protein as a ~225 AA precursor."
 
 https://www.ncbi.nlm.nih.gov/protein/XP_001122204.2
+
 Their automated method actually starts 4 aa earlier at:
 
 ```
@@ -155,8 +183,8 @@ Q6UX73-Q6B4Z3 s(247) Length: 402/1079
 ```
 
 C16orf89's DUF4735 domain = UTY C-terminal domain
-This domain should be named and linked across both protein families
-The UPF0764 family is not "uncharacterized" - it's related to UTX/UTY proteins
+
+This domain should be named and linked across both protein families. The UPF0764 family is not "uncharacterized" - it's related to UTX/UTY proteins
 
 ### Pectin Lyase-like
 ```
@@ -178,11 +206,11 @@ K9L8K6-P44242 s(245) Length: 883/623
 ```
 
 VPS_HAEIN needs:
-
+```
 InterPro: IPR011050 (Pectin lyase fold/virulence)
 SUPFAM: SSF51126 (Pectin lyase-like)
 Functional annotation: probable capsule depolymerase
-
+```
 This finding links an orphan prophage protein to a characterized enzymatic fold with clear functional implications.
 
 ### Cyclin-Y
@@ -206,8 +234,8 @@ Q4R871-Q96P64 s(507) Length: 360/663
 
 This is known (GeneCards). GeneCards shows:
 
-SIMAP paralogs for CCNYL2 Gene using alignment 
-CCNYL1 CTGLF11P AGAP8 AGAP4 CCNYL3 CCNY FLJ00312 AGAP10
+SIMAP paralogs for CCNYL2 Gene using alignment CCNYL1 CTGLF11P AGAP8 AGAP4 CCNYL3 CCNY FLJ00312 AGAP10
+
 However, it seems SIMAP is no longer maintained, and may be related to why this similarity has not propagated back to SwissProt.
 
 The N-terminal sequence similarity is NOT characterized in the literature. The papers on Cyclin-Y discuss its conserved cyclin box domain but don't mention relationship to AGAP proteins. This N-terminal region (~180 amino acids) that shows high similarity is upstream of the annotated cyclin domain (which starts at residue 204 in CCYL2). This suggests a shared ancestral N-terminal module that predates the gene duplications - and could merit a datafile update.
@@ -238,10 +266,7 @@ DSC2 - should have:
 InterPro: IPR022764 (Peptidase S54 rhomboid domain)
 SUPFAM: SSF144091 (Rhomboid-like)
 ```
-
-Annotation correction needed:
-
-DSC2_SCHPO should have rhomboid domain annotations added. Currently it's only annotated as "DSC complex subunit" without the structural classification. This is an orthology call that unifies a plant "orphan" with a functionally characterized yeast protein.
+Currently it's only annotated as "DSC complex subunit" without the structural classification. 
 
 The "inactive rhomboid" in Arabidopsis and the DSC complex member in yeast are orthologs - this connects plant stress response (heat acclimation, fungal defense) to yeast SREBP signaling.
 
@@ -420,15 +445,14 @@ Q62784-Q69ZK0 s(203) Length: 939/1650
 ```
 
 Proposal:
-
+```
 CC   -!- SIMILARITY: The C-terminal part of the protein (residues ~800-1650)
 CC       contains a domain homologous to the Type I inositol 3,4-bisphosphate
 CC       4-phosphatase family (INPP4), but it lacks the critical cysteine
 CC       residue required for phosphatase activity.
-C. Add a Caution/Note on Activity
-To prevent users from thinking it is an active phosphatase:
+```
 
-
+Also add a Caution/Note on activity, to prevent users from thinking it is an active phosphatase:
 
 ## Proteins with very biased sequence
 
@@ -742,8 +766,9 @@ Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
     81  GCCCSSKTNKC
 ```
 
-Possibly worth a note -!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins. 
-Though it's well known that Cadmium and Copper binding are related.
+Possibly worth a note `-!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins.` 
+
+The Cysteines in pairs indicates this is not just down to composition bias.
 
 ### Metalothionein in rabbit and rice!
 ```
@@ -756,8 +781,9 @@ Though it's well known that Cadmium and Copper binding are related.
    214  SQCNCSSPNCCTCTLPSCSCKGCACPSCGCNGCGCPSCGCNGCGCPSCGCNGCGLPSCGC
 ```
 
-Also possibly worth a note -!- SIMILARITY .
-(The 'enhanced tolerance to copper and cadmium' likely from the metallothionein-like fragment.) 
+Like the previous find, just possibly worth a note `-!- SIMILARITY` .
+
+The similarity is weak and is largely down to composition.
 
 ## Below the fold
 
@@ -793,16 +819,14 @@ This match is far from the "twilight zone"—it is actually a high-value hit tha
 
 The biological story here is the **synthesis of complex, bioactive cyclic compounds (maleimides/alkaloids)** through a specialized oxidation pathway.
 
-### 1. The Functional Connection: Epoxidation and Maleimides
+#### 1. The Functional Connection: Epoxidation and Maleimides
 
 * **A0A7L9EYL3 (xenD):** This is a key enzyme in the biosynthesis of **Xenovulene A**, a potent GABA receptor modulator. The "xenD" protein is a specialized epoxidase that modifies the backbone of the molecule.
 * **S8B3I8 (Protein N):** This is part of the cluster that produces **Oxaleimides**. These are maleimide-containing secondary metabolites known for anti-tumor activity.
 
 **The Story:** Both enzymes are likely **non-canonical epoxidases or cyclases** that work on hydrophobic, polyketide-derived substrates. The "weakness" in the alignment is likely due to the fact that they have evolved to recognize slightly different chemical structures (Xenovulene vs. Oxaleimide), but they maintain the same catalytic "engine."
 
----
-
-### 2. The "H" Residue Clues (Histidine Coordination)
+#### 2. The "H" Residue Clues (Histidine Coordination)
 
 Notice the **H (Histidine)** residues highlighted in your alignment (residues 36, 40, and 56/61). In fungal BGC enzymes, these often indicate:
 
@@ -811,25 +835,14 @@ Notice the **H (Histidine)** residues highlighted in your alignment (residues 36
 
 (My note: They don't align, but the spacing of the marked Histidines is similar)
 
----
-
-### 3. Shared Membrane Architecture
+#### 3. Shared Membrane Architecture
 
 Both proteins show a profile of a **small, multi-pass membrane protein** (roughly 160–180 amino acids).
 
 * In fungal secondary metabolism, enzymes that handle very "greasy" (hydrophobic) molecules like polyketides are often membrane-bound.
 * This alignment proves that **xenD** and **Oxaleimide Protein N** are structural homologs belonging to the same uncharacterized family of **membrane-associated biosynthetic oxidoreductases**.
 
----
-
-### Why this is important
-
-This homology allows you to "cross-annotate" these clusters:
-
-1. **Reaction Prediction:** If the function of *xenD* is experimentally confirmed as an epoxidase, we can now confidently predict that *Protein N* performs a similar epoxidation or oxidative cyclization in the oxaleimide pathway.
-2. **Cluster Discovery:** This motif could be used to find similar biosynthetic clusters in other fungi that are currently "silent" or unannotated.
-
-### Summary Table
+#### Summary Table
 
 | Feature | xenD (Xenoacremonium) | Protein N (Penicillium) |
 | --- | --- | --- |

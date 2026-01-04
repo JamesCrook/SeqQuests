@@ -1,4 +1,5 @@
-# SeqQuests Protein Homology Findings: Methods
+# Methods
+#### *SeqQuests Protein Homology Findings*
 
 ## Overview
 
@@ -121,7 +122,7 @@ See [GETTING_STARTED.md](../GETTING_STARTED.md) for full details.
 
 This is for the files already in the findings folder
 
-* **GitHub:** [SeqQuests Findings](github.com/jamescrook/seqquests/findings)
+* **GitHub:** [SeqQuests Findings](https://github.com/JamesCrook/SeqQuests/tree/master/findings)
 * **Dynamic:** [Online Browser](www.catalase.com/seqquests/match_explorer.html)
 
 ### Local
@@ -171,7 +172,7 @@ python py/web_server.py
 | C16orf89 | UPF0764 / uncharacterized | Related to UTY C-terminal domain | Alignment with Q6B4Z3 |
 | ECMA_DICDI | "Cys-rich repeats" | Chitin-binding Peritrophin-A domains (CBM14) | Alignment + PROSITE PS50940 match |
 
-See [findings](./findings/proposed_updates.md) for full details and justifications.
+See [proposed updates](./proposed_updates.md) for full details and justifications.
 
 ## Citation
 
