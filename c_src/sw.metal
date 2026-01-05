@@ -2,7 +2,7 @@
 using namespace metal;
 
 // THREADS and UNROLL are set in compile.sh.
-// On Mac M4 THREADS is 4096 x 4
+// On Mac M4 THREADS is 4096 x 16
 #ifndef THREADS
 #define THREADS (4096)
 #endif
@@ -14,8 +14,16 @@ using namespace metal;
 // use uchar for 8 bit
 // use ushort for 16 bit
 // Must match the host program's choice.
+//
+// You'd think uchar would reduce the I/O and boost the speed, maybe
+// 1.5x over ushort, but in practice it makes little enough difference,
+// so I stay with ushort for the higher ceiling on scores.
 #define PRECISION ushort
 
+// Hey, if you got this far and are reading this kernel, do send off
+// an email to enquiries@catalase.com and share why you are interested.
+// Whilst Catalase is a commercial company, I'm happy to share the thinking
+// behind this kernel and ideas for onward development. 
 kernel void sw_step(
     device const PRECISION* input [[buffer(0)]],
     device PRECISION* output [[buffer(1)]],
@@ -60,6 +68,8 @@ kernel void sw_step(
         maxv[j] = zero;
     }
     
+    // Making thread_id the fastest changing index, for external
+    // arrays, is important for speed.
     uint idx = thread_id;
     uint aa_index = thread_id;
     ushort nidx = 0;
@@ -70,6 +80,7 @@ kernel void sw_step(
         aa_index += THREADS;
     }
 
+    // Everything is ready. Let the main work begin.
     for (uint row = 0; row < num_rows; row++) {
         PRECISION hValue = input[idx];
         dValue = next_dValue;
@@ -84,30 +95,39 @@ kernel void sw_step(
             result = max(result, (PRECISION)(dValue+shared_pam[nidx+residue]));
             result = max(result, zero);
             // whole column will be zero at terminator
+            // The string terminator is @ which is 0 mod 32.
+            // we are working mod 32, up to 31 distinct amino acid symbols allowed.
             result = select(result, zero, residue == 0);
             maxv[j] = max(result, maxv[j]);
             dValue = accumulator[j];
-            hValue = result; // free, just a renaming...
+            hValue = result; // no cost for this, it is just a renaming...
             accumulator[j] = result;
         }
         output[idx] = hValue;
         idx += THREADS;
     }
     
-    // Column maxes at even locations,
-    // Cumulative column max for this sequence at odd locations.
-    // Collect the max left by a previous run of this kernel
+    // The main work of the kernel has been done now. We have processed a
+    // num_rows x UNROLL grid of cells.
+
+    // Cumulative column maxes
+    // First collect the max that was left by a previous run of this kernel
     PRECISION prevMax = carry_forward_in[thread_id];
+
+    // Then propagate the max along the row, resetting at string terminators
     for (uint j = 0; j < UNROLL; j++) {
-        // update with this column max
+        // update the max with this column max
         prevMax = max(maxv[j], prevMax );
         // Reset max after a sequence boundary
         uchar residue = residues[j];
+        // A terminator? Report and reset max. 
         if( residue == 0){
             uint protein_ix = answer_index[ j*THREADS + thread_id];
             final_max_out[protein_ix]=prevMax-zero;
             prevMax = zero;
         }
     }
+
+    // And carry the max forward to the next run of this kernel
     carry_forward_out[thread_id] = prevMax;
 }
