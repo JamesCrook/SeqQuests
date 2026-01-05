@@ -95,4 +95,5 @@ M4 search has now completed too (22:26 Dec 11 to 10:50 AM Dec 13 paused day time
 Nearing first release. These are must-fix issues:
 * Copy Alignment button broken
 * Should scroll to top on a new pair
-* Repsoition help panel so fewer crossed arrows
+* Reposition help panel so fewer crossed arrows
+* Implement the get_uniprot.sh script

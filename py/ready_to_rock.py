@@ -744,8 +744,8 @@ def print_summary(results: dict[str, list[tuple[Check, CheckResult]]]):
     else:
         print(f"  📊 Results: {total_ok} passed, {total_issues} issues, {total_skipped} skipped")
         print()
-        print("  Run with --fix to attempt automatic fixes")
-        print("  Run with --auto-fix to fix without prompting")
+        print("  Run with --interactive to ask and attempt to fix")
+        print("  Run with --yes to YOLO and agree to all prompts for fixes")
     
     print("-" * 60)
     print()
@@ -844,26 +844,26 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Check if environment is ready to rock")
-    parser.add_argument("--fix", action="store_true", help="Prompt to fix issues")
-    parser.add_argument("--auto-fix", action="store_true", help="Automatically fix all issues")
+    parser.add_argument("--interactive", action="store_true", help="Prompt to fix issues")
+    parser.add_argument("--yes", action="store_true", help="Agree to all proposed fixes")
     parser.add_argument("--quiet", "-q", action="store_true", help="Only show issues")
     args = parser.parse_args()
     
     print_header()
     
-    if args.auto_fix:
-        print("  Running in auto-fix mode...")
-    elif args.fix:
+    if args.yes:
+        print("  Running in auto-fix (--yes) mode...")
+    elif args.interactive:
         print("  Running in interactive fix mode...")
     
-    results = run_checks(auto_fix=args.auto_fix, interactive_fix=args.fix)
+    results = run_checks(auto_fix=args.yes, interactive_fix=args.interactive)
     ready = print_summary(results)
     
     if not ready:
         sys.exit(1)
     
     # If setup is ready, check for post-processing
-    post_results = run_post_processing_checks(auto_fix=args.auto_fix, interactive_fix=args.fix)
+    post_results = run_post_processing_checks(auto_fix=args.yes, interactive_fix=args.interactive)
     
     if post_results is not None:
         post_ready = print_post_summary(post_results)
