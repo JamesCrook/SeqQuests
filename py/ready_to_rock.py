@@ -411,6 +411,7 @@ def check_uniprot_data() -> CheckResult:
     
     required_files = [
         "uniprot_sprot.fasta",
+        "uniprot_sprot.dat",
         # Add other required files
     ]
     
