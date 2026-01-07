@@ -947,3 +947,15 @@ button:disabled:hover {
 .sequence-section:nth-child(3) {
     animation-delay: 0.2s;
 }
+
+@media (max-width: 768px) {
+    .app-root{
+        height:auto;
+        overflow: auto;
+    }
+    .scroll-y {
+    flex: 0 0 auto;      /* Don't grow, don't shrink, size to content */
+    min-height: auto;    /* Undo the min-height: 0 */
+    overflow: visible;   /* Let content flow naturally */
+    }    
+}
