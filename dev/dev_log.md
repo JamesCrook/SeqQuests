@@ -90,10 +90,3 @@ These optimisations included dead ends, such as using ushort4, doing some buffer
 
 M4 search has now completed too (22:26 Dec 11 to 10:50 AM Dec 13 paused day time Dec 12). 4,126,706,362 bytes
 
-4 Jan 2026:
-
-Nearing first release. These are must-fix issues:
-* Copy Alignment button broken
-* Should scroll to top on a new pair
-* Reposition help panel so fewer crossed arrows
-* Implement the get_uniprot.sh script

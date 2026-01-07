@@ -375,7 +375,7 @@ class HelpOverlay {
   getElementBox(el) {
     if(!el) return null;
     if(el.offsetParent === null && el.style.position !== 'fixed')
-  return null; // Simple visibility check
+      return null; // Simple visibility check
 
     const rect = el.getBoundingClientRect();
     return {
