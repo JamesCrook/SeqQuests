@@ -37,6 +37,11 @@
             initWasm();
             const helpConfig = [
                 {
+                    panelPosition: {
+                        targetId : 'RightPanel', 
+                        x: 0.5,
+                        y: 0.5,
+                    },
                     items: [
                         {
                             text: '<strong>Match Explorer:</strong><br>For exploring alignments between proteins.',
@@ -66,6 +71,11 @@
                     ]
                 },
                 {
+                    panelPosition: {
+                        targetId : 'LeftPanel', 
+                        x: 0.95,
+                        y: 0.95,
+                    },
                     items: [
                         {
                             text: '<strong>Found Similarity:</strong><br>Click on the found similarity to view details in the detail panel.',

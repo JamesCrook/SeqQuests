@@ -299,6 +299,43 @@ class HelpOverlay {
     } else {
       this.nextBtn.style.display = 'none';
     }
+
+    // Handle Panel Position
+    if (stepConfig.panelPosition) {
+      const { targetId, x, y } = stepConfig.panelPosition;
+      const targetEl = document.getElementById(targetId);
+
+      if (targetEl) {
+        // We need dimensions of both target and panel
+        // For panel, we need to ensure it's rendered to get dimensions
+        // It is already appended to DOM, so getElementBox should work
+        const targetBox = this.getElementBox(targetEl);
+        const panelBox = this.getElementBox(this.organizer);
+
+        if (targetBox && panelBox) {
+          // Calculate max displacement (align bottom-right)
+          // minPos is top-left alignment (0,0) -> targetBox.pos
+          // maxPos is bottom-right alignment (1,1) -> targetBox.pos + targetBox.size - panelBox.size
+
+          const minPos = targetBox.pos;
+          const maxPos = minPos.add(targetBox.size.sub(panelBox.size.x, panelBox.size.y));
+
+          // Use lerp() per dimension as requested.
+          // Since Vector2D.lerp takes a scalar, we construct vectors to interpolate each axis.
+          const xPos = new Vector2D(minPos.x, 0).lerp(new Vector2D(maxPos.x, 0), x).x;
+          const yPos = new Vector2D(0, minPos.y).lerp(new Vector2D(0, maxPos.y), y).y;
+
+          this.organizer.style.transform = 'none';
+          this.organizer.style.left = `${xPos}px`;
+          this.organizer.style.top = `${yPos}px`;
+        }
+      }
+    } else {
+      // Reset to center default
+      this.organizer.style.top = '50%';
+      this.organizer.style.left = '50%';
+      this.organizer.style.transform = 'translate(-50%, -50%)';
+    }
   }
 
   nextStep() {
