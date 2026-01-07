@@ -753,15 +753,12 @@ function copyAlignment() {
   const copyBtn = document.getElementById('copyAlignmentBtn');
   if(!alignmentViewer || !copyBtn) return;
 
-  // Get the text content from the pre element
-  const preElement = alignmentViewer.querySelector('pre');
-
-  if(!preElement || preElement.textContent.includes('No alignment selected') ||
-    preElement.textContent.includes('Loading')) {
+  if(alignmentViewer.textContent.includes('No alignment selected') ||
+    alignmentViewer.textContent.includes('Loading')) {
     return;
   }
 
-  let alignmentText = getMatchText(lastLoadedEntry) + preElement.textContent;
+  let alignmentText = getMatchText(lastLoadedEntry) + alignmentViewer.textContent;
 
   // Copy to clipboard
   navigator.clipboard.writeText(alignmentText).then(() => {
