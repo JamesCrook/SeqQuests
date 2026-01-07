@@ -581,7 +581,8 @@ async function selectEntry(index) {
   if(orchestrator) {
     orchestrator.activeCursor = [index];
     // Trigger an initial sync once the details are loaded
-    orchestrator.broadcastSync(0, orchestrator.targets[0].getBounds([index]));
+    // Skip for now. Wait for the drag.
+    //orchestrator.broadcastSync(0, orchestrator.targets[0].getBounds([index]));
   }
 }
 
@@ -698,9 +699,9 @@ async function loadSequenceDetails(finding, index) {
   isLoadingSequence = false;
 
   // Scroll details panel to top
-  const rightPanel = document.getElementById('RightPanel');
-  if(rightPanel) {
-    rightPanel.scrollTop = 0;
+  const pairViewer = document.getElementById('pairViewer');
+  if(pairViewer) {
+    pairViewer.scrollTop = 0;
   }
 }
 
