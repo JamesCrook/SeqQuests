@@ -1,7 +1,9 @@
 # Gemini Comments
 
 These comments are from interactions with the Gemini AI.
-These are the same finds as in proposed_updates.md
+
+These are the same finds as in [proposed_updates.md](./proposed_updates.md)
+
 Treat comments with caution, given their source.
 
 ### Honeybee Prohormone / ITG-like peptides
@@ -316,6 +318,8 @@ Similarity is known, but could be more clearly documented in the datafiles.
 
 Conserved "Barrel" Signature
 The region aligned (approx. residues 570–640 in CSF1 and 550–620 in BLTP1) corresponds to a highly specific structural feature found in lipid transfer proteins: a beta-barrel or "cupin-like" fold used to shield hydrophobic lipids.
+
+> Claude corrects Gemini: What VPS13/BLTP proteins actually have is the *Repeating Beta Groove (RBG)* - a different beta-rich structure forming a hydrophobic channel for lipid transport. "Cupin-like" is an analogy (both are beta-rich, both create hydrophobic cavities) rather than strict structural classification.
 
 The Anchor: The alignment FSLPITS vs FSLPFTD is striking. The FSLP motif is hydrophobic and structurally rigid. In lipid transfer proteins, these hydrophobic residues often line the interior of the lipid-binding cavity.
 

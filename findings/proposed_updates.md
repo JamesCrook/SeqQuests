@@ -57,7 +57,7 @@ In this file I also placed at the end:
 | Metalothionein in rabbit and rice! |
 | Two fungal biosynthetic proteins |
 
-If browsing the distilled results in the [online browser](http://www.catalase.com/seqquests/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
+If browsing the distilled results in the [online browser](https://www.catalase.com/seqquests/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
 
 # Similarities and Proposed Updates
 
@@ -786,7 +786,7 @@ CC   -!- SIMILARITY: Region 354-1560 contains multiple chitin-binding
 CC       type 2 motifs similar to P34504. {ECO:0000250|UniProtKB:P34504}.
 ```
 
-Claude additionally cited PROSITE motif CHIT_BIND_II
+Gemini additionally cited PROSITE motif CHIT_BIND_II
 
 Checks:
 * https://prosite.expasy.org/PS50940 - CHIT_BIND_II
@@ -825,7 +825,7 @@ Q10357
 -!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins. 
 ```
 
-The Cysteines in pairs indicates this is not just down to composition bias.
+The cysteines in pairs, vicinal cysteines, indicate this is not just down to composition bias.
 
 ### Metalothionein in rabbit and rice!
 ```

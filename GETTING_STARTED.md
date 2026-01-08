@@ -1,6 +1,6 @@
 # Getting Started
 
-This is a condensed versions of /docs/tutorials/getting-started.md
+This is a condensed versions of how to get started; a longer version will later be available at /docs/tutorials/getting-started.md
 
 ## 1. Prerequisites
 *   macOS (for Metal acceleration)

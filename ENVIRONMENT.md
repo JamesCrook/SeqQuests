@@ -20,6 +20,4 @@ python py/web_server.py
 |----|-------|
 |XCode|Compilation of SW search and wasm code for in-browser alignments|
 
-AI Should add other reuqired tools to the table.
-
-I use Brew to install some of these tools.
+GETTING_STARTED.md should get you set up for working with this code, but if it is insufficient, please email enquiries@catalase.com

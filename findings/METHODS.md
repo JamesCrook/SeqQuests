@@ -69,7 +69,7 @@ Additionally the filtering does alignments and counts amino acids matches, build
 The reduced set was manually reviewed for biological significance, focusing on:
 
 - Score range 140-300 (twilight zone — most likely to contain overlooked homology)
-- Clumping patterns in the tree suggesting functional groupings  
+- Clumping patterns in the alignments
 - Conserved rare residues (C, W, F, M) within compositionally biased backgrounds
 
 Many similarities where the pairs of protein names suggested the similarity was not likely to be new or specially interesting were skipped over. 
@@ -123,7 +123,7 @@ See [GETTING_STARTED.md](../GETTING_STARTED.md) for full details.
 This is for the files already in the findings folder
 
 * **GitHub:** [SeqQuests Findings](https://github.com/JamesCrook/SeqQuests/tree/master/findings)
-* **Dynamic:** [Online Browser](www.catalase.com/seqquests/match_explorer.html)
+* **Dynamic:** [Online Browser](https://www.catalase.com/seqquests/match_explorer.html)
 
 ### Local
 
@@ -176,7 +176,9 @@ See [proposed updates](./proposed_updates.md) for full details and justification
 
 ## Citation
 
-> James Crook. SeqQuests Protein Homology Findings, v0.1. Zenodo. [DOI]
+> James Crook. 
+> SeqQuests Protein Homology Findings, 
+> v0.1. Zenodo. [DOI]
 
 ## Contact
 

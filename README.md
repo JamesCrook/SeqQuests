@@ -14,7 +14,7 @@ The code can be run via CLI/bash without using the web UI. However, the web UI m
 Right now the part of SeqQuests most likely of interest is the /findings/ folder. 
 
 * [Proposed updates](./findings/proposed_updates.md) to Swiss-Prot data files, based on an all-on-all comparison of proteins. 
-* An [online browser](http://www.catalase.com/seqquests/match_explorer.html) with finds, alignments and sequence data files.
+* An [online browser](https://www.catalase.com/seqquests/match_explorer.html) with finds, alignments and sequence data files.
 
 ## Project Structure
 
