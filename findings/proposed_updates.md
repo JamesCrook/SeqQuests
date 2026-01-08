@@ -61,7 +61,7 @@ If browsing the distilled results in the [online browser](http://www.catalase.co
 
 # Similarities and Proposed Updates
 
-In the folowing s(654) and similar are the sequence similarity score.
+In the folowing s(654) and similar are the sequence similarity score, using PAM250 matrix, -10 indel score. 
 
 ### Honeybee Prohormone / ITG-like peptides
 ```
@@ -89,11 +89,36 @@ P85828-E2ADG2 s(654) Length: 314/205
 Proposal:
 ```
 P85828
--!- SEQUENCE CAUTION 1-88 may be an artifact. 1-84 is excluded in NCBI RefSeq (XP_001122204).
--!- ANNOTATION CAUTION Regions marked transmembrane might not be so marked with 1-88 excluded 
--!- SIMILARITY 89-307 to complete ITG-like peptides (ortholog)
-or perhaps rename as ITG-like and demote Prohormone-3 to an alternative name
+DE   RecName: Full=ITG-like peptide;
+DE   AltName: Full=Prohormone-3;
+DE   Contains:
+DE     RecName: Full=Brain peptide ITGQGNRIF;
+DE   Flags: Precursor;
+
+CC   -!- SUBCELLULAR LOCATION: Secreted {ECO:0000250|UniProtKB:E2ADG2}.
+CC   -!- SEQUENCE CAUTION: The sequence 1-88 may be artifactual. An 
+CC       alternative translation initiation at Met-84 is supported by 
+CC       RefSeq XP_001122204 and at Met-89 by sequence similarity to E2ADG2.
+CC       {ECO:0000305}.
+CC   -!- SIMILARITY: Belongs to the ITG-like peptide family.
+CC       {ECO:0000305}.
+
+Remove:
+FT   SIGNAL          1..19        (in artifactual region)
+FT   TRANSMEM        90..112      (this is actually signal peptide)
+CC   -!- SUBCELLULAR LOCATION: Membrane...  (wrong)
+
+Add:
+FT   SIGNAL          89..103
+FT                   /evidence="ECO:0000250|UniProtKB:E2ADG2"
+FT   PROPEP          104..294
+FT                   /evidence="ECO:0000250|UniProtKB:E2ADG2"
 ```
+
+Calculation of transmembrane-ness should probably be redone with the shorter sequence.
+
+Checks:
+https://www.ncbi.nlm.nih.gov/protein/XP_001122204.2 - for the NCBI version
 
 ### Fungal Biosynthesis and Transporter
 ```
@@ -110,10 +135,33 @@ Q2HEW6-A0A345BJN8 s(250) Length: 409/919
    577  TRGGSPVGRDWPRNFVKHKAKYSILDEDVYSFDEA
 ```
 
+Proposal:
 ```
 A0A345BJN8
--!- SIMILARITY 507-610 to complete pogo-like transposase (HTH + DDE domains) 
+FT   DOMAIN          532..601
+FT                   /note="HTH CENPB-type"
+FT                   /evidence="ECO:0000250|UniProtKB:Q2HEW6"
+CC -!- SIMILARITY: Region 507-610 shows similarity to Q2HEW6, encompassing 
+CC     the HTH CENPB-type DNA-binding domain. Together with the C-terminal 
+CC     DDE domain (641-809), this suggests a complete pogo-like transposase 
+CC     architecture. {ECO:0000250|UniProtKB:Q2HEW6}.
 ```
+
+Checks:
+https://www.ebi.ac.uk/interpro/entry/InterPro/IPR004875/protein/UniProt/?search=lunatus#table - shows A0A345BJN8 has DDE domain 641-809 which is already noted.
+
+A scan in PROSITE gives:
+```
+532 - 601:  score = 7.686   [warning: hit with a low confidence level (-1)]
+DCQPNSKKLIQQEEEVILKYILDLDTRGFLPTYAAERGMADKLLSTRG-GSPVGRDWPRN
+FVKHKAKYSIL
+
+Predicted features:
+DOMAIN      532 601 /note="HTH CENPB-type " [condition: none]   
+DNA_BIND    565 594 /note="H-T-H motif" [condition: none]
+```
+
+N.B. This arrangement is like the arrangement in POGZ_HUMAN
 
 ### Histone demethylase and a UPF
 ```
@@ -131,8 +179,9 @@ Q6UX73-Q6B4Z3 s(247) Length: 402/1079
 ```
 
 ```
-UPF0764
--!- SIMILARITY 325-402 UTY C-Terminal domain
+Q6UX73
+CC -!- SIMILARITY: Region 325-402 shows similarity to the C-terminal 
+CC     domain of histone demethylase UTY. {ECO:0000250|UniProtKB:Q6B4Z3}.
 ```
 
 ### Pectin Lyase-like
@@ -156,9 +205,9 @@ K9L8K6-P44242 s(245) Length: 883/623
 
 ```
 P44242
-InterPro: IPR011050 (Pectin lyase fold/virulence)
-SUPFAM: SSF51126 (Pectin lyase-like)
-Functional annotation: probable capsule depolymerase
+CC   -!- SIMILARITY: Region 88-270 shows similarity to phage 
+CC       depolymerases containing a pectin lyase-like fold. 
+CC       {ECO:0000250|UniProtKB:K9L8K6}.
 ```
 
 ### Cyclin-Y
@@ -180,14 +229,15 @@ Q4R871-Q96P64 s(507) Length: 360/663
    139  MTIISVTLEIPHHITQRDADRSLSIPDEQLHSFAVSTV
 ```
 
+Proposal:
 ```
 Q4R871
--!- SIMILARITY 1-180 to Arf-GAP
-```
+CC   -!- SIMILARITY: Region 1-180 shows similarity to Arf-GAP domain-
+CC       containing proteins. {ECO:0000250|UniProtKB:Q96P64}.
 
-```
 Q96P64
--!- SIMILARITY 1-178 to Cyclin-Y-like protein
+CC   -!- SIMILARITY: Region 1-178 shows similarity to Cyclin-Y-like 
+CC       proteins. {ECO:0000250|UniProtKB:Q4R871}.
 ```
 
 ### Rhomboid Planty/Yeast Ortholog
@@ -211,9 +261,16 @@ Q9LET3-Q9UTK7 s(244) Length: 293/372
 
 ```
 Q9UTK7
-InterPro: IPR022764 (Peptidase S54 rhomboid domain)
-SUPFAM: SSF144091 (Rhomboid-like)
+CC   -!- SIMILARITY: Region 1-210 shows similarity to rhomboid-like 
+CC       proteins, suggesting an S54 peptidase domain. 
+CC       {ECO:0000250|UniProtKB:Q9LET3}.
 ```
+
+Checks:
+https://www.ebi.ac.uk/interpro/entry/InterPro/IPR022764/protein/UniProt/?search=Rhomboid%20like%20protein%2020%20thaliana#table - Q9LET3 has S54 Rhomboid domain 49-186
+https://www.ebi.ac.uk/interpro/entry/InterPro/IPR022764/protein/UniProt/?search=DSC%20E3#table - Two DSC E3 ubiquitin ligase complexes have identified S54 Rhomboid domains, but none from UniProt shown
+
+This find and the checks above strongly suggests Q9UTK7 has S54 Rhomboid domain too.
 
 ### Two GPI proteins
 ```
@@ -247,15 +304,28 @@ Q8CHJ0-Q5AMR5 s(239) Length: 435/398
    384  F
 ```
 
-```
-Q8CHJ0
--!- NOTE Contains BindGPILA domain, 71-407
-```
-
+Proposal:
 ```
 Q5AMR5
--!- NOTE Contains BindGPILA domain, 47-384
+CC   -!- SIMILARITY: Belongs to the glycosyltransferase GT-C superfamily, 
+CC       PIGM family. Shows sequence similarity to PIGU family members 
+CC       extending N-terminal to the PIG-M domain. {ECO:0000305}.
 ```
+
+Evidence:
+Alignment Q8CHJ0-Q5AMR5: score 239, regions 71-407/47-384
+- Q8CHJ0 PIG-U domain: 11-394 (InterPro/Pfam PF06728)
+- Q5AMR5 PIG-M domain: 129-394 (InterPro/Pfam PF05007)
+- Both families belong to Pfam clan CL0111 (GT-C glycosyltransferases)
+- Q5AMR5 region 47-128 shows additional homology N-terminal to annotated PIG-M domain
+
+Checks:
+Hover on domain map to get sequence range for each domain:
+https://www.ebi.ac.uk/interpro/entry/pfam/PF06728/protein/UniProt/?search=griseus#table - Q8CHJ0 has PIG-U 11-394
+https://www.ebi.ac.uk/interpro/entry/pfam/PF05007/protein/UniProt/?search=albicans#table - Q5AMR5 has PIG-M 129-394
+
+These above are the already annotated regions. 
+
 
 
 ### Likely Transposon annotation
@@ -273,17 +343,18 @@ O02751-Q32L59 s(220) Length: 592/351
    273  KTIVKKQKRI
 ```
 
+Proposal:
 ```
 O02751
--!- SIMILARITY 455-533 to Q32L59 transmembrane protein 5B.
-```
+CC   -!- SIMILARITY: Region 455-533 shows similarity to Q32L59. 
+CC       {ECO:0000250|UniProtKB:Q32L59}.
 
-```
 Q32L59
--!- SIMILARITY 203-282 to O02751 craniofacial development protein 2.
+CC   -!- SIMILARITY: Region 203-282 shows similarity to O02751. 
+CC       {ECO:0000250|UniProtKB:O02751}.
 ```
 
-Claude (AI) flagged this as a possible transposon domain, but I haven't followed this up.
+Claude (AI) flagged this as a possible transposon domain, but I haven't followed this up. The similarity is clear though.
 
 ### Concrete MLO/Dicer connection
 ```
@@ -296,14 +367,17 @@ P81785-Q9SP32 s(209) Length: 217/1909
   1172  DVVRASGLLPVRDAFEKEVEEDLSKGKLMMADGCMVAEDLIGKIVTAAHSGKRFYVDSICYD
 ```
 
+**check specifically RNase III domain**
+
+Proposal:
 ```
 P81785
--!- SIMILARITY 157-217 to Q9SP32 Dicer homolog
-```
+CC   -!- SIMILARITY: Region 157-217 shows similarity to the RNase III 
+CC       domain region of Dicer. {ECO:0000250|UniProtKB:Q9SP32}.
 
-```
 Q9SP32
--!- SIMILARITY 1172-1233 to P81785 MLO-like protein
+CC   -!- SIMILARITY: Region 1172-1233 shows similarity to MLO-like 
+CC       proteins. {ECO:0000250|UniProtKB:P81785}.
 ```
 
 
@@ -330,14 +404,15 @@ Q74ZX0-Q2LD37 s(219) Length: 2887/5005
    617  IHDTG
 ```
 
+Proposal:
 ```
 Q74ZX0
--!- SIMILARITY 434-645 to Q2LD37 including cupin-like fold from 570
-```
+CC   -!- SIMILARITY: Region 434-645 shows similarity to bridge-like 
+CC       lipid transfer protein BLTP1. {ECO:0000250|UniProtKB:Q2LD37}.
 
-```
 Q2LD37
--!- SIMILARITY 408-621 to Q74ZX0 including cupin-like fold from 550
+CC   -!- SIMILARITY: Region 408-621 shows similarity to CSF1 family 
+CC       proteins. {ECO:0000250|UniProtKB:Q74ZX0}.
 ```
 
 
@@ -360,6 +435,9 @@ P62693-Q38135 s(211) Length: 226/270
    202  TYLIFAKDTKRWYITNGIEIRYIKTGRVLGNYQNQWLKFKLPVDTMFQAEVDKEFG
 ```
 
+**check Cell Wall Binding Domain. Hallucination?**
+
+Proposal:
 ```
 P62693
 -!- SIMILARITY 27-215 to Q38135 phage amidase including C-terminal Cell Wall Binding Domain
@@ -394,13 +472,14 @@ Q62784-Q69ZK0 s(203) Length: 939/1650
   1569  CQITMCGTGMQRSTLSVSLEQAAILARSHGLLPKCVMQATDIMRKQGPRVEILAKNL
 ```
 
+**check cysteine**
+
 Proposal:
 ```
 Q69ZK0
--!- SIMILARITY: The C-terminal part of the protein (residues ~1360-1650)
-    contains a domain homologous to the Type I inositol 3,4-bisphosphate
-    4-phosphatase family (INPP4), but it lacks the critical cysteine
-    residue required for phosphatase activity.
+CC   -!- SIMILARITY: Region 1360-1624 shows similarity to INPP4-type 
+CC       inositol polyphosphate 4-phosphatases, but lacks the catalytic 
+CC       cysteine. {ECO:0000305}.
 ```
 
 
@@ -429,9 +508,11 @@ P04065-P08640 s(826) Length: 767/1367 [Compositional: T-Biased (42%)]
   1115  TTTVPCSTGTGEYTTEATTLVTTAVTTTVVTTESSTGTNSAGKTTTGYTTKSVPTTYV
 ```
 
+Proposal:
 ```
 P04065
--!- SIMILARITY 22-289 to FLO11 flocculation protein C-terminal domain
+CC   -!- SIMILARITY: Region 22-289 shows similarity to the C-terminal 
+CC       domain of flocculin FLO11. {ECO:0000250|UniProtKB:P08640}.
 ```
 
 ### Starmaker and Otolith
@@ -479,7 +560,8 @@ A0A060XQP6-A2VD23 s(575) Length: 628/613 [Compositional: D-Biased (40%)]
 
 ```
 A0A060XQP6
--!- SIMILARITY Belongs to the Starmaker family
+CC   -!- SIMILARITY: Belongs to the starmaker family. 
+CC       {ECO:0000250|UniProtKB:A2VD23}.
 ```
 
 ### Fungal Adhesion proteins
@@ -543,7 +625,8 @@ Q6FPN0-Q5AL03 s(507) Length: 870/919 [Compositional: Diverse]
 
 ```
 Q5AL03
--!- SIMILARITY Belongs to the fungal adhesion superfamily
+CC   -!- SIMILARITY: Shows similarity to fungal adhesins including AWP1. 
+CC       {ECO:0000250|UniProtKB:Q6FPN0}.
 ```
 
 ### Extended Trichohyalin/plectin homology
@@ -581,7 +664,13 @@ Q1RM03-P37709 s(442) Length: 499/1407 [Compositional: ER-Biased (83%)]
    798  LREEEQLLQEREEERLRRQERERKLREEEQLLQEREEERLRRQERERKLREEEQLLRQEEQELRQERAR
 ```
 
-Current Annotation: Currently, TCHP_DANRE contains a "Trichohyalin/plectin homology domain" annotated only at positions 260–426. The homology extends across the entire length of the TCHP protein (approx. AA 12–490) aligning to the central rod region of Trichohyalin (approx. AA 390–860 in Rabbit).
+Proposal:
+```
+Q1RM03
+CC   -!- SEQUENCE CAUTION: The annotated trichohyalin/plectin homology 
+CC       domain (260-426) may extend across the full protein length 
+CC       (12-490). {ECO:0000305}.
+```
 
 ### Two Shematrin proteins
 ```
@@ -606,9 +695,11 @@ C0J7L8-P86949 s(421) Length: 406/336 [Compositional: G-Biased (47%)]
    283  S-P-TSGVTIPYGGALGLYGGYGSYGYGPGIYGGGIYGSGGGIYSGGA
 ```
 
+Proposal:
 ```
 C0J7L8
--!- SIMILARITY Belongs to the Shematrin/Glycine-rich SMP family
+CC   -!- SIMILARITY: Belongs to the shematrin family. 
+CC       {ECO:0000250|UniProtKB:P86949}.
 ```
 
 ### Chitin-binding domains
@@ -694,12 +785,24 @@ P34504-Q54YG2 s(394) Length: 1463/1710 [Compositional: C-Biased (40%)]
 
 ```
 Q54YG2
--!- SIMILARITY 354-1560 to P34504 Chitin binding domains. Also PROSITE motif CHIT_BIND_II
+CC   -!- SIMILARITY: Region 354-1560 contains multiple chitin-binding 
+CC       type 2 motifs similar to P34504. {ECO:0000250|UniProtKB:P34504}.
 ```
+
+Claude additionally cited PROSITE motif CHIT_BIND_II
+Checks:
+https://prosite.expasy.org/PS50940 - CHIT_BIND_II
+https://prosite.expasy.org/PDOC50940 - Documentation for above
+C-x(13,20)-C-x(5,6)-C-x(9,19)-C-x(10,14)-C-x(4,14)-C
+
+I'm heistant about this particular PROSITE pattern as it seems to me most Cysteine rich proteins of any extent are going to contain motifs this non specific. Meanwhile the similarity between these two proteins seems worth noting, noticably stronger than can just be explained by Cysteine bias, see for example the region marked with *****.
+
 
 ## Below the fold
 
-The last three similarities are intriguing but without further evidence do not warrant a datafile update. I found multiple intriguing Cysteine rich matches besides the two examples here. Convergent evolution rather than common origin could explain them. The algorithm tends to score them highly because of the normal rarity of C. There is also a fungal biosynthetic similarity that Gemini was excited about. It suggests the algorithm is picking up something in the twilight zone that correlates with function, even when we can't confidently call homology. The fungal similarity is below the threshold where on its own a note in the datafile is warranted. 
+The last three similarities are intriguing but without further evidence do not warrant a datafile update. I found multiple intriguing Cysteine rich matches besides the two examples here below. Convergent evolution rather than common origin could explain them. The algorithm tends to score them highly because of the normal rarity of C. A follow up investigation specifically of Cysteine rich proteins could be worthwhile.
+
+There is also a 'below the fold' fungal biosynthetic similarity that Gemini was excited about. This find suggests the algorithm is picking up something in the twilight zone that correlates with function, even when we can't confidently call it homology. The fungal similarity is below the threshold where on its own a note in the datafile is warranted. 
 
 
 ### Metalothionein in two unicellular eukaryotes
@@ -720,7 +823,7 @@ Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
 Possibly worth a note 
 ```
 Q10357
--!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins.` 
+-!- SIMILARITY Contains a cysteine-rich metal-binding motif similar to metallothioneins. 
 ```
 
 The Cysteines in pairs indicates this is not just down to composition bias.
@@ -766,6 +869,6 @@ A0A7L9EYL3-S8B3I8 s(206) Length: 162/176
    154  RFWIVDVPFWVVGVWATLEGL
 ```
 
-Gemini considers these orthologs, based on near end-to-end correspondence, related function and 'conserved' Histidine spacing.
+Gemini considers these orthologs, based on near end-to-end correspondence, related function and 'conserved' Histidine spacing (shown with H's).
 
 Likely needs input from a domain expert to decide whether a data file update is actually warranted. 
