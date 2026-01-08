@@ -367,13 +367,11 @@ P81785-Q9SP32 s(209) Length: 217/1909
   1172  DVVRASGLLPVRDAFEKEVEEDLSKGKLMMADGCMVAEDLIGKIVTAAHSGKRFYVDSICYD
 ```
 
-**check specifically RNase III domain**
-
 Proposal:
 ```
 P81785
-CC   -!- SIMILARITY: Region 157-217 shows similarity to the RNase III 
-CC       domain region of Dicer. {ECO:0000250|UniProtKB:Q9SP32}.
+CC   -!- SIMILARITY: Region 157-217 shows similarity to Q9SP32 that 
+CC       includes the PAZ domain. {ECO:0000250|UniProtKB:Q9SP32}.
 
 Q9SP32
 CC   -!- SIMILARITY: Region 1172-1233 shows similarity to MLO-like 
@@ -415,6 +413,7 @@ CC   -!- SIMILARITY: Region 408-621 shows similarity to CSF1 family
 CC       proteins. {ECO:0000250|UniProtKB:Q74ZX0}.
 ```
 
+But see cupin-like fold in [gemini_comments.md](./gemini_comments.md)
 
 ### Cell Wall Binding Domain (CBD) in two Lactococcus phage proteins
 ```
@@ -435,18 +434,19 @@ P62693-Q38135 s(211) Length: 226/270
    202  TYLIFAKDTKRWYITNGIEIRYIKTGRVLGNYQNQWLKFKLPVDTMFQAEVDKEFG
 ```
 
-**check Cell Wall Binding Domain. Hallucination?**
-
 Proposal:
 ```
 P62693
--!- SIMILARITY 27-215 to Q38135 phage amidase including C-terminal Cell Wall Binding Domain
+CC   -!- SIMILARITY: Region 27-215 shows similarity to phage amidases.
+CC       {ECO:0000250|UniProtKB:Q38135}.
+
+Q38135
+CC   -!- SIMILARITY: Region 63-257 shows similarity to phage endolysins,
+CC       extending beyond the amidase domain.
+CC       {ECO:0000250|UniProtKB:P62693}.
 ```
 
-```
-Q38135
--!- SIMILARITY 63-257 to P62693 phage endolysin including C-terminal Cell Wall Binding Domain
-```
+For 'cell wall binding domain' see Geminis' claims in [gemini_comments.md](./gemini_comments.md). Safest is to use the HMM methods, if available.
 
 
 ### Phosphatase related similarity
@@ -472,16 +472,13 @@ Q62784-Q69ZK0 s(203) Length: 939/1650
   1569  CQITMCGTGMQRSTLSVSLEQAAILARSHGLLPKCVMQATDIMRKQGPRVEILAKNL
 ```
 
-**check cysteine**
-
 Proposal:
 ```
 Q69ZK0
-CC   -!- SIMILARITY: Region 1360-1624 shows similarity to INPP4-type 
-CC       inositol polyphosphate 4-phosphatases, but lacks the catalytic 
-CC       cysteine. {ECO:0000305}.
+CC   -!- SIMILARITY: Region 1359-1624 shows similarity to INPP4-type 
+CC       inositol polyphosphate 4-phosphatases.
+CC       {ECO:0000250|UniProtKB:Q62784}.
 ```
-
 
 ## Proteins with very biased sequence
 

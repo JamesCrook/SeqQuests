@@ -361,6 +361,26 @@ P62693-Q38135 s(211) Length: 226/270
 
 The similarity warrants a datafile update, both lack the annotation for the shared C-terminal Cell Wall Binding Domain (CBD).
 
+The high identity in the segment NYQNQWLKFKLPVDTMFQAEVDKEFG (the very end of the alignment) is a classic signature of a Cell Wall Binding Domain (CWBD), which bacteriophages often "swap" to target specific hosts (in this case, both target Lactococcus lactis).
+
+2. Candidate Pfam Identities
+Given that both phages target Lactococcus lactis, this domain is likely a specialized module for binding lactococcal peptidoglycan or cell-wall associated carbohydrates. Here are the most likely candidates:
+
+A. LysM (Lysin Motif) - Pfam PF01476
+This is the most common CWBD in lactic acid bacteria phages. It is typically ~40–50 amino acids long. However, the sequence you provided doesn't immediately show the classic "GDTL" or "PT" motifs common to LysM.
+
+B. SH3_5 (Bacterial SH3 domain) - Pfam PF08460
+Bacterial SH3-like domains (specifically SH3_5 or SH3b) are frequently found at the C-terminus of endolysins. They act as "anchors" to the cell wall.
+
+Check: Your sequence contains several Tryptophan (W) and Tyrosine (Y) residues (e.g., WYITNG, WLKF). These aromatic residues are hallmarks of SH3b domains, which use them to stack against the sugars or peptides of the cell wall.
+
+C. CW_binding_1 / CPL-1 type
+Some lactococcal phages use C-terminal repeats similar to those found in Streptococcus pneumoniae lysins.
+
+3. Is it a "New" Domain?
+It is unlikely to be entirely "new" to science, but it is very likely under-annotated in these specific UniProt entries. Many older Swiss-Prot entries (like these, integrated in 1997 and 2004) were annotated before modern HMMer-based domain detection was fully integrated for C-terminal modules.
+
+
 
 ### Phosphatase related similarity
 ```
