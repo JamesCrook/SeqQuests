@@ -118,7 +118,7 @@ FT                   /evidence="ECO:0000250|UniProtKB:E2ADG2"
 Calculation of transmembrane-ness should probably be redone with the shorter sequence.
 
 Checks:
-https://www.ncbi.nlm.nih.gov/protein/XP_001122204.2 - for the NCBI version
+* https://www.ncbi.nlm.nih.gov/protein/XP_001122204.2 - for the NCBI version
 
 ### Fungal Biosynthesis and Transporter
 ```
@@ -267,8 +267,8 @@ CC       {ECO:0000250|UniProtKB:Q9LET3}.
 ```
 
 Checks:
-https://www.ebi.ac.uk/interpro/entry/InterPro/IPR022764/protein/UniProt/?search=Rhomboid%20like%20protein%2020%20thaliana#table - Q9LET3 has S54 Rhomboid domain 49-186
-https://www.ebi.ac.uk/interpro/entry/InterPro/IPR022764/protein/UniProt/?search=DSC%20E3#table - Two DSC E3 ubiquitin ligase complexes have identified S54 Rhomboid domains, but none from UniProt shown
+* https://www.ebi.ac.uk/interpro/entry/InterPro/IPR022764/protein/UniProt/?search=Rhomboid%20like%20protein%2020%20thaliana#table - Q9LET3 has S54 Rhomboid domain 49-186
+* https://www.ebi.ac.uk/interpro/entry/InterPro/IPR022764/protein/UniProt/?search=DSC%20E3#table - Two DSC E3 ubiquitin ligase complexes have identified S54 Rhomboid domains, but none from UniProt shown
 
 This find and the checks above strongly suggests Q9UTK7 has S54 Rhomboid domain too.
 
@@ -320,9 +320,9 @@ Alignment Q8CHJ0-Q5AMR5: score 239, regions 71-407/47-384
 - Q5AMR5 region 47-128 shows additional homology N-terminal to annotated PIG-M domain
 
 Checks:
-Hover on domain map to get sequence range for each domain:
-https://www.ebi.ac.uk/interpro/entry/pfam/PF06728/protein/UniProt/?search=griseus#table - Q8CHJ0 has PIG-U 11-394
-https://www.ebi.ac.uk/interpro/entry/pfam/PF05007/protein/UniProt/?search=albicans#table - Q5AMR5 has PIG-M 129-394
+* Hover on domain map to get sequence range for each domain:
+* https://www.ebi.ac.uk/interpro/entry/pfam/PF06728/protein/UniProt/?search=griseus#table - Q8CHJ0 has PIG-U 11-394
+* https://www.ebi.ac.uk/interpro/entry/pfam/PF05007/protein/UniProt/?search=albicans#table - Q5AMR5 has PIG-M 129-394
 
 These above are the already annotated regions. 
 
@@ -787,9 +787,11 @@ CC       type 2 motifs similar to P34504. {ECO:0000250|UniProtKB:P34504}.
 ```
 
 Claude additionally cited PROSITE motif CHIT_BIND_II
+
 Checks:
-https://prosite.expasy.org/PS50940 - CHIT_BIND_II
-https://prosite.expasy.org/PDOC50940 - Documentation for above
+* https://prosite.expasy.org/PS50940 - CHIT_BIND_II
+* https://prosite.expasy.org/PDOC50940 - Documentation for above
+
 C-x(13,20)-C-x(5,6)-C-x(9,19)-C-x(10,14)-C-x(4,14)-C
 
 I'm heistant about this particular PROSITE pattern as it seems to me most Cysteine rich proteins of any extent are going to contain motifs this non specific. Meanwhile the similarity between these two proteins seems worth noting, noticably stronger than can just be explained by Cysteine bias, see for example the region marked with *****.
