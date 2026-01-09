@@ -564,21 +564,22 @@ async function selectEntry(index) {
     return;
   }
 
-  const finding = parsedFindings[index];
-  if(!finding) return;
-
-  // Update UI selection
   document.querySelectorAll('.finding-entry').forEach(e => e.classList.remove(
     'active'));
-  const entryDiv = document.querySelector(
-    `.finding-entry[data-index="${index}"]`);
-  if(entryDiv) {
-    entryDiv.classList.add('active');
+
+  const finding = parsedFindings[index];
+
+  if(finding){
+    const entryDiv = document.querySelector(
+      `.finding-entry[data-index="${index}"]`);
+    if(entryDiv) {
+      entryDiv.classList.add('active');
+    }
   }
 
   selectedEntryIndex = index;
   await loadSequenceDetails(finding, index);
-  if(orchestrator) {
+  if(orchestrator && finding) {
     orchestrator.activeCursor = [index];
     // Trigger an initial sync once the details are loaded
     // Skip for now. Wait for the drag.
@@ -597,19 +598,37 @@ async function loadSequenceDetails(finding, index) {
 
   // Check if viewers exist
   if(detailViewer) {
-    detailViewer.innerHTML =
-      '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading sequence data...</span></div>';
+    detailViewer.innerHTML = finding ? 
+      '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading sequence data...</span></div>'
+      :
+      `<div class="empty-state">
+        <div class="empty-state-icon">╳</div>
+        <div class="empty-state-text">No alignment selected</div>
+        <div class="empty-state-subtext">
+          Click an entry to view alignment
+        </div>
+      </div>`;
   }
   if(alignmentViewer) {
-    alignmentViewer.innerHTML =
-      '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading alignment...</span></div>';
+    alignmentViewer.innerHTML = finding ?
+      '<div style="display: flex; align-items: center; justify-content: center; height: 100%; gap: 12px;"><div class="loading"></div><span>Loading alignment...</span></div>'
+      :
+      `<div class="empty-state">
+        <div class="empty-state-icon">◯</div>
+        <div class="empty-state-text">
+          Select an alignment to view details
+        </div>
+        <div class="empty-state-subtext">
+          Click entries in the left panel to explore sequence data
+        </div>
+      </div>`
   }
 
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 200));
 
   // Check if still selecting the same entry (handle race condition)
-  if(selectedEntryIndex !== index) {
+  if(!finding || (selectedEntryIndex !== index)) {
     isLoadingSequence = false;
     return;
   }
@@ -793,7 +812,8 @@ function copyDetail() {
   }
 
   let detailText =
-    `Is the similarity between the following two proteins already known and is it indicated in these two sequence files annotations?\n` +
+    // For now, exclude the prepended prompt to the LLM
+    //`Is the similarity between the following two proteins already known and is it indicated in these two sequence files annotations?\n` +
     detail1Element.textContent + '\n' + detail2Element.textContent;
 
   // Copy to clipboard
@@ -834,6 +854,9 @@ async function newSource(source) {
 
   // Populate findings list
   populateFindingsList(parsedFindings);
+  // Reset RightPanel
+  await selectEntry( null );
+  await initOrchestratedMultiscroller();
 }
 
 let orchestrator = null;
