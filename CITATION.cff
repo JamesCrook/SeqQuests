@@ -5,6 +5,7 @@ message: "If you wish to cite this work:"
 authors:
   - family-names: Crook
     given-names: James
+    orcid: https://orcid.org/0009-0006-0493-9439
 repository-code: https://github.com/JamesCrook/SeqQuests
 abstract: >-
   Protein sequence relationships identified using a fast
