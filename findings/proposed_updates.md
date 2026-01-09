@@ -9,13 +9,15 @@ See [METHODS.md](./METHODS.md) in this repo to reproduce the steps.
 
 Reduces to 6,579 'finds', scoring from 4,089 down to 110. These will still have known similarities in them. The high scores are well known, lowest scores are too tenuous to be useful, and scores of most interest between 140 and 300. This also produced a list of 4,207 finds with biased sequences. 
 
-* Next sift twilight finds manually, with a web-based browsing interface, looking for clumping in the alignement, biological insight and connections that seem prima facie less likely to be well known.
+* Next sift twilight finds manually, with a web-based browsing interface, looking for clumping in the alignment, biological insight and connections that seem prima facie less likely to be well known.
 
 In this stage I use AI assistance to find out more about the relationship, not with an automated pipeline, but by cutting and pasting promising pairs into Claude and/or Gemini for comment on the similarity, and then discussion. Both engines are very dismissive of 'coiled coil' similarities as 'just indicating shared evolutionary pressure, and not shared origin.'. Sometimes I have to highlight islands of matching to get AI to engage with the similarity. The AI does provide a more sensitive check of 'is this already known?' than does looking for name/pfam/eggNOG etc matches in the datafiles, and the AI feedback helped to refine my automated 'is it already known?' heuristics.
 
-The AI was not applied to all 6,579, just to selected ones that I wanted to look at further. I for example skipped many pairs, such as Evasins, that clearly are known homologs, but where the algorithm for marking finds as almost certainly known already didn't see the name similarity. 
+The heuristics for removing 'is it already known?' were to remove the bulk of well known and uninformative finds - not a tool with surgical precision. Some known limitations: it does not scan alternate names to see if alternate names match; it does not remove matches that are actually alternative products; it does not suppress matches with low scores that have no redeeming features such as islands of matching. 
 
-AI also gave background and suggested text for updates, based on the sequence files and similarities found. I've included some of that text here.
+The AI was not applied to all 6,579 of the finds, just to selected ones that I wanted to look at further. I for example skipped many pairs, such as Evasins, that clearly are known homologs, but where the heuristic for marking finds as almost certainly known already didn't see the name similarity. 
+
+AI also gave background and suggested text for updates, based on the sequence files and similarities found. In this document I have provided 'Checks:' sections to link to referenceable URLs where the proposed updates go beyond noting the similarity. It isn't yet safe to rely on the AIs suggestions, despite the fact that the AI helps considerably in finding relevant information. 
 
 ## The Proposed Updates
 
@@ -53,8 +55,8 @@ In this file I also placed at the end:
 | Extended Trichohyalin/plectin homology |
 | Two Shematrin proteins |
 | Chitin-binding domains |
-| Metalothionein in two unicellular eukaryotes |
-| Metalothionein in rabbit and rice! |
+| Metallothionein in two unicellular eukaryotes |
+| Metallothionein in rabbit and rice! |
 | Two fungal biosynthetic proteins |
 
 If browsing the distilled results in the [online browser](https://www.catalase.com/seqquests/match_explorer.html), you will see that there are 22 sequence pairs. The first two are for the same datafile, the honeybee prohormone.
@@ -446,7 +448,7 @@ CC       extending beyond the amidase domain.
 CC       {ECO:0000250|UniProtKB:P62693}.
 ```
 
-For 'cell wall binding domain' see Geminis' claims in [gemini_comments.md](./gemini_comments.md). Safest is to use the HMM methods, if available.
+For 'cell wall binding domain' see Gemini's claims in [gemini_comments.md](./gemini_comments.md). Safest is to use the HMM methods, if available.
 
 
 ### Phosphatase related similarity
@@ -799,12 +801,12 @@ I'm heistant about this particular PROSITE pattern as it seems to me most Cystei
 
 ## Below the fold
 
-The last three similarities are intriguing but without further evidence do not warrant a datafile update. I found multiple intriguing Cysteine rich matches besides the two examples here below. Convergent evolution rather than common origin could explain them. The algorithm tends to score them highly because of the normal rarity of C. A follow up investigation specifically of Cysteine rich proteins could be worthwhile.
+The last three similarities are intriguing but without further evidence do not warrant a datafile update. I found multiple intriguing Cysteine rich matches besides the two examples here below. Convergent evolution rather than common origin could explain them. The algorithm tends to score them highly because of the normal rarity of Cysteine. A follow up investigation specifically of Cysteine rich proteins could be worthwhile.
 
 There is also a 'below the fold' fungal biosynthetic similarity that Gemini was excited about. This find suggests the algorithm is picking up something in the twilight zone that correlates with function, even when we can't confidently call it homology. The fungal similarity is below the threshold where on its own a note in the datafile is warranted. 
 
 
-### Metalothionein in two unicellular eukaryotes
+### Metallothionein in two unicellular eukaryotes
 ```
 Q10357-O97388 s(194) Length: 297/107 [Compositional: C-Biased (59%)]
  Superoxide dismutase 1 copper chaperone; Schizosaccharomyces pombe (strain 972 / ATCC 24843) (Fission yeast).
@@ -827,7 +829,7 @@ Q10357
 
 The cysteines in pairs, vicinal cysteines, indicate this is not just down to composition bias.
 
-### Metalothionein in rabbit and rice!
+### Metallothionein in rabbit and rice!
 ```
   P80292-Q67UU9 s(195) Length: 61/426 [Compositional: C-Rich (74%)]
  Metallothionein-2E; Oryctolagus cuniculus (Rabbit).
