@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 type: dataset
 title: "SeqQuests: Missed Protein Annotations"
-message: "If you wish to cite this work:"
+message: "Results are in /findings/"
 authors:
   - family-names: Crook
     given-names: James
@@ -20,5 +20,5 @@ keywords:
   - protein annotation
 license: CC-BY-4.0
 version: "0.1"
-date-released: "2026-01-10"
-# doi: 10.5281/zenodo.XXXXXXX  # Uncomment and fill after Zenodo mints it
+date-released: "2026-01-11"
+doi: 10.5281/zenodo.18215332
