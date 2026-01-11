@@ -267,16 +267,21 @@ async def get_uniprot_json(accession: str):
 
 def _get_doc_list() -> list:
     """Get list of available documentation files."""
-    docs_path = PROJECT_ROOT / "static/docs"
+    docs_path = PROJECT_ROOT / "docs"
     if not docs_path.exists():
         return []
     docs = []
-    for file in docs_path.glob("*.md"):
+    for file in docs_path.rglob("*.md"):
+        relative_path = file.relative_to(docs_path)
         docs.append({
             "name": file.stem.replace("_", " ").title(),
-            "filename": file.name
+            "filename": str(relative_path)
         })
-    return sorted(docs, key=lambda x: x['name'])
+    return sorted(docs, key=lambda x: (
+        x['filename'].rsplit('/', 1)[0] if '/' in x['filename'] else '',  # parent dir
+        x['filename'].count('/'),  # depth
+        x['filename']
+    ))
 
 @app.get("/api/docs")
 async def list_docs():
@@ -286,7 +291,7 @@ async def list_docs():
 @app.get("/docs/doclist.js")
 async def get_document_list():
     """Serve the document list, updating the file only if it has changed."""
-    docs_path = PROJECT_ROOT / "static/docs"
+    docs_path = PROJECT_ROOT / "docs"
     doclist_path = docs_path / "doclist.js"
     
     # Get current docs and generate JS content
@@ -332,12 +337,18 @@ async def get_findings_file(file: str):
     file = safe_filename(file)
     return FileResponse(PROJECT_ROOT / f'findings/{file}')
 
-@app.get("/docs/{file}")
+@app.get("/docs/{file:path}")
 async def get_document(file: str):
-    file = safe_filename(file)
-    file_path = PROJECT_ROOT / "docs" / file
+    file_path = (PROJECT_ROOT / "docs" / file).resolve()
+    docs_root = (PROJECT_ROOT / "docs").resolve()
+    
+    # Prevent path traversal attacks
+    if not file_path.is_relative_to(docs_root):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
+    
     return FileResponse(file_path)
 
 

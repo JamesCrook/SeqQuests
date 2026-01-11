@@ -15,16 +15,56 @@ class LcarsUI {
     let action = elt.dataset.group
     if(action == 'Help')
       this.doHelp();
+    else if(action == 'Alignments')
+      this.showUrl("./match_explorer.html");
     else if(action == 'Alignment')
-      this.doAlignment();
+      this.showUrl("./match_explorer.html");
+    else if(action == 'Endpoints')
+      this.showUrl( "/docs");
     else if(action == 'Search Results')
-      this.doSearchResults();
+      this.showUrl("./match_explorer.html");
     else if(action == 'Job Queue')
       this.doJobQueue();
+    // and now the panels...
+    else if(action == 'Protein 1')
+      this.showMainPanel( './panels/protein1.html' );
+    else if(action == 'Protein 2')
+      this.showMainPanel( './panels/protein2.html' );
+    else if(action == 'Features')
+      this.showMainPanel( './panels/features.html' );
+    else if(action == 'Dotplot')
+      this.showMainPanel( './panels/dotplot.html' );
+    else if(action == 'Map 2')
+      this.showMainPanel( './panels/map2.html' );
+    else if(action == 'Copy')
+      this.showMainPanel( './panels/copy.html' );
+
     else if(action == 'Links')
-      this.doLinks();
+      this.showSubPanel( './panels/links.html' );
+    else if(action == 'Credits')
+      this.showSubPanel( './panels/credits.html' );
+    else if(action == 'Search Stats')
+      this.showSubPanel( './panels/search-stats.html' );
+    else if(action == 'Configure')
+      this.showSubPanel( './panels/configure.html' );
     else
       alert(`No handler for ${action}`);
+  }
+
+  showUrl(url) {
+    window.open(url, '_');
+  }
+
+  showSubPanel( panel ) {
+    this.loadPartial('SubPanel', panel, () => {
+      if(typeof initializeApp === 'function') initializeApp();
+    });
+  }
+
+  showMainPanel( panel ) {
+    this.loadPartial('MainPanel', panel, () => {
+      if(typeof initializeApp === 'function') initializeApp();
+    });
   }
 
   setPanel(panel, text) {
@@ -170,15 +210,16 @@ class LcarsUI {
 
   async doHelp() {
     this.setSubPanel("Loading topics...");
-    // TODO: Server should be updated so that it detects the request for doclist,
-    // and updates doclist if it isn't up to date.
     try {
-      const response = await fetch(`./docs/doclist.js`);
-      const docs = await response.json();
+      let response = await fetch(`../docs/doclist.js`);
+      let docs = await response.json();
       /*
-      const response = await fetch('/api/docs');
-      if (!response.ok) throw new Error('Network response was not ok');
-      const docs = await response.json();
+      This code is not required. It is built in to the server.
+      if( !docs.length ){
+        response = await fetch('/api/docs');
+        if (!response.ok) throw new Error('Network response was not ok');
+        docs = await response.json();
+      }
       */
       let html =
       '<div style="display:flex; flex-direction:column; gap:6px;">';
@@ -190,7 +231,7 @@ class LcarsUI {
 
       this.setSubPanel(html);
       this.setMainPanel(
-        "<h2>Help</h2><p>Select a topic from the left to view details.</p>");
+        "<h2>Help</h2><p>Select a topic from the list to view details.</p>");
     } catch (e) {
       console.error(e);
       this.setSubPanel("Error loading help topics.");
@@ -199,7 +240,7 @@ class LcarsUI {
 
   async showDoc(filename) {
     try {
-      const response = await fetch(`./docs/${filename}`);
+      const response = await fetch(`../docs/${filename}`);
       if(!response.ok) throw new Error('Network response was not ok');
       const text = await response.text();
       this.setMainPanel(text);
@@ -219,12 +260,6 @@ class LcarsUI {
   doSearchResults() {
     this.loadPartial('SubPanel', './panels/findings_list.html', () => {
       // For Findings List, we also rely on match_explorer.js
-      if(typeof initializeApp === 'function') initializeApp();
-    });
-  }
-
-  doLinks() {
-    this.loadPartial('SubPanel', './panels/links.html', () => {
       if(typeof initializeApp === 'function') initializeApp();
     });
   }

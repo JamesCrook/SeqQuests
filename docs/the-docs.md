@@ -7,6 +7,8 @@ SeqQuests documentation is based on the diátaxis framework:
 * **reference** - command line options and APIs
 * **tutorials** - linear step by step paths using tiny datasets.
 
+I'm working on a nice interface for finding information in the docs. In the meantime, browse them at GitHub <a href="https://github.com/JamesCrook/SeqQuests/tree/master/docs" target="_">⮕⮕⮕ CLICK HERE ⬅⬅⬅</a>
+
 ```
 /
 ├─ explanations/       # SeqQuests splits explanations into two audiences:
@@ -19,7 +21,9 @@ SeqQuests documentation is based on the diátaxis framework:
 └─ tutorials/          # Tutorial content, progressing from foundations to special case uses.
 ```
 
-The [Getting Started](tutorials/getting-started.md) doc is the best place to start for new users. There is a much terser version, [GETTING_STARTED](../GETTING_STARTED.md) for developers who are expected to read the source code.
+The [GETTING_STARTED](../GETTING_STARTED.md) doc is the best place for developers, people expected to read and work with the source code. [Getting Started](tutorials/getting-started.md) is a work in progress for new users, for when the software is ready for that.
+
+* The reference section is the most complete part of the documentation currently.
 
 ## Explanations
 

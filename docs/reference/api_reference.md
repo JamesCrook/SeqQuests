@@ -1,6 +1,5 @@
 # Internal Python API Reference
 
-This document provides documentation for the internal Python modules used in the SeqQuests project.
 
 ## `job_manager` Module
 

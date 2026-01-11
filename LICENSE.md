@@ -12,12 +12,14 @@ Their data is copyright and licensed CC-BY-4.0. Cite UniProt if you use this der
 
 Docs and images in the /docs folder are copyright James Crook 2026 and are CC-BY-4.0. The general pattern is that documents are CC-BY-4.0 and software MIT, whilst citing/respecting copyrights of original sources.
 
+For clarity, the /findings folder is not to be considered 'part of the associated documentation'. It is not documentation for the program, rather it results from using the program. Any republishing modified or otherwise must respect the original UniProt CC-BY-4.0 of the underlying data. 
+
 
 ## Software 
 
 SeqQuests software is MIT Licensed:
 
-Copyright 2026 James Crook
+Copyright 2026, Catalase Systems Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
