@@ -9,12 +9,12 @@
     body {
             margin: 0;
             overflow: hidden;
-            background-color: #f8fafc;
+            background-color: var(--color-f8fafc);
             font-family: system-ui, -apple-system, sans-serif;
         }
         .scroller {
             overflow: auto;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--color-e2e8f0);
             border-radius: 8px;
             background: white;
             position: relative;
@@ -23,7 +23,7 @@
             width: 1000px;
             height: 1000px;
             position: relative;
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-image: radial-gradient(var(--color-e2e8f0) 1px, transparent 1px);
             background-size: 20px 20px;
         }
         #canvas {
@@ -36,7 +36,7 @@
         .target-node {
             width: 120px;
             height: 80px;
-            background: #3b82f6;
+            background: var(--color-3b82f6);
             color: white;
             display: flex;
             align-items: center;
@@ -58,7 +58,7 @@
             min-height: 100%;
         }
         .scroller:focus-within {
-            border-color: #cbd5e1;
+            border-color: var(--color-cbd5e1);
             box-shadow: 0 0 0 2px rgba(203, 213, 225, 0.2);
         }
     </style>
@@ -91,7 +91,7 @@
         </div>
         <div id="scroll2" class="scroller shadow-inner">
           <div class="content-area">
-            <div id="box2" class="target-node" style="top: 100px; left: 100px; background: #10b981;">
+            <div id="box2" class="target-node" style="top: 100px; left: 100px; background: var(--color-10b981);">
               Box B
             </div>
           </div>

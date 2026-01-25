@@ -28,7 +28,7 @@
           </label>
           <div style="flex:1">
           </div>
-          <span style="font-size:0.8rem;color:#666">Load:</span>
+          <span style="font-size:0.8rem;color:var(--color-666)">Load:</span>
           <button class="dv-btn dv-btn-secondary" onclick="loadExample('default')">
             Pair
           </button>
@@ -293,7 +293,7 @@ function buildTables() {
     protein.features.forEach((f, fIdx) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><span class="dv-type-badge" style="background:${CONFIG.colors[f.type]||'#999'}">${f.type}</span></td>
+        <td><span class="dv-type-badge" style="background:${CONFIG.colors[f.type]||'var(--color-999)'}">${f.type}</span></td>
         <td>${f.start.toLocaleString()}${f.end !== f.start ? '..'+f.end.toLocaleString() : ''}</td>
         <td>${f.note}</td>`;
       tr.onclick = () => selectFeature(proteinIdx, fIdx, tr);

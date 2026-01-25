@@ -14,8 +14,8 @@
 
 body {
   font-family: system-ui, sans-serif;
-  background: #1a1a2e;
-  color: #eee;
+  background: var(--color-1a1a2e);
+  color: var(--color-eee);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -23,24 +23,24 @@ body {
 }
 
 .toolbar {
-  background: #16213e;
+  background: var(--color-16213e);
   padding: 10px 15px;
   display: flex;
   gap: 15px;
   align-items: center;
-  border-bottom: 1px solid #0f3460;
+  border-bottom: 1px solid var(--color-0f3460);
   flex-shrink: 0;
 }
 
 .toolbar label {
   font-size: 13px;
-  color: #aaa;
+  color: var(--color-aaa);
 }
 
 .toolbar input[type="text"] {
-  background: #0f3460;
-  border: 1px solid #1a1a4e;
-  color: #fff;
+  background: var(--color-0f3460);
+  border: 1px solid var(--color-1a1a4e);
+  color: var(--color-fff);
   padding: 6px 10px;
   border-radius: 4px;
   font-size: 13px;
@@ -49,13 +49,13 @@ body {
 
 .toolbar input[type="text"]:focus {
   outline: none;
-  border-color: #4a9eff;
+  border-color: var(--color-4a9eff);
 }
 
 .toolbar button {
-  background: #0f3460;
-  border: 1px solid #1a1a4e;
-  color: #fff;
+  background: var(--color-0f3460);
+  border: 1px solid var(--color-1a1a4e);
+  color: var(--color-fff);
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -63,41 +63,41 @@ body {
 }
 
 .toolbar button:hover {
-  background: #1a4a7e;
+  background: var(--color-1a4a7e);
 }
 
 .search-info {
   font-size: 12px;
-  color: #888;
+  color: var(--color-888);
   min-width: 100px;
 }
 
 .line-info {
   font-size: 12px;
-  color: #666;
+  color: var(--color-666);
   margin-left: auto;
 }
 
 .breadcrumbs {
-  background: #0f3460;
+  background: var(--color-0f3460);
   padding: 8px 15px;
   font-size: 13px;
   display: flex;
   align-items: center;
   gap: 3px;
   flex-wrap: wrap;
-  border-bottom: 1px solid #1a1a4e;
+  border-bottom: 1px solid var(--color-1a1a4e);
   min-height: 36px;
   flex-shrink: 0;
 }
 
 .breadcrumbs .label {
-  color: #666;
+  color: var(--color-666);
   margin-right: 5px;
 }
 
 .breadcrumb {
-  color: #4a9eff;
+  color: var(--color-4a9eff);
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 3px;
@@ -105,26 +105,26 @@ body {
 }
 
 .breadcrumb:hover {
-  background: #1a4a7e;
+  background: var(--color-1a4a7e);
 }
 
 .breadcrumb.current {
-  color: #fff;
-  background: #2a5a8e;
+  color: var(--color-fff);
+  background: var(--color-2a5a8e);
 }
 
 .breadcrumb.ghosted {
-  color: #4a6a8e;
+  color: var(--color-4a6a8e);
   opacity: 0.6;
 }
 
 .breadcrumb.ghosted:hover {
   opacity: 1;
-  background: #1a3a5e;
+  background: var(--color-1a3a5e);
 }
 
 .separator {
-  color: #444;
+  color: var(--color-444);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -159,9 +159,9 @@ body {
   left: 50%;
   transform: translateX(-50%);
   margin-top: 6px;
-  background: #1a2a4e;
-  border: 1px solid #2a4a7e;
-  color: #aaa;
+  background: var(--color-1a2a4e);
+  border: 1px solid var(--color-2a4a7e);
+  color: var(--color-aaa);
   padding: 5px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -187,11 +187,11 @@ body {
   min-height: 0;
   overflow-x: auto;
   overflow-y: scroll;
-  background: #12121f;
+  background: var(--color-12121f);
   position: relative;
   /* Firefox scrollbar */
   scrollbar-width: auto;
-  scrollbar-color: #4a4a6e #1a1a2e;
+  scrollbar-color: var(--color-4a4a6e) var(--color-1a1a2e);
 }
 
 /* Webkit (Chrome, Safari, Edge) scrollbar styling */
@@ -201,22 +201,22 @@ body {
 }
 
 .tree-container::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: var(--color-1a1a2e);
 }
 
 .tree-container::-webkit-scrollbar-thumb {
-  background: #4a4a6e;
+  background: var(--color-4a4a6e);
   border-radius: 7px;
-  border: 3px solid #1a1a2e;
+  border: 3px solid var(--color-1a1a2e);
   min-height: 40px;
 }
 
 .tree-container::-webkit-scrollbar-thumb:hover {
-  background: #5a5a8e;
+  background: var(--color-5a5a8e);
 }
 
 .tree-container::-webkit-scrollbar-corner {
-  background: #1a1a2e;
+  background: var(--color-1a1a2e);
 }
 
 .tree-scroll-content {
@@ -238,43 +238,43 @@ body {
 }
 
 .tree-line:hover {
-  background: #1a2a4e;
+  background: var(--color-1a2a4e);
 }
 
 .tree-line.selected {
-  background: #2a4a7e;
+  background: var(--color-2a4a7e);
 }
 
 .tree-line.search-match {
-  background: #4a3a1e;
+  background: var(--color-4a3a1e);
 }
 
 .tree-line.search-match.selected {
-  background: #5a4a2e;
+  background: var(--color-5a4a2e);
 }
 
 .node-accession {
-  color: #4ae;
+  color: var(--color-4ae);
 }
 
 .node-name {
-  color: #aaa;
+  color: var(--color-aaa);
 }
 
 .node-organism {
-  color: #6a6;
+  color: var(--color-6a6);
 }
 
 .node-length {
-  color: #a8a;
+  color: var(--color-a8a);
 }
 
 .node-score {
-  color: #aa6;
+  color: var(--color-aa6);
 }
 
 .tree-chars {
-  color: #555;
+  color: var(--color-555);
 }
 
 .instructions {
@@ -285,7 +285,7 @@ body {
   padding: 10px 15px;
   border-radius: 6px;
   font-size: 11px;
-  color: #888;
+  color: var(--color-888);
   max-width: 300px;
 }
 
@@ -295,7 +295,7 @@ body {
   right: 8px;
   background: none;
   border: none;
-  color: #666;
+  color: var(--color-666);
   font-size: 16px;
   cursor: pointer;
   padding: 0 4px;
@@ -303,11 +303,11 @@ body {
 }
 
 .instructions .close-btn:hover {
-  color: #aaa;
+  color: var(--color-aaa);
 }
 
 .instructions kbd {
-  background: #1a1a2e;
+  background: var(--color-1a1a2e);
   padding: 2px 5px;
   border-radius: 3px;
   font-family: monospace;
@@ -323,16 +323,16 @@ body {
 }
 
 .load-area h2 {
-  color: #4a9eff;
+  color: var(--color-4a9eff);
 }
 
 .load-area textarea {
   width: 80%;
   max-width: 800px;
   height: 300px;
-  background: #0f3460;
-  border: 1px solid #1a1a4e;
-  color: #fff;
+  background: var(--color-0f3460);
+  border: 1px solid var(--color-1a1a4e);
+  color: var(--color-fff);
   padding: 15px;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
@@ -341,9 +341,9 @@ body {
 }
 
 .load-area button {
-  background: #4a9eff;
+  background: var(--color-4a9eff);
   border: none;
-  color: #fff;
+  color: var(--color-fff);
   padding: 10px 30px;
   border-radius: 6px;
   cursor: pointer;
@@ -351,7 +351,7 @@ body {
 }
 
 .load-area button:hover {
-  background: #3a8eef;
+  background: var(--color-3a8eef);
 }
 
 .load-area .button-row {
@@ -380,12 +380,12 @@ body {
 }
 
 .loading-overlay h2 {
-  color: #4a9eff;
+  color: var(--color-4a9eff);
   margin-bottom: 20px;
 }
 
 .loading-overlay .status {
-  color: #aaa;
+  color: var(--color-aaa);
   font-size: 14px;
   margin-bottom: 10px;
 }
@@ -393,14 +393,14 @@ body {
 .loading-overlay .progress-bar {
   width: 300px;
   height: 8px;
-  background: #0f3460;
+  background: var(--color-0f3460);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .loading-overlay .progress-fill {
   height: 100%;
-  background: #4a9eff;
+  background: var(--color-4a9eff);
   width: 0%;
   transition: width 0.2s;
 }
@@ -416,7 +416,7 @@ body {
       </textarea>
       <div class="button-row">
         <button id="loadBtn">Load from Paste</button>
-        <span style="color: #666;">— or —</span>
+        <span style="color: var(--color-666);">— or —</span>
         <input type="file" id="fileInput" accept=".txt" style="display: none;">
         <button id="fileBtn">Load from File</button>
       </div>

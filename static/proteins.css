@@ -28,6 +28,63 @@
     --dv-color-primary-hover: #2563eb;
     --dv-color-text: #333333;
     --dv-color-subtitle: #ea74e5;
+
+  --color-2d2d44: #2d2d44;
+  --color-444: #444;
+  --color-ccc: #ccc;
+  --color-007bff: #007bff;
+  --color-0056b3: #0056b3;
+  --color-555: #555;
+  --color-eee: #eee;
+  --color-ddd: #ddd;
+  --color-fff: #fff;
+  --color-777: #777;
+  --color-666: #666;
+  --color-888: #888;
+  --color-e5e7eb: #e5e7eb;
+  --color-333: #333;
+  --color-d1d5db: #d1d5db;
+  --color-f8fafc: #f8fafc;
+  --color-f3f4f6: #f3f4f6;
+  --color-f9fafb: #f9fafb;
+  --color-f0f7ff: #f0f7ff;
+  --color-dbeafe: #dbeafe;
+  --color-e2e8f0: #e2e8f0;
+  --color-3b82f6: #3b82f6;
+  --color-cbd5e1: #cbd5e1;
+  --color-10b981: #10b981;
+  --color-64748b: #64748b;
+  --color-ef4444: #ef4444;
+  --color-111: #111;
+  --color-0f0: #0f0;
+  --color-f0f4f8: #f0f4f8;
+  --color-9333ea: #9333ea;
+  --color-f3e8ff: #f3e8ff;
+  --color-7e22ce: #7e22ce;
+  --color-1a1a2e: #1a1a2e;
+  --color-16213e: #16213e;
+  --color-0f3460: #0f3460;
+  --color-aaa: #aaa;
+  --color-1a1a4e: #1a1a4e;
+  --color-4a9eff: #4a9eff;
+  --color-1a4a7e: #1a4a7e;
+  --color-2a5a8e: #2a5a8e;
+  --color-4a6a8e: #4a6a8e;
+  --color-1a3a5e: #1a3a5e;
+  --color-1a2a4e: #1a2a4e;
+  --color-2a4a7e: #2a4a7e;
+  --color-12121f: #12121f;
+  --color-4a4a6e: #4a4a6e;
+  --color-5a5a8e: #5a5a8e;
+  --color-4a3a1e: #4a3a1e;
+  --color-5a4a2e: #5a4a2e;
+  --color-4ae: #4ae;
+  --color-6a6: #6a6;
+  --color-a8a: #a8a;
+  --color-aa6: #aa6;
+  --color-3a8eef: #3a8eef;
+  --color-999: #999;
+  --color-1e40af: #1e40af;
 }
 
 /* =============================================================================
@@ -86,7 +143,7 @@
 
 .bias-h2 {
     margin-top: 0;
-    color: #444;
+    color: var(--color-444);
 }
 
 .bias-controls {
@@ -101,14 +158,14 @@
     height: 60px;
     padding: 10px;
     font-family: monospace;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-ccc);
     border-radius: 4px;
     font-size: 14px;
     margin-bottom: 10px;
 }
 
 .bias-button {
-    background: #007bff;
+    background: var(--color-007bff);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -118,13 +175,13 @@
 }
 
 .bias-button:hover {
-    background: #0056b3;
+    background: var(--color-0056b3);
 }
 
 .bias-canvas-wrapper {
     position: relative;
     overflow-x: auto;
-    border: 1px solid #555;
+    border: 1px solid var(--color-555);
     background: var(--bias-bg-canvas);
     padding: 20px 10px;
     border-radius: 4px;
@@ -147,8 +204,8 @@
 .bias-label:first-child { margin-top: 0; }
 
 .bias-legend-item {
-    background: #eee;
-    border: 1px solid #ddd;
+    background: var(--color-eee);
+    border: 1px solid var(--color-ddd);
 }
 
 .bias-legend-item .color-box-indicator {
@@ -158,7 +215,7 @@
 .bias-tooltip {
     position: absolute;
     background: rgba(0, 0, 0, 0.9);
-    color: #fff;
+    color: var(--color-fff);
     padding: 8px;
     border-radius: 4px;
     font-size: 12px;
@@ -167,13 +224,13 @@
     z-index: 9999;
     white-space: pre-wrap;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    border: 1px solid #777;
+    border: 1px solid var(--color-777);
     max-width: 300px;
 }
 
 .bias-settings {
     font-size: 13px;
-    color: #666;
+    color: var(--color-666);
     display: flex;
     gap: 15px;
     align-items: center;
@@ -187,8 +244,8 @@
     align-items: center;
     flex-wrap: wrap;
     font-size: 13px;
-    color: #444;
-    border-top: 1px solid #ddd;
+    color: var(--color-444);
+    border-top: 1px solid var(--color-ddd);
     padding-top: 10px;
 }
 
@@ -259,7 +316,7 @@
 
 .dv-zoom-val {
     font-size: 0.75rem;
-    color: #888;
+    color: var(--color-888);
     min-width: 40px;
 }
 
@@ -274,18 +331,18 @@
 
 .dv-btn-primary {
     background: var(--dv-color-primary);
-    color: #fff;
+    color: var(--color-fff);
 }
 .dv-btn-primary:hover {
     background: var(--dv-color-primary-hover);
 }
 
 .dv-btn-secondary {
-    background: #e5e7eb;
-    color: #333;
+    background: var(--color-e5e7eb);
+    color: var(--color-333);
 }
 .dv-btn-secondary:hover {
-    background: #d1d5db;
+    background: var(--color-d1d5db);
 }
 
 .dv-canvas-wrap {
@@ -350,8 +407,8 @@
 .dv-table-selector select {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #333;
-    background: #fff;
+    color: var(--color-333);
+    background: var(--color-fff);
     border: 1px solid var(--dv-border);
     cursor: pointer;
     padding: 5px 28px 5px 8px;
@@ -367,7 +424,7 @@
 
 .dv-table-selector select:hover {
     border-color: var(--dv-color-primary);
-    background-color: #f8fafc;
+    background-color: var(--color-f8fafc);
 }
 
 .dv-table-selector select:focus {
@@ -378,7 +435,7 @@
 
 .dv-table-size {
     font-size: 0.75rem;
-    color: #888;
+    color: var(--color-888);
     font-weight: 400;
 }
 
@@ -391,25 +448,25 @@
     width: 24px;
     height: 24px;
     border: 1px solid var(--dv-border);
-    background: #fff;
+    background: var(--color-fff);
     border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: var(--color-666);
     font-size: 0.75rem;
     transition: all 0.15s;
 }
 
 .dv-nav-arrow:hover {
-    background: #f3f4f6;
+    background: var(--color-f3f4f6);
     border-color: var(--dv-color-primary);
     color: var(--dv-color-primary);
 }
 
 .dv-nav-arrow:active {
-    background: #e5e7eb;
+    background: var(--color-e5e7eb);
 }
 
 .dv-feature-table {
@@ -421,11 +478,11 @@
 .dv-feature-table th, .dv-feature-table td {
     padding: 6px 8px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--color-eee);
 }
 
 .dv-feature-table th {
-    background: #f9fafb;
+    background: var(--color-f9fafb);
     font-weight: 600;
     position: sticky;
     top: 0;
@@ -437,11 +494,11 @@
 }
 
 .dv-feature-table tr:hover {
-    background: #f0f7ff;
+    background: var(--color-f0f7ff);
 }
 
 .dv-feature-table tr.selected {
-    background: #dbeafe;
+    background: var(--color-dbeafe);
 }
 
 .dv-table-scroll {
@@ -455,18 +512,18 @@
     display: inline-block;
     padding: 2px 6px;
     border-radius: 3px;
-    color: #fff;
+    color: var(--color-fff);
     font-size: 0.7rem;
 }
 
 .dv-info {
     font-size: 0.8rem;
-    color: #555;
+    color: var(--color-555);
     margin-top: 8px;
 }
 
 .dv-loading {
-    color: #666;
+    color: var(--color-666);
     font-style: italic;
     padding: 20px;
     text-align: center;
