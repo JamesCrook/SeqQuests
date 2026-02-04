@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molam — Molecules And Metabolism</title>
+  <link rel="icon" type="image/x-icon" href="../wheel.ico">
+  <link rel="stylesheet" href="omnibase.css">
+  <style>
+    /* Molam-specific overrides */
+    .chart-container {
+      cursor: default;
+    }
+  </style>
+  <script src="../js/utilities/nav.js"></script>
+</head>
+<body>
+  <header class="header">
+    <h1>Molam</h1>
+    <p class="subtitle">3D Protein Ribbon Viewer. Left-drag atoms, right-drag to rotate, scroll to zoom.</p>
+  </header>
+  
+  <div class="layout">
+    <div class="chart-container" id="chart-container">
+      <!-- Three.js canvas will be inserted here -->
+    </div>
+    <div class="controls-wrapper">
+      <div class="multiscroller-strip" id="multiscroller"></div>
+      <div class="controls" id="controls"></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  
+  <script src="omnibase.js"></script>
+  <script src="molam.js"></script>
+  
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    
+    // ============================================================
+    // Protein Options
+    // ============================================================
+    
+    const PROTEIN_OPTIONS = [
+      { value: '', label: '-- Select a protein --' },
+      { value: '1GFL', label: 'GFP (1GFL) - Green Fluorescent Protein' },
+      { value: '1A3N', label: 'Hemoglobin (1A3N)' },
+      { value: '1CRN', label: 'Crambin (1CRN) - Small protein' },
+      { value: '1UBQ', label: 'Ubiquitin (1UBQ)' },
+      { value: '2PTC', label: 'Trypsin (2PTC)' },
+      { value: '1HHO', label: 'Deoxy Hemoglobin (1HHO)' },
+      { value: '4HHB', label: 'Hemoglobin T-state (4HHB)' },
+      { value: '1MBO', label: 'Myoglobin (1MBO)' },
+      { value: '2LZM', label: 'Lysozyme (2LZM)' },
+      { value: '1IGT', label: 'Immunoglobulin (1IGT)' },
+      { value: '1TIM', label: 'Triose Phosphate Isomerase (1TIM)' },
+      { value: '3CLN', label: 'Calmodulin (3CLN)' }
+    ];
+    
+    // ============================================================
+    // Slider Configuration
+    // ============================================================
+    
+    const SLIDER_CONFIG = [
+      { 
+        group: 'Load Protein', 
+        id: 'load', 
+        abbrev: 'Load',
+        type: 'select',
+        selectId: 'proteinSelector',
+        options: PROTEIN_OPTIONS,
+        onChange: async (value, base) => {
+          if (value) {
+            const result = await app.loadProtein(value);
+            if (result.success) {
+              base.updateSlider('numPoints', result.totalResidues, false);
+            }
+          } else {
+            app.resetToDemo();
+            base.updateSlider('numPoints', 5, false);
+          }
+          base.render();
+        }
+      },
+      {
+        group: 'Protein Info',
+        id: 'loadActions',
+        type: 'custom',
+        build: (groupEl, base) => {
+          // Reset button
+          const btn = document.createElement('button');
+          btn.className = 'btn secondary';
+          btn.textContent = 'Reset';
+          btn.addEventListener('click', () => {
+            base.updateSliders({
+              width: 0.35,
+              thickness: 0.15,
+              smoothing: 0,
+              controlNodeSmoothing: 0,
+              nodeScale: 0.5,
+              controlNodeSize: 0.5,
+              jointNodeSize: 0.5,
+              normalIndicatorSize: 0
+            }, false);
+            
+            if (app.currentPdbId) {
+              app.loadProtein(app.currentPdbId);
+            } else {
+              app.resetToDemo();
+              base.updateSlider('numPoints', 5, false);
+            }
+            base.render();
+          });
+          groupEl.appendChild(btn);
+          
+          // Status message
+          const statusEl = document.createElement('div');
+          statusEl.className = 'status-message';
+          statusEl.id = 'status';
+          base.statusEl = statusEl;
+          groupEl.appendChild(statusEl);
+          
+          // Info panel
+          const infoEl = document.createElement('div');
+          infoEl.className = 'info-panel';
+          infoEl.id = 'info';
+          base.infoEl = infoEl;
+          groupEl.appendChild(infoEl);
+        }
+      },
+      { group: 'Presets', id: 'presets', abbrev: 'Pre', type: 'presets' },
+      { 
+        group: 'Geometry', 
+        id: 'geometry', 
+        abbrev: 'Geo',
+        sliders: [
+          { id: 'numPoints', label: 'Control Points', min: 2, max: 20, step: 1, default: 5, format: 'int', isData: true, dataValue: 5 },
+          { id: 'width', label: 'Width', min: 0, max: 3, step: 0.05, default: 0.35 },
+          { id: 'thickness', label: 'Thickness', min: 0, max: 1.5, step: 0.05, default: 0.15 },
+          { id: 'smoothing', label: 'CA Smoothing', min: 0, max: 1, step: 0.01, default: 0 },
+          { id: 'controlNodeSmoothing', label: 'Node Smoothing', min: 0, max: 1, step: 0.01, default: 0 }
+        ]
+      },
+      { 
+        group: 'Display', 
+        id: 'display', 
+        abbrev: 'Dis',
+        sliders: [
+          { id: 'nodeScale', label: 'Node Scale', min: 0, max: 1, step: 0.01, default: 0.5 },
+          { id: 'controlNodeSize', label: 'Control Nodes (red)', min: 0, max: 1, step: 0.01, default: 0.5 },
+          { id: 'jointNodeSize', label: 'Joint Nodes (green)', min: 0, max: 1, step: 0.01, default: 0.5 },
+          { id: 'normalIndicatorSize', label: 'Normal Indicators', min: 0, max: 1, step: 0.01, default: 0 }
+        ]
+      },
+      {
+        group: 'Roll Controls',
+        id: 'rolls',
+        abbrev: 'Roll',
+        type: 'dynamic',
+        containerId: 'rollControls'
+      }
+    ];
+    
+    // ============================================================
+    // State
+    // ============================================================
+    
+    let app = null;
+    let sceneManager = null;
+    
+    // ============================================================
+    // Initialize
+    // ============================================================
+    
+    const container = document.getElementById('chart-container');
+    
+    // Create Three.js scene
+    sceneManager = new MolamScene(container, THREE, OrbitControls);
+    
+    // Create OmniBase
+    const base = new OmniBase({
+      elements: {
+        container: container,
+        controls: document.getElementById('controls'),
+        multiscroller: document.getElementById('multiscroller')
+      },
+      sliderConfig: SLIDER_CONFIG,
+      presets: MOLAM_PRESETS,
+      defaultPreset: 'Standard',
+      enablePanZoom: false, // 3D app uses OrbitControls
+      aspectRatio: 1, // Square-ish for 3D
+      hintHtml: '<strong>Left-drag</strong> atoms to move (XZ)<br><strong>Shift+drag</strong> moves Y axis<br><strong>Right-drag</strong> to rotate view<br><strong>Scroll</strong> to zoom',
+      
+      onRender: (params, panZoom, instance) => {
+        if (app) {
+          app.updateControlAtomSizes();
+          const result = app.rebuildRibbon();
+          
+          // Update arc info in hint area
+          if (result) {
+            const info = result.chainCount > 1
+              ? `${result.segmentCount} biarc segments across ${result.chainCount} chains (${result.pointCount} residues)`
+              : `${result.segmentCount} biarc segments (${result.pointCount} control points)`;
+            // Could display this somewhere if needed
+          }
+        }
+      },
+      
+      onParamChange: (id, value, isData, instance) => {
+        if (id === 'numPoints' && app && !app.isProteinMode) {
+          app.updateControlPointCount(value);
+          updateRollControls();
+        }
+      },
+      
+      onResize: (instance) => {
+        if (sceneManager) {
+          sceneManager.onResize();
+        }
+      }
+    });
+    
+    // Create Molam app
+    app = new MolamApp(sceneManager, base, THREE);
+    
+    // ============================================================
+    // Roll Controls (Dynamic)
+    // ============================================================
+    
+    function updateRollControls() {
+      const container = base.getDynamicContainer('rolls');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      
+      if (app.isProteinMode) {
+        const note = document.createElement('div');
+        note.style.color = '#666';
+        note.style.fontSize = '10px';
+        if (app.chains && app.chains.size > 0) {
+          note.textContent = `Roll controls hidden (${app.chains.size} chains, ${app.controlPoints.length} residues)`;
+        } else {
+          note.textContent = `Roll controls hidden (${app.controlPoints.length} points)`;
+        }
+        container.appendChild(note);
+        return;
+      }
+      
+      const maxDisplayed = Math.min(app.controlPoints.length, 6);
+      
+      for (let i = 0; i < maxDisplayed; i++) {
+        const div = document.createElement('div');
+        div.className = 'control';
+        
+        const label = document.createElement('label');
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `Point ${i + 1} Roll`;
+        const valSpan = document.createElement('span');
+        valSpan.id = `roll${i}-val`;
+        valSpan.textContent = `${app.controlPointRolls[i] || 0}°`;
+        
+        label.appendChild(nameSpan);
+        label.appendChild(valSpan);
+        
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.id = `roll${i}`;
+        input.min = -180;
+        input.max = 180;
+        input.step = 5;
+        input.value = app.controlPointRolls[i] || 0;
+        
+        const index = i;
+        input.addEventListener('input', (e) => {
+          app.controlPointRolls[index] = parseFloat(e.target.value);
+          valSpan.textContent = `${app.controlPointRolls[index]}°`;
+          base.render();
+        });
+        
+        div.appendChild(label);
+        div.appendChild(input);
+        container.appendChild(div);
+      }
+      
+      if (app.controlPoints.length > maxDisplayed) {
+        const note = document.createElement('div');
+        note.style.color = '#666';
+        note.style.fontSize = '10px';
+        note.style.marginTop = '5px';
+        note.textContent = `(${app.controlPoints.length - maxDisplayed} more roll controls hidden)`;
+        container.appendChild(note);
+      }
+    }
+    
+    // Initial roll controls
+    updateRollControls();
+    
+    // ============================================================
+    // Animation Loop
+    // ============================================================
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      sceneManager.render();
+    }
+    animate();
+    
+    // Initial render
+    base.render();
+  </script>
+</body>
+</html>
