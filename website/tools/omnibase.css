@@ -528,11 +528,15 @@ body.layout-landscape .controls-wrapper {
 }
 
 .control-group .btn.secondary {
-  background: #ff6b6b;
+  border: 1px solid #f7cd4fcf;
+  border-radius: 4px;
+  background: transparent;
+  color: #f7cd4fcf;
 }
 
 .control-group .btn.secondary:hover {
-  background: #ff5252;
+  background: #f7cd4f8f;
+  color: #000;
 }
 
 /* ============================================
@@ -547,7 +551,7 @@ body.layout-landscape .controls-wrapper {
 
 /* Dynamic roll controls container */
 .dynamic-controls {
-  max-height: 200px;
+  /*max-height: 200px;*/
   overflow-y: auto;
 }
 

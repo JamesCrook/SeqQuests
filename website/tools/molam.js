@@ -20,30 +20,86 @@
 // ============================================================
 
 const MOLAM_PRESETS = {
-  'Ribbon': {
+  'Standard': {
     width: 0.35,
     thickness: 0.15,
     nodeScale: 0.5,
     controlNodeSize: 0,
     jointNodeSize: 0,
+    smoothing : 0.5,
+    controlNodeSmoothing : 0.5,
     normalIndicatorSize: 0
   },
   'Spheres': {
     width: 0,
     thickness: 0,
-    nodeScale: 1,
+    nodeScale: 0.66,
     controlNodeSize: 1,
     jointNodeSize: 0.8,
+    smoothing : 0.5,
+    controlNodeSmoothing : 0.5,
     normalIndicatorSize: 0
   },
-  'Standard': {
+  'Beads': {
+    width: 0.05,
+    thickness: 0.05,
+    nodeScale: 0.5,
+    controlNodeSize: 0.5,
+    jointNodeSize: 0.5,
+    smoothing : 0.5,
+    controlNodeSmoothing : 0.5,
+    normalIndicatorSize: 0
+  },  
+  'Bootlace': {
+    width: 0.05,
+    thickness: 0.05,
+    nodeScale: 0.0,
+    controlNodeSize: 0.5,
+    jointNodeSize: 0.5,
+    smoothing : 0.5,
+    controlNodeSmoothing : 0.5,
+    normalIndicatorSize: 0
+  },  
+  'Bendix': {
+    width: 0.4,
+    thickness: 0.10,
+    nodeScale: 0.5,
+    controlNodeSize: 0.0,
+    jointNodeSize: 0.0,
+    smoothing : 0.8,
+    controlNodeSmoothing : 0.8,
+    normalIndicatorSize: 0
+  },
+  'Bumpy': {
     width: 0.35,
     thickness: 0.15,
     nodeScale: 0.5,
     controlNodeSize: 0.5,
     jointNodeSize: 0.5,
+    smoothing : 0.0,
+    controlNodeSmoothing : 0.0,
     normalIndicatorSize: 0
-  }
+  },
+  'Draggable': {
+    width: 0.35,
+    thickness: 0.15,
+    nodeScale: 0.5,
+    controlNodeSize: 0.5,
+    jointNodeSize: 0.5,
+    smoothing : 0.0,
+    controlNodeSmoothing : 0.0,
+    normalIndicatorSize: 0
+  },
+  'Studded': {
+    width: 0.35,
+    thickness: 0.15,
+    nodeScale: 0.5,
+    controlNodeSize: 0.5,
+    jointNodeSize: 0.5,
+    smoothing : 0.5,
+    controlNodeSmoothing : 0.5,
+    normalIndicatorSize: 0
+  }  
 };
 
 // ============================================================
