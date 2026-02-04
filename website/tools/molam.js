@@ -1191,19 +1191,10 @@ class MolamApp {
         
         dragStartVisualPos.copy(selectedAtom.position);
         
+        // Set drag plane perpendicular to camera view direction
         const cameraDirection = new THREE.Vector3();
         this.sceneManager.camera.getWorldDirection(cameraDirection);
-        
-        if (event.shiftKey) {
-          const planeNormal = new THREE.Vector3(
-            cameraDirection.x, 0, cameraDirection.z
-          ).normalize();
-          dragPlane.setFromNormalAndCoplanarPoint(planeNormal, selectedAtom.position);
-        } else {
-          dragPlane.setFromNormalAndCoplanarPoint(
-            new THREE.Vector3(0, 1, 0), selectedAtom.position
-          );
-        }
+        dragPlane.setFromNormalAndCoplanarPoint(cameraDirection, selectedAtom.position);
       }
     };
     
@@ -1216,23 +1207,8 @@ class MolamApp {
         const params = this.base.getParams();
         raycaster.setFromCamera(mouse, this.sceneManager.camera);
         
-        if (event.shiftKey) {
-          const cameraDirection = new THREE.Vector3();
-          this.sceneManager.camera.getWorldDirection(cameraDirection);
-          const planeNormal = new THREE.Vector3(
-            cameraDirection.x, 0, cameraDirection.z
-          ).normalize();
-          dragPlane.setFromNormalAndCoplanarPoint(planeNormal, selectedAtom.position);
-        }
-        
         if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-          const newVisualPos = selectedAtom.position.clone();
-          if (event.shiftKey) {
-            newVisualPos.y = intersection.y;
-          } else {
-            newVisualPos.x = intersection.x;
-            newVisualPos.z = intersection.z;
-          }
+          const newVisualPos = intersection.clone();
           
           const visualDelta = newVisualPos.clone().sub(dragStartVisualPos);
           
