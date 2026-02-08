@@ -228,8 +228,9 @@ function formatAlignment(alignment) {
   // Get starting positions from server data (convert from 0-indexed to 1-indexed)
   let pos1 = alignment.seq1_start + 1;
   let pos2 = alignment.seq2_start + 1;
+  const len = alignment.align1.length;
 
-  for(let i = 0; i < alignment.align1.length; i += lineLen) {
+  for(let i = 0; i < len; i += lineLen) {
     const chunk1 = alignment.align1.substr(i, lineLen);
     const chunkMatch = alignment.matches.substr(i, lineLen);
     const chunk2 = alignment.align2.substr(i, lineLen);
@@ -238,14 +239,42 @@ function formatAlignment(alignment) {
     const pos1Str = String(pos1).padStart(6, ' ');
     const pos2Str = String(pos2).padStart(6, ' ');
 
-    lines.push(`${pos1Str}  ${chunk1}`);
-    lines.push(`        ${chunkMatch}`);
-    lines.push(`${pos2Str}  ${chunk2}\n`);
+    let line1 = `${pos1Str}  ${chunk1}`;
+    let line2 = `        ${chunkMatch}`;
+    let line3 = `${pos2Str}  ${chunk2}`;
 
+    // Update positions
     for(let c of chunk1)
       if(c !== '-') pos1++;
     for(let c of chunk2)
       if(c !== '-') pos2++;
+
+    // Check if this is the last chunk
+    if (i + lineLen >= len) {
+      const end1Str = String(pos1 - 1);
+      const end2Str = String(pos2 - 1);
+      const spaceNeeded = 2 + Math.max(end1Str.length, end2Str.length);
+
+      if (chunk1.length + spaceNeeded <= lineLen) {
+        line1 += '  ' + end1Str;
+        line3 += '  ' + end2Str;
+        lines.push(line1);
+        lines.push(line2);
+        lines.push(line3 + '\n');
+      } else {
+        lines.push(line1);
+        lines.push(line2);
+        lines.push(line3); // No newline here to avoid blank line
+
+        lines.push(`        ${end1Str}`);
+        lines.push(`        `);
+        lines.push(`        ${end2Str}\n`);
+      }
+    } else {
+      lines.push(line1);
+      lines.push(line2);
+      lines.push(line3 + '\n');
+    }
   }
   return lines;
 }
