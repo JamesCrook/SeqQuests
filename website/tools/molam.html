@@ -162,6 +162,17 @@
           { id: 'normalIndicatorSize', label: 'Normal Indicators', min: 0, max: 1, step: 0.01, default: 0 }
         ]
       },
+      { 
+        group: 'Atoms', 
+        id: 'atoms', 
+        abbrev: 'Atm',
+        sliders: [
+          { id: 'atomScale', label: 'Size', min: 0, max: 4, step: 0.01, default: 2.26 },
+          { id: 'atomOpacity', label: 'Opacity', min: 0, max: 1, step: 0.01, default: 0.5 },
+          { id: 'atomRangeStart', label: 'Start', min: 0, max: 100, step: 1, default: 0 },
+          { id: 'atomRangeEnd', label: 'End', min: 0, max: 100, step: 1, default: 100 },
+        ]
+      },
       {
         group: 'Roll Controls',
         id: 'rolls',

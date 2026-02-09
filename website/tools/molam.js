@@ -11,9 +11,30 @@
    - LocalFrameComputer: Compute Frenet frames
    - BiarcSegment3D: Biarc interpolation
    - RibbonGeometryBuilder: Build ribbon mesh
+   - AtomRenderer: Instanced all-atom visualization
    - MolamScene: Three.js scene management
    - MolamApp: Main application
 */
+
+// ============================================================
+// CPK ATOM DATA (Colors & Van der Waals Radii)
+// ============================================================
+
+const CPK_ATOM_DATA = {
+  'C': { color: 0x909090, radius: 1.70 },  // Carbon - Gray
+  'N': { color: 0x3050F8, radius: 1.55 },  // Nitrogen - Blue
+  'O': { color: 0xFF0D0D, radius: 1.52 },  // Oxygen - Red
+  'S': { color: 0xFFFF30, radius: 1.80 },  // Sulfur - Yellow
+  'P': { color: 0xFF8000, radius: 1.80 },  // Phosphorus - Orange
+  'H': { color: 0xFFFFFF, radius: 1.20 },  // Hydrogen - White
+  'F': { color: 0x90E050, radius: 1.47 },  // Fluorine - Green
+  'CL': { color: 0x1FF01F, radius: 1.75 }, // Chlorine - Green
+  'BR': { color: 0xA62929, radius: 1.85 }, // Bromine - Dark Red
+  'I': { color: 0x940094, radius: 1.98 },  // Iodine - Purple
+  'FE': { color: 0xE06633, radius: 2.00 }, // Iron - Orange
+  'CA': { color: 0x3DFF00, radius: 2.00 }, // Calcium - Green
+  'DEFAULT': { color: 0xFF1493, radius: 1.70 } // Unknown - Pink
+};
 
 // ============================================================
 // VIEW PRESETS
@@ -26,9 +47,41 @@ const MOLAM_PRESETS = {
     nodeScale: 0.5,
     controlNodeSize: 0,
     jointNodeSize: 0,
-    smoothing : 0.5,
-    controlNodeSmoothing : 0.5,
-    normalIndicatorSize: 0
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomScale: 1.4,
+    atomOpacity: 0.46,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
+  },
+  'All Atoms': {
+    width: 0,
+    thickness: 0,
+    nodeScale: 0,
+    controlNodeSize: 0,
+    jointNodeSize: 0,
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomScale: 2.6,
+    atomOpacity: 1,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
+  },
+  'Ribbon + Atoms': {
+    width: 0.35,
+    thickness: 0.15,
+    nodeScale: 0,
+    controlNodeSize: 0,
+    jointNodeSize: 0,
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomScale: 2.6,
+    atomOpacity: 0.3,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },
   'Spheres': {
     width: 0,
@@ -36,9 +89,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.66,
     controlNodeSize: 1,
     jointNodeSize: 0.8,
-    smoothing : 0.5,
-    controlNodeSmoothing : 0.5,
-    normalIndicatorSize: 0
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },
   'Beads': {
     width: 0.05,
@@ -46,9 +102,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.5,
     controlNodeSize: 0.5,
     jointNodeSize: 0.5,
-    smoothing : 0.5,
-    controlNodeSmoothing : 0.5,
-    normalIndicatorSize: 0
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },  
   'Bootlace': {
     width: 0.05,
@@ -56,9 +115,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.0,
     controlNodeSize: 0.5,
     jointNodeSize: 0.5,
-    smoothing : 0.5,
-    controlNodeSmoothing : 0.5,
-    normalIndicatorSize: 0
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },  
   'Bendix': {
     width: 0.4,
@@ -66,9 +128,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.5,
     controlNodeSize: 0.0,
     jointNodeSize: 0.0,
-    smoothing : 0.8,
-    controlNodeSmoothing : 0.8,
-    normalIndicatorSize: 0
+    smoothing: 0.8,
+    controlNodeSmoothing: 0.8,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },
   'Bumpy': {
     width: 0.35,
@@ -76,9 +141,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.5,
     controlNodeSize: 0.5,
     jointNodeSize: 0.5,
-    smoothing : 0.0,
-    controlNodeSmoothing : 0.0,
-    normalIndicatorSize: 0
+    smoothing: 0.0,
+    controlNodeSmoothing: 0.0,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },
   'Draggable': {
     width: 0.35,
@@ -86,9 +154,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.5,
     controlNodeSize: 0.5,
     jointNodeSize: 0.5,
-    smoothing : 0.0,
-    controlNodeSmoothing : 0.0,
-    normalIndicatorSize: 0
+    smoothing: 0.0,
+    controlNodeSmoothing: 0.0,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   },
   'Studded': {
     width: 0.35,
@@ -96,9 +167,12 @@ const MOLAM_PRESETS = {
     nodeScale: 0.5,
     controlNodeSize: 0.5,
     jointNodeSize: 0.5,
-    smoothing : 0.5,
-    controlNodeSmoothing : 0.5,
-    normalIndicatorSize: 0
+    smoothing: 0.5,
+    controlNodeSmoothing: 0.5,
+    normalIndicatorSize: 0,
+    atomOpacity: 0,
+    atomRangeStart: 0,
+    atomRangeEnd: 100
   }  
 };
 
@@ -107,9 +181,10 @@ const MOLAM_PRESETS = {
 // ============================================================
 
 class PDBParser {
-  static parse(pdbContent) {
+  static parse(pdbContent, includeAllAtoms = false) {
     const lines = pdbContent.split('\n');
     const chains = new Map();
+    const allAtoms = []; // All atoms for visualization
     let title = '';
     
     for (const line of lines) {
@@ -119,7 +194,15 @@ class PDBParser {
       
       if (line.startsWith('ATOM') || line.startsWith('HETATM')) {
         const atom = this.parseAtomLine(line);
-        if (atom && this.isBackboneAtom(atom)) {
+        if (!atom) continue;
+        
+        // Store all atoms if requested
+        if (includeAllAtoms) {
+          allAtoms.push(atom);
+        }
+        
+        // Store backbone atoms for ribbon
+        if (this.isBackboneAtom(atom)) {
           if (!chains.has(atom.chainId)) {
             chains.set(atom.chainId, []);
           }
@@ -131,7 +214,9 @@ class PDBParser {
     return {
       title: title.trim(),
       chains: chains,
-      totalAtoms: Array.from(chains.values()).reduce((sum, c) => sum + c.length, 0)
+      allAtoms: allAtoms,
+      totalAtoms: Array.from(chains.values()).reduce((sum, c) => sum + c.length, 0),
+      totalAllAtoms: allAtoms.length
     };
   }
   
@@ -148,11 +233,28 @@ class PDBParser {
         resSeq: parseInt(line.substring(22, 26).trim()),
         x: parseFloat(line.substring(30, 38).trim()),
         y: parseFloat(line.substring(38, 46).trim()),
-        z: parseFloat(line.substring(46, 54).trim())
+        z: parseFloat(line.substring(46, 54).trim()),
+        element: line.length >= 78 ? line.substring(76, 78).trim() : this.guessElement(line.substring(12, 16).trim())
       };
     } catch (e) {
       return null;
     }
+  }
+  
+  static guessElement(atomName) {
+    // Try to extract element from atom name
+    const clean = atomName.replace(/[0-9'"]/g, '').trim();
+    if (clean.length === 0) return 'C';
+    
+    // Common patterns: CA, CB, N, O, etc.
+    const firstChar = clean[0].toUpperCase();
+    const firstTwo = clean.substring(0, 2).toUpperCase();
+    
+    // Check two-letter elements first
+    if (CPK_ATOM_DATA[firstTwo]) return firstTwo;
+    if (CPK_ATOM_DATA[firstChar]) return firstChar;
+    
+    return 'C'; // Default to carbon
   }
   
   static isBackboneAtom(atom) {
@@ -179,7 +281,7 @@ class PDBParser {
       allPoints.push(...coords);
     }
     
-    if (allPoints.length === 0) return { chains: chainsCoords, scale: 1 };
+    if (allPoints.length === 0) return { chains: chainsCoords, scale: 1, centroid: new THREE.Vector3() };
     
     const centroid = new THREE.Vector3();
     for (const p of allPoints) {
@@ -201,7 +303,209 @@ class PDBParser {
       normalizedChains.set(cId, normalized);
     }
     
-    return { chains: normalizedChains, scale };
+    return { chains: normalizedChains, scale, centroid };
+  }
+  
+  static normalizeAllAtoms(allAtoms, centroid, scale, THREE) {
+    return allAtoms.map(atom => ({
+      ...atom,
+      x: (atom.x - centroid.x) * scale,
+      y: (atom.y - centroid.y) * scale,
+      z: (atom.z - centroid.z) * scale
+    }));
+  }
+}
+
+// ============================================================
+// ATOM RENDERER CLASS
+// ============================================================
+
+class AtomRenderer {
+  constructor(THREE, sceneManager) {
+    this.THREE = THREE;
+    this.sceneManager = sceneManager;
+    this.instancedMeshes = new Map(); // element -> InstancedMesh
+    this.atoms = [];
+    this.totalAtomCount = 0;
+    this.rangeStart = 0;
+    this.rangeEnd = 1;
+    this.opacity = 0;
+  }
+  
+  setAtoms(atoms, scale) {
+    this.clear();
+    this.atoms = atoms;
+    this.totalAtomCount = atoms.length;
+    this.modelScale = scale;
+    
+    if (atoms.length === 0) return;
+    
+    // Group atoms by element
+    const elementGroups = new Map();
+    
+    atoms.forEach((atom, index) => {
+      const element = (atom.element || 'C').toUpperCase();
+      if (!elementGroups.has(element)) {
+        elementGroups.set(element, []);
+      }
+      elementGroups.get(element).push({ atom, index });
+    });
+    
+    // Create InstancedMesh for each element
+    const THREE = this.THREE;
+    
+    for (const [element, atomList] of elementGroups) {
+      const atomData = CPK_ATOM_DATA[element] || CPK_ATOM_DATA['DEFAULT'];
+      
+      // Store base radius for later scaling updates
+      const mesh = this.createInstancedMeshForElement(element, atomList, atomData, 1.0);
+      this.instancedMeshes.set(element, mesh);
+    }
+    
+    this.updateVisibility();
+  }
+  
+  createInstancedMeshForElement(element, atomList, atomData, atomScale) {
+    const THREE = this.THREE;
+    
+    // Base scale: Van der Waals radius * model scale * default multiplier * user scale
+    // Increased from 0.1 to 0.35 for better visibility
+    const radius = atomData.radius * this.modelScale * 0.35 * atomScale;
+    
+    const geometry = new THREE.SphereGeometry(radius, 16, 16);
+    const material = new THREE.MeshStandardMaterial({
+      color: atomData.color,
+      metalness: 0.3,
+      roughness: 0.4,
+      transparent: true,
+      opacity: this.opacity,
+      side: THREE.FrontSide
+    });
+    
+    const mesh = new THREE.InstancedMesh(geometry, material, atomList.length);
+    mesh.frustumCulled = false;
+    
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    
+    atomList.forEach(({ atom, index: globalIndex }, localIndex) => {
+      position.set(atom.x, atom.y, atom.z);
+      matrix.setPosition(position);
+      mesh.setMatrixAt(localIndex, matrix);
+      mesh.setColorAt(localIndex, new THREE.Color(atomData.color));
+      
+      // Store mapping for filtering
+      if (!mesh.userData.indexMap) {
+        mesh.userData.indexMap = [];
+      }
+      mesh.userData.indexMap.push(globalIndex);
+    });
+    
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    
+    mesh.userData.element = element;
+    mesh.userData.atomData = atomData;
+    
+    return mesh;
+  }
+  
+  updateAtomScale(atomScale) {
+    if (!this.modelScale || this.totalAtomCount === 0) return;
+    
+    const THREE = this.THREE;
+    
+    // Rebuild geometries with new scale
+    for (const [element, mesh] of this.instancedMeshes) {
+      const atomData = mesh.userData.atomData;
+      const radius = atomData.radius * this.modelScale * 0.35 * atomScale;
+      
+      // Dispose old geometry and create new one
+      mesh.geometry.dispose();
+      mesh.geometry = new THREE.SphereGeometry(radius, 16, 16);
+    }
+    
+    this.updateVisibility();
+  }
+  
+  setOpacity(opacity) {
+    this.opacity = opacity;
+    this.updateVisibility();
+  }
+  
+  setRange(startPercent, endPercent) {
+    this.rangeStart = Math.max(0, Math.min(1, startPercent / 100));
+    this.rangeEnd = Math.max(0, Math.min(1, endPercent / 100));
+    this.updateVisibility();
+  }
+  
+  updateVisibility() {
+    const THREE = this.THREE;
+    
+    // Remove all meshes from scene
+    for (const mesh of this.instancedMeshes.values()) {
+      this.sceneManager.remove(mesh);
+    }
+    
+    // If opacity is 0, don't add anything
+    if (this.opacity <= 0 || this.totalAtomCount === 0) {
+      return;
+    }
+    
+    // Determine range
+    const start = Math.min(this.rangeStart, this.rangeEnd);
+    const end = Math.max(this.rangeStart, this.rangeEnd);
+    const isReversed = this.rangeStart > this.rangeEnd;
+    
+    const startIndex = Math.floor(start * this.totalAtomCount);
+    const endIndex = Math.ceil(end * this.totalAtomCount);
+    
+    // Update each mesh
+    for (const mesh of this.instancedMeshes.values()) {
+      const indexMap = mesh.userData.indexMap;
+      
+      // Set visibility for each instance
+      const dummy = new THREE.Object3D();
+      let visibleCount = 0;
+      
+      for (let i = 0; i < indexMap.length; i++) {
+        const globalIndex = indexMap[i];
+        const isInRange = globalIndex >= startIndex && globalIndex < endIndex;
+        
+        if (isInRange) {
+          visibleCount++;
+        } else {
+          // Hide by scaling to 0
+          dummy.scale.set(0, 0, 0);
+          dummy.updateMatrix();
+          mesh.setMatrixAt(i, dummy.matrix);
+        }
+      }
+      
+      mesh.instanceMatrix.needsUpdate = true;
+      
+      // Update material
+      mesh.material.opacity = this.opacity;
+      mesh.material.transparent = this.opacity < 1;
+      mesh.material.side = isReversed ? THREE.BackSide : THREE.FrontSide;
+      mesh.material.needsUpdate = true;
+      
+      // Add to scene if any atoms are visible
+      if (visibleCount > 0) {
+        this.sceneManager.add(mesh);
+      }
+    }
+  }
+  
+  clear() {
+    for (const mesh of this.instancedMeshes.values()) {
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      this.sceneManager.remove(mesh);
+    }
+    this.instancedMeshes.clear();
+    this.atoms = [];
+    this.totalAtomCount = 0;
   }
 }
 
@@ -799,8 +1103,18 @@ class MolamScene {
     this.renderer.setSize(width, height);
   }
   
+  setAtomUpdateCallback(callback) {
+    this.atomUpdateCallback = callback;
+  }
+  
   render() {
     this.controls.update();
+    
+    // Update atom visualization if callback is set
+    if (this.atomUpdateCallback) {
+      this.atomUpdateCallback();
+    }
+    
     this.renderer.render(this.scene, this.camera);
   }
   
@@ -847,6 +1161,14 @@ class MolamApp {
     
     this.baseNodeRadius = { control: 0.25, intermediate: 0.2 };
     this.samplesPerSegment = 40;
+    
+    // Atom renderer
+    this.atomRenderer = new AtomRenderer(THREE, sceneManager);
+    
+    // Register atom update callback with scene manager
+    sceneManager.setAtomUpdateCallback(() => {
+      this.updateAtomVisualization();
+    });
     
     this.createControlAtoms();
     this.setupInteraction();
@@ -1217,6 +1539,18 @@ class MolamApp {
     this.createControlAtoms();
   }
   
+  updateAtomVisualization() {
+    const params = this.base.getParams();
+    
+    // Update scale if atomScale parameter exists
+    if (params.atomScale !== undefined) {
+      this.atomRenderer.updateAtomScale(params.atomScale);
+    }
+    
+    this.atomRenderer.setOpacity(params.atomOpacity);
+    this.atomRenderer.setRange(params.atomRangeStart, params.atomRangeEnd);
+  }
+  
   setupInteraction() {
     const THREE = this.THREE;
     const raycaster = new THREE.Raycaster();
@@ -1323,7 +1657,7 @@ class MolamApp {
       const pdbContent = await response.text();
       this.base.setStatus('Parsing PDB file...');
       
-      const structure = PDBParser.parse(pdbContent);
+      const structure = PDBParser.parse(pdbContent, true);
       const chainsCoords = PDBParser.extractChainsCoords(structure, THREE);
       const chainIds = Array.from(chainsCoords.keys());
       
@@ -1331,9 +1665,12 @@ class MolamApp {
         throw new Error('Not enough backbone atoms found');
       }
       
-      const { chains: normalizedChains, scale } = PDBParser.normalizeChainsCoordinates(chainsCoords, THREE, 15);
+      const { chains: normalizedChains, scale, centroid } = PDBParser.normalizeChainsCoordinates(chainsCoords, THREE, 15);
       
       this.modelScale = scale;
+      
+      // Normalize all atoms
+      const normalizedAllAtoms = PDBParser.normalizeAllAtoms(structure.allAtoms, centroid, scale, THREE);
       
       this.chains = new Map();
       this.atomToChainMap = [];
@@ -1365,6 +1702,11 @@ class MolamApp {
       this.base.setControlEnabled('numPoints', false);
       
       this.createControlAtoms();
+      
+      // Set up atom visualization
+      this.atomRenderer.setAtoms(normalizedAllAtoms, scale);
+      this.updateAtomVisualization();
+      
       this.sceneManager.resetCamera();
       
       const chainInfo = chainIds.map(cId => {
@@ -1377,12 +1719,13 @@ class MolamApp {
         Chains: ${chainIds.join(', ')} (${chainIds.length} separate)<br>
         Residues per chain: ${chainInfo}<br>
         Total residues: ${totalResidues}<br>
+        Total atoms: ${structure.totalAllAtoms}<br>
         ${structure.title ? `<br>${structure.title}` : ''}
       `);
       
-      this.base.setStatus(`${pdbId} loaded! (${chainIds.length} chain${chainIds.length > 1 ? 's' : ''})`);
+      this.base.setStatus(`${pdbId} loaded! (${chainIds.length} chain${chainIds.length > 1 ? 's' : ''}, ${structure.totalAllAtoms} atoms)`);
       
-      return { success: true, totalResidues, chainIds };
+      return { success: true, totalResidues, chainIds, totalAtoms: structure.totalAllAtoms };
       
     } catch (error) {
       console.error(`Error loading ${pdbId}:`, error);
@@ -1416,6 +1759,7 @@ class MolamApp {
     this.base.setSelectValue('proteinSelector', '');
     
     this.createControlAtoms();
+    this.atomRenderer.clear();
     this.sceneManager.resetCamera();
     
     this.base.clearInfo();
@@ -1425,12 +1769,14 @@ class MolamApp {
 
 // Export for global scope
 if (typeof window !== 'undefined') {
+  window.CPK_ATOM_DATA = CPK_ATOM_DATA;
   window.MOLAM_PRESETS = MOLAM_PRESETS;
   window.PDBParser = PDBParser;
   window.ArcMath = ArcMath;
   window.LocalFrameComputer = LocalFrameComputer;
   window.BiarcSegment3D = BiarcSegment3D;
   window.RibbonGeometryBuilder = RibbonGeometryBuilder;
+  window.AtomRenderer = AtomRenderer;
   window.MolamScene = MolamScene;
   window.MolamApp = MolamApp;
 }
