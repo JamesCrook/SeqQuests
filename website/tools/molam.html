@@ -252,8 +252,16 @@
       }
     });
     
+    // Check for URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const pdbParam = urlParams.get('pdb');
+    
+    if (pdbParam) {
+      console.log(`URL parameter detected: ${pdbParam}`);
+    }
+
     // Create Molam app
-    app = new MolamApp(sceneManager, base, THREE);
+    app = new MolamApp(sceneManager, base, THREE, pdbParam);
     
     // ============================================================
     // Roll Controls (Dynamic)
@@ -324,9 +332,14 @@
       }
     }
     
+    
+
+
+
     // Initial roll controls
     updateRollControls();
-    
+
+
     // ============================================================
     // Animation Loop
     // ============================================================
@@ -337,6 +350,10 @@
     }
     animate();
     
+    if( app.currentPdbId ){
+      app.controlPoints = [];
+      app.loadProtein(app.currentPdbId);
+    }
     // Initial render
     base.render();
   </script>

@@ -1718,7 +1718,7 @@ class MolamScene {
 // ============================================================
 
 class MolamApp {
-  constructor(sceneManager, base, THREE) {
+  constructor(sceneManager, base, THREE, pdbId) {
     this.sceneManager = sceneManager;
     this.base = base;
     this.THREE = THREE;
@@ -1737,7 +1737,7 @@ class MolamApp {
     
     this.chains = null;
     this.modelScale = 1;
-    this.currentPdbId = null;
+    this.currentPdbId = pdbId;
     this.atomToChainMap = [];
     
     this.setupMaterials();
