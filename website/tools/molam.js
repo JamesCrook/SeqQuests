@@ -36,6 +36,10 @@ const CPK_ATOM_DATA = {
   'DEFAULT': { color: 0xFF1493, radius: 1.70, atomicNumber: 6 } // Unknown - Pink
 };
 
+
+const BOND_BLACK = 0x000000;
+const BOND_WHITE = 0xFFFFFF;
+
 const BOND_GREY = 0xC0C0C0; // Lighter grey than carbon for blending
 const BOND_RING_PINK = 0xFF1493; // Neon pink for ring bonds (trumps grey)
 
@@ -60,7 +64,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Ball and Stick': {
@@ -79,7 +83,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 1,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'All Atoms': {
@@ -98,7 +102,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Ribbon + Atoms': {
@@ -117,7 +121,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Spheres': {
@@ -135,7 +139,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Beads': {
@@ -153,7 +157,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },  
   'Bootlace': {
@@ -171,7 +175,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },  
   'Bendix': {
@@ -189,7 +193,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Bumpy': {
@@ -207,7 +211,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Draggable': {
@@ -225,7 +229,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   },
   'Studded': {
@@ -243,7 +247,7 @@ const MOLAM_PRESETS = {
     bondOpacity: 0,
     bondRadius: 1.0,
     bondHalfColor: 0.5,
-    bondGreyBlend: 0,
+    bondLightness: 0.5,
     bondRingPink: 0
   }  
 };
@@ -605,9 +609,33 @@ class BondRenderer {
     this.opacity = 0;
     this.radius = 0.1;
     this.halfColor = 0.5;
-    this.greyBlend = 0;
+    this.bondLightness = 0;
     this.ringPink = 0;
     this.modelScale = 1;
+    
+    // Reusable objects for transforms
+    this._matrix = null;
+    this._position = null;
+    this._quaternion = null;
+    this._scale = null;
+    this._yAxis = null;
+    this._hiddenMatrix = null;
+  }
+  
+  _initTransformObjects() {
+    const THREE = this.THREE;
+    if (!this._matrix) {
+      this._matrix = new THREE.Matrix4();
+      this._position = new THREE.Vector3();
+      this._quaternion = new THREE.Quaternion();
+      this._scale = new THREE.Vector3();
+      this._yAxis = new THREE.Vector3(0, 1, 0);
+      
+      const dummy = new THREE.Object3D();
+      dummy.scale.set(0, 0, 0);
+      dummy.updateMatrix();
+      this._hiddenMatrix = dummy.matrix.clone();
+    }
   }
   
   detectAndSetBonds(atoms, scale) {
@@ -618,84 +646,58 @@ class BondRenderer {
     
     if (atoms.length === 0) return;
     
-    // Detect bonds using spatial grid
     this.bonds = this.detectBonds(atoms);
     console.log(`Detected ${this.bonds.length} bonds`);
     
-    // Detect rings (5 and 6-member)
     if (this.bonds.length > 0) {
       this.detectRings();
       const ringBondCount = this.bonds.filter(b => b.isRing).length;
       console.log(`Detected ${ringBondCount} ring bonds`);
-    }
-    
-    if (this.bonds.length > 0) {
       this.createBondGeometry();
     }
   }
   
   detectBonds(atoms) {
-    const BOND_CUTOFF = 1.9; // Angstroms (in original PDB coordinates)
-    const CELL_SIZE = 2.0;   // Slightly larger than cutoff
+    const BOND_CUTOFF = 1.9;
+    const CELL_SIZE = 2.0;
     const bonds = [];
-    
-    // Build spatial grid using original (non-normalized) coordinates
     const grid = new Map();
+    const scaledCellSize = CELL_SIZE * this.modelScale;
     
     atoms.forEach((atom, index) => {
-      // Use original coordinates (before normalization was applied)
-      // We need to reverse the normalization: normalized = (original - centroid) * scale
-      // So: original = normalized / scale + centroid
-      // But we don't have centroid here, so we work with normalized coords
-      // Actually, bonds should be detected BEFORE normalization in distances
-      // Let's use the scaled coordinates and scale the cutoff too
-      
-      const scaledCutoff = BOND_CUTOFF * this.modelScale;
-      const scaledCellSize = CELL_SIZE * this.modelScale;
-      
       const cellX = Math.floor(atom.x / scaledCellSize);
       const cellY = Math.floor(atom.y / scaledCellSize);
       const cellZ = Math.floor(atom.z / scaledCellSize);
       const key = `${cellX},${cellY},${cellZ}`;
       
-      if (!grid.has(key)) {
-        grid.set(key, []);
-      }
+      if (!grid.has(key)) grid.set(key, []);
       grid.get(key).push(index);
     });
     
     const scaledCutoffSq = Math.pow(BOND_CUTOFF * this.modelScale, 2);
     const checked = new Set();
     
-    // Check each atom against its cell and neighboring cells
     atoms.forEach((atom1, i) => {
-      const scaledCellSize = CELL_SIZE * this.modelScale;
       const cellX = Math.floor(atom1.x / scaledCellSize);
       const cellY = Math.floor(atom1.y / scaledCellSize);
       const cellZ = Math.floor(atom1.z / scaledCellSize);
       
-      // Check 27 cells (3x3x3 including center)
       for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
           for (let dz = -1; dz <= 1; dz++) {
-            const neighborKey = `${cellX + dx},${cellY + dy},${cellZ + dz}`;
-            const neighbors = grid.get(neighborKey);
-            
+            const neighbors = grid.get(`${cellX + dx},${cellY + dy},${cellZ + dz}`);
             if (!neighbors) continue;
             
             for (const j of neighbors) {
-              if (j <= i) continue; // Only check each pair once
+              if (j <= i) continue;
               
               const pairKey = `${i},${j}`;
               if (checked.has(pairKey)) continue;
               checked.add(pairKey);
               
               const atom2 = atoms[j];
-              
-              // Skip hydrogen bonds
               if (atom1.element === 'H' || atom2.element === 'H') continue;
               
-              // Calculate distance
               const dx = atom2.x - atom1.x;
               const dy = atom2.y - atom1.y;
               const dz = atom2.z - atom1.z;
@@ -719,7 +721,6 @@ class BondRenderer {
   }
   
   detectRings() {
-    // Build adjacency list from bonds
     const adjacency = new Map();
     
     this.bonds.forEach((bond, bondIndex) => {
@@ -733,83 +734,50 @@ class BondRenderer {
       adjacency.get(a2).push({ neighbor: a1, bondIndex });
     });
     
-    // Track which bonds are in rings
     const ringBonds = new Set();
     
-    // For each bond, try to find a path back that forms a 5 or 6-member ring
     this.bonds.forEach((bond, bondIndex) => {
       const start = bond.atomIndex1;
       const end = bond.atomIndex2;
-      
-      // BFS to find shortest path from end back to start (not using the original bond)
       const queue = [{ atom: end, path: [end], bondPath: [] }];
       const visited = new Set([end]);
       
       while (queue.length > 0) {
         const { atom, path, bondPath } = queue.shift();
         
-        // Check if we've returned to start
         if (atom === start && path.length >= 2) {
-          const ringSize = path.length;
-          
-          // Only mark 5 or 6-member rings
-          if (ringSize === 5 || ringSize === 6) {
-            // Mark all bonds in this ring
-            ringBonds.add(bondIndex); // Original bond
+          if (path.length === 5 || path.length === 6) {
+            ringBonds.add(bondIndex);
             bondPath.forEach(bi => ringBonds.add(bi));
           }
-          
-          break; // Found shortest path for this bond
+          break;
         }
         
-        // Don't search too deep (avoid exponential explosion)
         if (path.length > 6) continue;
         
-        // Explore neighbors
-        const neighbors = adjacency.get(atom) || [];
-        for (const { neighbor, bondIndex: bi } of neighbors) {
-          // Don't go back through the original bond
-          if (bi === bondIndex) continue;
-          
-          // Don't revisit atoms
-          if (visited.has(neighbor)) continue;
-          
+        for (const { neighbor, bondIndex: bi } of (adjacency.get(atom) || [])) {
+          if (bi === bondIndex || visited.has(neighbor)) continue;
           visited.add(neighbor);
-          queue.push({
-            atom: neighbor,
-            path: [...path, neighbor],
-            bondPath: [...bondPath, bi]
-          });
+          queue.push({ atom: neighbor, path: [...path, neighbor], bondPath: [...bondPath, bi] });
         }
       }
     });
     
-    // Mark bonds as ring bonds
-    this.bonds.forEach((bond, index) => {
-      bond.isRing = ringBonds.has(index);
-    });
+    this.bonds.forEach((bond, index) => { bond.isRing = ringBonds.has(index); });
   }
   
   createBondGeometry() {
     if (this.bonds.length === 0) return;
     
     const THREE = this.THREE;
-    
-    // Create one instanced mesh for all bond segments
-    // We'll create TWO instances per bond for half-coloring
     const instanceCount = this.bonds.length * 2;
     
     const geometry = new THREE.CylinderGeometry(
-      this.radius * this.modelScale * 0.1, // Base multiplier for reasonable bond size
       this.radius * this.modelScale * 0.1,
-      1.0, // Unit height, will scale per instance
-      8,   // Radial segments
-      1,   // Height segments
-      true // Open ended (no caps)
+      this.radius * this.modelScale * 0.1,
+      1.0, 8, 1, true
     );
     
-    // Don't use vertexColors: true - that's for BufferGeometry, not InstancedMesh
-    // Instance colors work automatically when you call setColorAt()
     const material = new THREE.MeshStandardMaterial({
       metalness: 0.3,
       roughness: 0.4,
@@ -820,143 +788,114 @@ class BondRenderer {
     
     this.bondMesh = new THREE.InstancedMesh(geometry, material, instanceCount);
     this.bondMesh.frustumCulled = false;
-    
-    // Store bond info for later filtering
     this.bondMesh.userData.bonds = this.bonds;
     
-    this.updateBondTransformsAndColors();
+    this._initTransformObjects();
+    this.updateAllBondInstances();
   }
   
-  updateBondTransformsAndColors() {
-    if (!this.bondMesh || this.bonds.length === 0) return;
+  bondColor(bond, baseColor) {
+    const THREE = this.THREE;
+    let color;
+    if( this.bondLightness < 0.5 )
+      color = new THREE.Color(baseColor).lerp(new THREE.Color(BOND_BLACK), 1 - this.bondLightness * 2);
+    else
+      color = new THREE.Color(baseColor).lerp(new THREE.Color(BOND_WHITE), this.bondLightness * 2 -1);
+    if (bond.isRing && this.ringPink > 0) {
+      color.lerp(new THREE.Color(BOND_RING_PINK), this.ringPink);
+    }
+    return color;
+  }
+  
+  // Core method: set transform and color for a single bond (two segments)
+  setBondInstance(bondIndex, visible = true) {
+    if (!visible) {
+      this.bondMesh.setMatrixAt(bondIndex * 2, this._hiddenMatrix);
+      this.bondMesh.setMatrixAt(bondIndex * 2 + 1, this._hiddenMatrix);
+      return;
+    }
     
     const THREE = this.THREE;
-    const matrix = new THREE.Matrix4();
-    const position = new THREE.Vector3();
-    const quaternion = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
-    const yAxis = new THREE.Vector3(0, 1, 0);
-    const greyColor = new THREE.Color(BOND_GREY);
-    const pinkColor = new THREE.Color(BOND_RING_PINK);
+    const bond = this.bonds[bondIndex];
+    const atom1 = this.atoms[bond.atomIndex1];
+    const atom2 = this.atoms[bond.atomIndex2];
     
-    this.bonds.forEach((bond, bondIndex) => {
-      const atom1 = this.atoms[bond.atomIndex1];
-      const atom2 = this.atoms[bond.atomIndex2];
-      
-      const start = new THREE.Vector3(atom1.x, atom1.y, atom1.z);
-      const end = new THREE.Vector3(atom2.x, atom2.y, atom2.z);
-      const direction = new THREE.Vector3().subVectors(end, start);
-      const bondLength = direction.length();
-      
-      direction.normalize();
-      quaternion.setFromUnitVectors(yAxis, direction);
-      
-      // Get atomic numbers for color ordering
-      const data1 = CPK_ATOM_DATA[bond.element1.toUpperCase()] || CPK_ATOM_DATA['DEFAULT'];
-      const data2 = CPK_ATOM_DATA[bond.element2.toUpperCase()] || CPK_ATOM_DATA['DEFAULT'];
-      
-      // Determine which is lower/higher atomic number
-      const isAtom1Lower = data1.atomicNumber <= data2.atomicNumber;
-      const lowerData = isAtom1Lower ? data1 : data2;
-      const higherData = isAtom1Lower ? data2 : data1;
-      const lowerStart = isAtom1Lower ? start : end;
-      const higherStart = isAtom1Lower ? end : start;
-      
-      // Calculate split point based on halfColor slider
-      const splitRatio = this.halfColor;
-      const splitPoint = new THREE.Vector3().lerpVectors(lowerStart, higherStart, splitRatio);
-      
-      // First segment: lower atomic number end
-      const length1 = lowerStart.distanceTo(splitPoint);
-      const mid1 = new THREE.Vector3().lerpVectors(lowerStart, splitPoint, 0.5);
-      
-      position.copy(mid1);
-      scale.set(1, length1, 1);
-      matrix.compose(position, quaternion, scale);
-      this.bondMesh.setMatrixAt(bondIndex * 2, matrix);
-      
-      // Color for first segment (with grey blending, then pink if ring)
-      let color1 = new THREE.Color(lowerData.color).lerp(greyColor, this.greyBlend);
-      if (bond.isRing && this.ringPink > 0) {
-        color1.lerp(pinkColor, this.ringPink);
-      }
-      this.bondMesh.setColorAt(bondIndex * 2, color1);
-      
-      // Second segment: higher atomic number end
-      const length2 = splitPoint.distanceTo(higherStart);
-      const mid2 = new THREE.Vector3().lerpVectors(splitPoint, higherStart, 0.5);
-      
-      position.copy(mid2);
-      scale.set(1, length2, 1);
-      matrix.compose(position, quaternion, scale);
-      this.bondMesh.setMatrixAt(bondIndex * 2 + 1, matrix);
-      
-      // Color for second segment (with grey blending, then pink if ring)
-      let color2 = new THREE.Color(higherData.color).lerp(greyColor, this.greyBlend);
-      if (bond.isRing && this.ringPink > 0) {
-        color2.lerp(pinkColor, this.ringPink);
-      }
-      this.bondMesh.setColorAt(bondIndex * 2 + 1, color2);
-    });
+    const start = new THREE.Vector3(atom1.x, atom1.y, atom1.z);
+    const end = new THREE.Vector3(atom2.x, atom2.y, atom2.z);
+    const direction = new THREE.Vector3().subVectors(end, start).normalize();
+    
+    this._quaternion.setFromUnitVectors(this._yAxis, direction);
+    
+    const data1 = CPK_ATOM_DATA[bond.element1.toUpperCase()] || CPK_ATOM_DATA['DEFAULT'];
+    const data2 = CPK_ATOM_DATA[bond.element2.toUpperCase()] || CPK_ATOM_DATA['DEFAULT'];
+    
+    const isAtom1Lower = data1.atomicNumber <= data2.atomicNumber;
+    const lowerData = isAtom1Lower ? data1 : data2;
+    const higherData = isAtom1Lower ? data2 : data1;
+    const lowerStart = isAtom1Lower ? start : end;
+    const higherStart = isAtom1Lower ? end : start;
+    
+    const splitPoint = new THREE.Vector3().lerpVectors(lowerStart, higherStart, this.halfColor);
+    
+    // First segment (lower atomic number side)
+    const length1 = lowerStart.distanceTo(splitPoint);
+    this._position.lerpVectors(lowerStart, splitPoint, 0.5);
+    this._scale.set(1, length1, 1);
+    this._matrix.compose(this._position, this._quaternion, this._scale);
+    this.bondMesh.setMatrixAt(bondIndex * 2, this._matrix);
+    this.bondMesh.setColorAt(bondIndex * 2, this.bondColor(bond, lowerData.color));
+    
+    // Second segment (higher atomic number side)
+    const length2 = splitPoint.distanceTo(higherStart);
+    this._position.lerpVectors(splitPoint, higherStart, 0.5);
+    this._scale.set(1, length2, 1);
+    this._matrix.compose(this._position, this._quaternion, this._scale);
+    this.bondMesh.setMatrixAt(bondIndex * 2 + 1, this._matrix);
+    this.bondMesh.setColorAt(bondIndex * 2 + 1, this.bondColor(bond, higherData.color));
+  }
+  
+  updateAllBondInstances() {
+    if (!this.bondMesh || this.bonds.length === 0) return;
+    
+    for (let i = 0; i < this.bonds.length; i++) {
+      this.setBondInstance(i, true);
+    }
     
     this.bondMesh.instanceMatrix.needsUpdate = true;
-    if (this.bondMesh.instanceColor) {
-      this.bondMesh.instanceColor.needsUpdate = true;
-    }
+    if (this.bondMesh.instanceColor) this.bondMesh.instanceColor.needsUpdate = true;
   }
   
   updateBondRadius(radius) {
     this.radius = radius;
-    
     if (!this.bondMesh || this.bonds.length === 0) return;
     
     const THREE = this.THREE;
-    
-    // Rebuild geometry with new radius
     this.bondMesh.geometry.dispose();
     this.bondMesh.geometry = new THREE.CylinderGeometry(
-      radius * this.modelScale * 0.1, // Base multiplier for reasonable bond size
       radius * this.modelScale * 0.1,
-      1.0,
-      8,
-      1,
-      true
+      radius * this.modelScale * 0.1,
+      1.0, 8, 1, true
     );
     
     this.updateVisibility();
   }
   
-  setOpacity(opacity) {
-    this.opacity = opacity;
-    this.updateVisibility();
-  }
-  
-  setRadius(radius) {
-    this.updateBondRadius(radius);
-  }
+  setOpacity(opacity) { this.opacity = opacity; this.updateVisibility(); }
+  setRadius(radius) { this.updateBondRadius(radius); }
   
   setHalfColor(halfColor) {
     this.halfColor = halfColor;
-    if (this.bondMesh && this.bonds.length > 0) {
-      this.updateBondTransformsAndColors();
-      this.updateVisibility();
-    }
+    if (this.bondMesh) { this.updateAllBondInstances(); this.updateVisibility(); }
   }
   
-  setGreyBlend(greyBlend) {
-    this.greyBlend = greyBlend;
-    if (this.bondMesh && this.bonds.length > 0) {
-      this.updateBondTransformsAndColors();
-      this.updateVisibility();
-    }
+  setbondLightness(bondLightness) {
+    this.bondLightness = bondLightness;
+    if (this.bondMesh) { this.updateAllBondInstances(); this.updateVisibility(); }
   }
   
   setRingPink(ringPink) {
     this.ringPink = ringPink;
-    if (this.bondMesh && this.bonds.length > 0) {
-      this.updateBondTransformsAndColors();
-      this.updateVisibility();
-    }
+    if (this.bondMesh) { this.updateAllBondInstances(); this.updateVisibility(); }
   }
   
   setAtomRange(startPercent, endPercent) {
@@ -968,120 +907,35 @@ class BondRenderer {
   updateVisibility() {
     if (!this.bondMesh) return;
     
-    const THREE = this.THREE;
-    
-    // Remove from scene
     this.sceneManager.remove(this.bondMesh);
     
-    // If opacity is 0, don't add anything
-    if (this.opacity <= 0 || this.bonds.length === 0) {
-      return;
-    }
+    if (this.opacity <= 0 || this.bonds.length === 0) return;
     
-    // Always use min to max (consistent with atoms)
     const start = Math.min(this.atomRangeStart, this.atomRangeEnd);
     const end = Math.max(this.atomRangeStart, this.atomRangeEnd);
-    
     const startIndex = Math.floor(start * this.totalAtomCount);
     const endIndex = Math.ceil(end * this.totalAtomCount);
     
-    // Recalculate ALL bond matrices (needed because we modify them to hide bonds)
-    const matrix = new THREE.Matrix4();
-    const position = new THREE.Vector3();
-    const quaternion = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
-    const yAxis = new THREE.Vector3(0, 1, 0);
-    const greyColor = new THREE.Color(BOND_GREY);
-    const pinkColor = new THREE.Color(BOND_RING_PINK);
-    
     let visibleCount = 0;
     
-    this.bonds.forEach((bond, bondIndex) => {
-      const atom1 = this.atoms[bond.atomIndex1];
-      const atom2 = this.atoms[bond.atomIndex2];
+    for (let i = 0; i < this.bonds.length; i++) {
+      const bond = this.bonds[i];
       const atom1InRange = bond.atomIndex1 >= startIndex && bond.atomIndex1 < endIndex;
       const atom2InRange = bond.atomIndex2 >= startIndex && bond.atomIndex2 < endIndex;
+      const visible = atom1InRange && atom2InRange;
       
-      if (atom1InRange && atom2InRange) {
-        // Bond is visible - calculate proper transforms
-        visibleCount++;
-        
-        const start = new THREE.Vector3(atom1.x, atom1.y, atom1.z);
-        const end = new THREE.Vector3(atom2.x, atom2.y, atom2.z);
-        const direction = new THREE.Vector3().subVectors(end, start);
-        const bondLength = direction.length();
-        
-        direction.normalize();
-        quaternion.setFromUnitVectors(yAxis, direction);
-        
-        // Get atomic data for colors
-        const data1 = CPK_ATOM_DATA[bond.element1.toUpperCase()] || CPK_ATOM_DATA['DEFAULT'];
-        const data2 = CPK_ATOM_DATA[bond.element2.toUpperCase()] || CPK_ATOM_DATA['DEFAULT'];
-        
-        const isAtom1Lower = data1.atomicNumber <= data2.atomicNumber;
-        const lowerData = isAtom1Lower ? data1 : data2;
-        const higherData = isAtom1Lower ? data2 : data1;
-        const lowerStart = isAtom1Lower ? start : end;
-        const higherStart = isAtom1Lower ? end : start;
-        
-        const splitRatio = this.halfColor;
-        const splitPoint = new THREE.Vector3().lerpVectors(lowerStart, higherStart, splitRatio);
-        
-        // First segment
-        const length1 = lowerStart.distanceTo(splitPoint);
-        const mid1 = new THREE.Vector3().lerpVectors(lowerStart, splitPoint, 0.5);
-        
-        position.copy(mid1);
-        scale.set(1, length1, 1);
-        matrix.compose(position, quaternion, scale);
-        this.bondMesh.setMatrixAt(bondIndex * 2, matrix);
-        
-        let color1 = new THREE.Color(lowerData.color).lerp(greyColor, this.greyBlend);
-        if (bond.isRing && this.ringPink > 0) {
-          color1.lerp(pinkColor, this.ringPink);
-        }
-        this.bondMesh.setColorAt(bondIndex * 2, color1);
-        
-        // Second segment
-        const length2 = splitPoint.distanceTo(higherStart);
-        const mid2 = new THREE.Vector3().lerpVectors(splitPoint, higherStart, 0.5);
-        
-        position.copy(mid2);
-        scale.set(1, length2, 1);
-        matrix.compose(position, quaternion, scale);
-        this.bondMesh.setMatrixAt(bondIndex * 2 + 1, matrix);
-        
-        let color2 = new THREE.Color(higherData.color).lerp(greyColor, this.greyBlend);
-        if (bond.isRing && this.ringPink > 0) {
-          color2.lerp(pinkColor, this.ringPink);
-        }
-        this.bondMesh.setColorAt(bondIndex * 2 + 1, color2);
-        
-      } else {
-        // Bond is hidden - set scale to 0
-        const dummy = new THREE.Object3D();
-        dummy.position.set(0, 0, 0);
-        dummy.scale.set(0, 0, 0);
-        dummy.updateMatrix();
-        this.bondMesh.setMatrixAt(bondIndex * 2, dummy.matrix);
-        this.bondMesh.setMatrixAt(bondIndex * 2 + 1, dummy.matrix);
-      }
-    });
-    
-    this.bondMesh.instanceMatrix.needsUpdate = true;
-    if (this.bondMesh.instanceColor) {
-      this.bondMesh.instanceColor.needsUpdate = true;
+      this.setBondInstance(i, visible);
+      if (visible) visibleCount++;
     }
     
-    // Update material
+    this.bondMesh.instanceMatrix.needsUpdate = true;
+    if (this.bondMesh.instanceColor) this.bondMesh.instanceColor.needsUpdate = true;
+    
     this.bondMesh.material.opacity = this.opacity;
     this.bondMesh.material.transparent = this.opacity < 1;
     this.bondMesh.material.needsUpdate = true;
     
-    // Add to scene if any bonds are visible
-    if (visibleCount > 0) {
-      this.sceneManager.add(this.bondMesh);
-    }
+    if (visibleCount > 0) this.sceneManager.add(this.bondMesh);
   }
   
   clear() {
@@ -2155,8 +2009,8 @@ class MolamApp {
       this.bondRenderer.setHalfColor(params.bondHalfColor);
     }
     
-    if (params.bondGreyBlend !== undefined) {
-      this.bondRenderer.setGreyBlend(params.bondGreyBlend);
+    if (params.bondLightness !== undefined) {
+      this.bondRenderer.setbondLightness(params.bondLightness);
     }
     
     if (params.bondRingPink !== undefined) {
