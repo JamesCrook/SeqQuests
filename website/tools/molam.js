@@ -1643,9 +1643,9 @@ class MolamScene {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.mouseButtons = {
-      LEFT: null,
+      LEFT: this.THREE.MOUSE.ROTATE,
       MIDDLE: this.THREE.MOUSE.DOLLY,
-      RIGHT: this.THREE.MOUSE.ROTATE
+      RIGHT: null
     };
   }
   
@@ -2177,8 +2177,13 @@ class MolamApp {
     const intersection = new THREE.Vector3();
     let dragStartVisualPos = new THREE.Vector3();
     
+    // Prevent context menu on right-click
+    this.sceneManager.renderer.domElement.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+    });
+    
     const onMouseDown = (event) => {
-      if (event.button !== 0) return;
+      if (event.button !== 2) return; //right mouse button only
       
       const rect = this.sceneManager.renderer.domElement.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;

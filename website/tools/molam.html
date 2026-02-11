@@ -17,7 +17,7 @@
 <body>
   <header class="header">
     <h1>Molam</h1>
-    <p class="subtitle">3D Protein Ribbon Viewer. Left-drag atoms, right-drag to rotate, scroll to zoom.</p>
+    <p class="subtitle">3D Protein Ribbon Viewer. Left-drag to rotate, right-drag moves atoms, scroll to zoom.</p>
   </header>
   
   <div class="layout">
@@ -221,7 +221,7 @@
       defaultPreset: 'Standard',
       enablePanZoom: false, // 3D app uses OrbitControls
       aspectRatio: 1, // Square-ish for 3D
-      hintHtml: '<strong>Left-drag</strong> atoms to move (XZ)<br><strong>Shift+drag</strong> moves Y axis<br><strong>Right-drag</strong> to rotate view<br><strong>Scroll</strong> to zoom',
+      hintHtml: '<strong>Left-drag</strong> to rotate view<br><strong>Right-drag</strong> atoms to move (XZ)<br><strong>Shift+drag</strong> moves Y axis<br><strong>Scroll</strong> to zoom',
       
       onRender: (params, panZoom, instance) => {
         if (app) {
