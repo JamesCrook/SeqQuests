@@ -6,13 +6,13 @@ An unusual feature is that you can smoothly morph from the flat 2D view of seque
 
 ## Beta Sheet Smoothing
 
-In normal cartoon views of molecules, beta sheets are smoothed out to gently curving ribbons. In actuality the alpha carbon atoms describe an undulating path. In Molam you can adjust the amount of smoothing to make this undulation clear - and compare undulation in adjacent beta sheets. You can see the undulation too from an actual atomic view, but it is easier from the ribbon view.
+In Jane Richardson's cartoon views of molecules, beta sheets were smoothed out to gently curving ribbons. In actuality the alpha carbon atoms describe an undulating path. In Molam you can adjust the amount of smoothing to make this undulation more or less pronounced. The default, like other protein viewers such as NGL, is to show the undulation. You can then compare undulation in adjacent beta sheets in a barrel. You can see these undulation too from an actual atomic view, but it is easier from the ribbon view. If you want the fully simplified view, a smoothing slider will smooth the ribbons. 
 
 ## Alpha Helix Smoothing
 
-Alpha helices are normally drawn with a hollow core to the helix. In fact, at the atomic level, this core is packed - there is no room for a small ion to travel down the helical 'tube', which is more a feature of the simplified representation than an actual conduit.
+Alpha helices are normally drawn with a hollow core to the helix. In fact, at the atomic level, this core is packed - there is no room for a small ion to travel down the helical 'tube'. The tube is more a feature of the simplified representation than an actual conduit.
 
-In Molam you can view the helices in the standard helical representation. You can also 'over smooth' them, to get a twisted-core representation. With over-smoothing the ribbon travels along centre line of the helix and it twists as it does so, representing the pitch of the ribbon. 
+In Molam you can view the helices in the standard helical representation. You can also 'over smooth' them, to get a twisted-core representation. With over-smoothing the ribbon travels along the centre line of the helix and it twists as it does so, the twist representing the pitch of the ribbon. 
 
 ## Sequence <-> Structure Relationships
 
