@@ -959,7 +959,7 @@ class ArcMath {
   static computeArc(P0, T0, P1, THREE) {
     const chord = new THREE.Vector3().subVectors(P1, P0);
     const chordLength = chord.length();
-    
+  
     if (chordLength < 0.0001) return null;
     
     const chordDir = chord.clone().normalize();
@@ -1009,7 +1009,38 @@ class ArcMath {
       length: radius * Math.abs(angle)
     };
   }
+static computeArcByEndTangent(P0, P1, T1, THREE) {
+  // We want arc from P0 to P1 with exit tangent T1
+  // Compute arc from P1 with entry tangent -T1 going to P0, then reverse
+  const reverseArc = this.computeArc(P1, T1.clone().negate(), P0, THREE);
   
+  if (!reverseArc) return null;
+  
+  if (reverseArc.type === 'line') {
+    return {
+      type: 'line',
+      P0: P0.clone(),
+      P1: P1.clone(),
+      T0: T1.clone(),
+      T1: T1.clone(),
+      length: reverseArc.length
+    };
+  }
+  
+  // Reverse the arc
+  return {
+    type: 'arc',
+    P0: P0.clone(),
+    P1: P1.clone(),
+    T0: reverseArc.T1.clone().negate(),
+    T1: T1.clone(),
+    center: reverseArc.center,
+    radius: reverseArc.radius,
+    angle: -reverseArc.angle,
+    planeNormal: reverseArc.planeNormal,
+    length: reverseArc.length
+  };
+}  
   static createLineArc(P0, P1, T0, length) {
     return {
       type: 'line',
@@ -1186,8 +1217,11 @@ class BiarcSegment3D {
     if (planeNormal.length() < 0.001) {
       this.J = midpoint.clone();
       this.arc1 = ArcMath.computeArc(this.P0, this.T0, this.J, THREE);
+      //this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
+      //this.arc2 = ArcMath.computeArc(this.J, this.T_J, this.P1, THREE);
+      this.arc2 = ArcMath.computeArcByEndTangent(this.J, this.P1, this.T1, THREE);
       this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
-      this.arc2 = ArcMath.computeArc(this.J, this.T_J, this.P1, THREE);
+
       this.length = (this.arc1 ? this.arc1.length : 0) + (this.arc2 ? this.arc2.length : 0);
       return;
     }
@@ -1214,9 +1248,11 @@ class BiarcSegment3D {
     this.J = midpoint.clone().addScaledVector(yAxis, c);
     
     this.arc1 = ArcMath.computeArc(this.P0, this.T0, this.J, THREE);
+    //this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
+    //this.arc2 = ArcMath.computeArc(this.J, this.T_J, this.P1, THREE);
+    this.arc2 = ArcMath.computeArcByEndTangent(this.J, this.P1, this.T1, THREE);
     this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
-    this.arc2 = ArcMath.computeArc(this.J, this.T_J, this.P1, THREE);
-    
+
     this.length = (this.arc1 ? this.arc1.length : 0) + (this.arc2 ? this.arc2.length : 0);
   }
   
