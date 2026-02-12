@@ -194,7 +194,7 @@ const MOLAM_PRESETS = {
     bondRadius: 1.0,
     bondHalfColor: 0.5,
     bondLightness: 0.5,
-    bondRingPink: 0
+    bondRingPink: 1
   },
   'Bumpy': {
     width: 0.35,
