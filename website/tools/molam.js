@@ -1041,6 +1041,83 @@ static computeArcByEndTangent(P0, P1, T1, THREE) {
     length: reverseArc.length
   };
 }  
+
+static computeJointPoint(P0, P1, T0, T1, THREE) {
+  const chord = new THREE.Vector3().subVectors(P1, P0);
+  const L = chord.length();
+  if (L < 0.0001) return P0.clone().lerp(P1, 0.5);
+  
+  const d = chord.clone().normalize();
+  const midpoint = new THREE.Vector3().addVectors(P0, P1).multiplyScalar(0.5);
+  
+  // Build orthonormal basis for bisector plane
+  let e1 = new THREE.Vector3().addVectors(T0, T1);
+  e1.addScaledVector(d, -e1.dot(d));
+  if (e1.length() < 0.001) {
+    e1.set(1, 0, 0);
+    if (Math.abs(d.dot(e1)) > 0.9) e1.set(0, 1, 0);
+    e1.addScaledVector(d, -e1.dot(d));
+  }
+  e1.normalize();
+  const e2 = new THREE.Vector3().crossVectors(d, e1);
+  
+  // Initial guess from 2D formula
+  const t0_d = T0.dot(d), t0_e1 = T0.dot(e1);
+  const t1_d = T1.dot(d), t1_e1 = T1.dot(e1);
+  const angle0 = Math.atan2(t0_e1, t0_d);
+  const angle1 = Math.atan2(t1_e1, t1_d);
+  let thetaDiff = angle0 - angle1;
+  while (thetaDiff > Math.PI) thetaDiff -= 2 * Math.PI;
+  while (thetaDiff < -Math.PI) thetaDiff += 2 * Math.PI;
+  
+  let s = Math.tan(thetaDiff * 0.25) * 0.5 * L;
+  let t = 0;
+  
+  // Reflection formula: exit tangent = 2(T·d̂)d̂ - T
+  const computeTangentError = (s, t) => {
+    const J = midpoint.clone().addScaledVector(e1, s).addScaledVector(e2, t);
+    const u = new THREE.Vector3().subVectors(J, P0);
+    const v = new THREE.Vector3().subVectors(P1, J);
+    const u_hat = u.clone().normalize();
+    const v_hat = v.clone().normalize();
+    
+    // Exit tangent of arc1: reflect T0 through u
+    const T_J1 = u_hat.clone().multiplyScalar(2 * T0.dot(u_hat)).sub(T0);
+    
+    // Entry tangent of arc2: reflect T1 through v
+    const T_J2 = v_hat.clone().multiplyScalar(2 * T1.dot(v_hat)).sub(T1);
+    
+    return new THREE.Vector3().subVectors(T_J1, T_J2);
+  };
+  
+  // Newton iterations
+  const eps = 0.0001;
+  for (let iter = 0; iter < 3; iter++) {
+    const err = computeTangentError(s, t);
+    if (err.length() < 1e-10) break;
+    
+    const err_ds = computeTangentError(s + eps, t);
+    const err_dt = computeTangentError(s, t + eps);
+    
+    const J11 = (err_ds.dot(e1) - err.dot(e1)) / eps;
+    const J12 = (err_dt.dot(e1) - err.dot(e1)) / eps;
+    const J21 = (err_ds.dot(e2) - err.dot(e2)) / eps;
+    const J22 = (err_dt.dot(e2) - err.dot(e2)) / eps;
+    
+    const det = J11 * J22 - J12 * J21;
+    if (Math.abs(det) < 1e-12) break;
+    
+    const ds = -(J22 * err.dot(e1) - J12 * err.dot(e2)) / det;
+    const dt = -(-J21 * err.dot(e1) + J11 * err.dot(e2)) / det;
+    
+    s += ds;
+    t += dt;
+  }
+  
+  return midpoint.clone().addScaledVector(e1, s).addScaledVector(e2, t);
+}
+  
+
   static createLineArc(P0, P1, T0, length) {
     return {
       type: 'line',
@@ -1193,68 +1270,30 @@ class BiarcSegment3D {
     this.computeJointAndArcs();
     this.computeTorsion();
   }
+
+computeJointAndArcs() {
+  const THREE = this.THREE;
+  const chord = new THREE.Vector3().subVectors(this.P1, this.P0);
+  const chordLength = chord.length();
   
-  computeJointAndArcs() {
-    const THREE = this.THREE;
-    const chord = new THREE.Vector3().subVectors(this.P1, this.P0);
-    const chordLength = chord.length();
-    
-    if (chordLength < 0.0001) {
-      this.J = this.P0.clone();
-      this.T_J = this.T0.clone();
-      this.arc1 = ArcMath.createLineArc(this.P0, this.J, this.T0, 0);
-      this.arc2 = ArcMath.createLineArc(this.J, this.P1, this.T_J, 0);
-      this.length = 0;
-      return;
-    }
-    
-    const chordDir = chord.clone().normalize();
-    const midpoint = new THREE.Vector3().addVectors(this.P0, this.P1).multiplyScalar(0.5);
-    
-    const avgT = new THREE.Vector3().addVectors(this.T0, this.T1);
-    let planeNormal = new THREE.Vector3().crossVectors(chordDir, avgT);
-    
-    if (planeNormal.length() < 0.001) {
-      this.J = midpoint.clone();
-      this.arc1 = ArcMath.computeArc(this.P0, this.T0, this.J, THREE);
-      //this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
-      //this.arc2 = ArcMath.computeArc(this.J, this.T_J, this.P1, THREE);
-      this.arc2 = ArcMath.computeArcByEndTangent(this.J, this.P1, this.T1, THREE);
-      this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
-
-      this.length = (this.arc1 ? this.arc1.length : 0) + (this.arc2 ? this.arc2.length : 0);
-      return;
-    }
-    
-    planeNormal.normalize();
-    
-    const yAxis = new THREE.Vector3().crossVectors(planeNormal, chordDir).normalize();
-    
-    const t0_x = this.T0.dot(chordDir);
-    const t0_y = this.T0.dot(yAxis);
-    const t1_x = this.T1.dot(chordDir);
-    const t1_y = this.T1.dot(yAxis);
-    
-    const angle0 = Math.atan2(t0_y, t0_x);
-    const angle1 = Math.atan2(t1_y, t1_x);
-    
-    let thetaDiff = angle0 - angle1;
-    while (thetaDiff > Math.PI) thetaDiff -= 2 * Math.PI;
-    while (thetaDiff < -Math.PI) thetaDiff += 2 * Math.PI;
-    
-    const thetaError = thetaDiff * 0.25;
-    const c = Math.tan(thetaError) * 0.5 * chordLength;
-    
-    this.J = midpoint.clone().addScaledVector(yAxis, c);
-    
-    this.arc1 = ArcMath.computeArc(this.P0, this.T0, this.J, THREE);
-    //this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
-    //this.arc2 = ArcMath.computeArc(this.J, this.T_J, this.P1, THREE);
-    this.arc2 = ArcMath.computeArcByEndTangent(this.J, this.P1, this.T1, THREE);
-    this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
-
-    this.length = (this.arc1 ? this.arc1.length : 0) + (this.arc2 ? this.arc2.length : 0);
+  if (chordLength < 0.0001) {
+    this.J = this.P0.clone();
+    this.T_J = this.T0.clone();
+    this.arc1 = ArcMath.createLineArc(this.P0, this.J, this.T0, 0);
+    this.arc2 = ArcMath.createLineArc(this.J, this.P1, this.T_J, 0);
+    this.length = 0;
+    return;
   }
+  
+  // Use Newton iteration to find J
+  this.J = ArcMath.computeJointPoint(this.P0, this.P1, this.T0, this.T1, THREE);
+  
+  this.arc1 = ArcMath.computeArc(this.P0, this.T0, this.J, THREE);
+  this.arc2 = ArcMath.computeArcByEndTangent(this.J, this.P1, this.T1, THREE);
+  this.T_J = this.arc1 ? this.arc1.T1.clone() : this.T0.clone();
+  
+  this.length = (this.arc1 ? this.arc1.length : 0) + (this.arc2 ? this.arc2.length : 0);
+}
   
   computeTorsion() {
     const THREE = this.THREE;
