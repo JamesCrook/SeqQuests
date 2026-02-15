@@ -771,6 +771,291 @@ class OmniBase {
   }
 }
 
+/**
+ * OmniBase UI Utilities
+ * Reusable UI component factories for OmniBase-style applications
+ */
+
+/**
+ * Creates a styled button element.
+ * @param {Object} options - Button configuration
+ * @param {string} options.text - Button text content
+ * @param {string} [options.className='btn'] - CSS class(es) for the button
+ * @param {string} [options.id] - Optional ID for the button
+ * @param {Object} [options.style={}] - Inline styles to apply
+ * @param {Function} [options.onClick] - Click event handler
+ * @returns {HTMLButtonElement} The created button element
+ * 
+ * @example
+ * const btn = createButton({
+ *   text: 'Save',
+ *   className: 'btn primary',
+ *   onClick: () => save()
+ * });
+ */
+function createButton(options) {
+  const { 
+    text, 
+    className = 'btn', 
+    id, 
+    style = {}, 
+    onClick 
+  } = options;
+  
+  const btn = document.createElement('button');
+  btn.className = className;
+  btn.textContent = text;
+  if (id) btn.id = id;
+  Object.assign(btn.style, style);
+  if (onClick) btn.addEventListener('click', onClick);
+  return btn;
+}
+
+/**
+ * Creates a file/folder drop zone with drag-and-drop and click-to-browse support.
+ * @param {Object} options - File loader configuration
+ * @param {string} [options.id] - Optional ID for the drop zone
+ * @param {string} [options.icon='📁'] - Icon to display
+ * @param {string} [options.text='Drop files or click'] - Instructional text
+ * @param {string} [options.accept] - File type filter (e.g., '.json,.csv')
+ * @param {boolean} [options.directory=false] - Enable folder selection
+ * @param {boolean} [options.multiple=true] - Allow multiple file selection
+ * @param {Function} [options.onFiles] - Callback receiving Array of File objects (from click)
+ * @param {Function} [options.onEntries] - Callback receiving Array of FileSystemEntry objects (from drop)
+ * @returns {HTMLDivElement} The created drop zone element
+ * 
+ * @example
+ * // For files
+ * const loader = createFileLoader({
+ *   icon: '📄',
+ *   text: 'Drop JSON file',
+ *   accept: '.json',
+ *   onFiles: (files) => processFiles(files)
+ * });
+ * 
+ * @example
+ * // For folders
+ * const folderLoader = createFileLoader({
+ *   icon: '🗂️',
+ *   text: 'Drop folder or click',
+ *   directory: true,
+ *   onFiles: (files) => processFiles(files),
+ *   onEntries: (entries) => processEntries(entries)
+ * });
+ */
+function createFileLoader(options) {
+  const { 
+    id, 
+    icon = '📁', 
+    text = 'Drop files or click',
+    accept,
+    directory = false,
+    multiple = true,
+    onFiles,
+    onEntries
+  } = options;
+  
+  const dropEl = document.createElement('div');
+  dropEl.className = 'file-drop';
+  if (id) dropEl.id = id;
+  dropEl.innerHTML = `
+    <div class="file-drop-icon">${icon}</div>
+    <div>${text}</div>
+  `;
+  
+  // Drag and drop handlers
+  dropEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropEl.classList.add('dragover');
+  });
+  
+  dropEl.addEventListener('dragleave', () => {
+    dropEl.classList.remove('dragover');
+  });
+  
+  dropEl.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropEl.classList.remove('dragover');
+    
+    if (onEntries) {
+      const items = e.dataTransfer.items;
+      if (items) {
+        const entries = [];
+        for (const item of items) {
+          const entry = item.webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        if (entries.length > 0) {
+          onEntries(entries);
+        }
+      }
+    }
+  });
+  
+  dropEl.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    if (directory) input.webkitdirectory = true;
+    if (multiple) input.multiple = true;
+    if (accept) input.accept = accept;
+    input.onchange = () => {
+      const files = Array.from(input.files);
+      if (files.length > 0 && onFiles) {
+        onFiles(files);
+      }
+    };
+    input.click();
+  });
+  
+  return dropEl;
+}
+
+/**
+ * Creates a toggle switch with label.
+ * @param {Object} options - Toggle configuration
+ * @param {string} options.id - ID for the checkbox input
+ * @param {string} options.label - Label text
+ * @param {boolean} [options.checked=false] - Initial checked state
+ * @param {Function} [options.onChange] - Change event handler
+ * @returns {HTMLLabelElement} The created toggle element
+ * 
+ * @example
+ * const toggle = createToggle({
+ *   id: 'darkMode',
+ *   label: 'Dark mode',
+ *   checked: true,
+ *   onChange: (e) => setDarkMode(e.target.checked)
+ * });
+ */
+function createToggle(options) {
+  const { 
+    id, 
+    label, 
+    checked = false, 
+    onChange 
+  } = options;
+  
+  const toggle = document.createElement('label');
+  toggle.className = 'toggle-item';
+  toggle.innerHTML = `
+    <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+    <span class="toggle-slider"></span>
+    <span class="toggle-label">${label}</span>
+  `;
+  
+  if (onChange) {
+    toggle.addEventListener('change', onChange);
+  }
+  
+  return toggle;
+}
+
+/**
+ * Creates an info display row with label-value pairs.
+ * @param {Object} options - Info row configuration
+ * @param {Array<{label: string, id: string, value?: string}>} options.items - Items to display
+ * @param {Object} [options.style={}] - Inline styles to apply
+ * @returns {HTMLDivElement} The created info element
+ * 
+ * @example
+ * const info = createInfoRow({
+ *   items: [
+ *     { label: 'Files', id: 'fileCount', value: '0' },
+ *     { label: 'Size', id: 'fileSize', value: '—' }
+ *   ],
+ *   style: { marginTop: '12px' }
+ * });
+ */
+function createInfoRow(options) {
+  const { items, style = {} } = options;
+  
+  const info = document.createElement('div');
+  info.className = 'tree-info';
+  Object.assign(info.style, style);
+  
+  info.innerHTML = items.map(item => 
+    `<span>${item.label}: <span class="value" id="${item.id}">${item.value || '—'}</span></span>`
+  ).join('');
+  
+  return info;
+}
+
+/**
+ * Creates a button group container with multiple buttons.
+ * @param {Object} options - Button group configuration
+ * @param {Array<Object>} options.buttons - Array of button options (same format as createButton)
+ * @param {string} [options.direction='column'] - Layout direction ('row' or 'column')
+ * @param {string} [options.gap='8px'] - Gap between buttons
+ * @returns {HTMLDivElement} The created button group element
+ * 
+ * @example
+ * const actions = createButtonGroup({
+ *   buttons: [
+ *     { text: 'Save', onClick: save },
+ *     { text: 'Cancel', className: 'btn secondary', onClick: cancel }
+ *   ],
+ *   direction: 'row'
+ * });
+ */
+function createButtonGroup(options) {
+  const { 
+    buttons, 
+    direction = 'column', 
+    gap = '8px' 
+  } = options;
+  
+  const group = document.createElement('div');
+  group.style.display = 'flex';
+  group.style.flexDirection = direction;
+  group.style.gap = gap;
+  
+  buttons.forEach(btnOptions => {
+    group.appendChild(createButton(btnOptions));
+  });
+  
+  return group;
+}
+
+/**
+ * Creates a toggle group container with multiple toggles.
+ * @param {Object} options - Toggle group configuration
+ * @param {Array<Object>} options.toggles - Array of toggle options (same format as createToggle)
+ * @returns {HTMLDivElement} The created toggle group element
+ * 
+ * @example
+ * const options = createToggleGroup({
+ *   toggles: [
+ *     { id: 'skipHidden', label: 'Skip hidden files', checked: true },
+ *     { id: 'recursive', label: 'Include subfolders', checked: false }
+ *   ]
+ * });
+ */
+function createToggleGroup(options) {
+  const { toggles } = options;
+  
+  const container = document.createElement('div');
+  container.className = 'toggle-group';
+  
+  toggles.forEach(toggleOptions => {
+    container.appendChild(createToggle(toggleOptions));
+  });
+  
+  return container;
+}
+
+// Export for ES modules (if used)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    createButton,
+    createFileLoader,
+    createToggle,
+    createInfoRow,
+    createButtonGroup,
+    createToggleGroup
+  };
+}
+
+
 // Export for use in modules or global scope
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = OmniBase;
