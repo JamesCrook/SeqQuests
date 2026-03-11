@@ -20,6 +20,10 @@
     "filename": "explanations/for-developers/index-of-why.md"
   },
   {
+    "name": "Molam-Concept",
+    "filename": "explanations/for-developers/molam-concept.md"
+  },
+  {
     "name": "New-Widgets",
     "filename": "explanations/for-developers/new-widgets.md"
   },
@@ -34,6 +38,10 @@
   {
     "name": "Ai-Interpret",
     "filename": "explanations/for-users/ai-interpret.md"
+  },
+  {
+    "name": "Molam-Ideas",
+    "filename": "explanations/for-users/molam-ideas.md"
   },
   {
     "name": "Overview",
@@ -96,8 +104,16 @@
     "filename": "reference/job_management_ui.md"
   },
   {
-    "name": "Match Explorer Ui",
-    "filename": "reference/match_explorer_ui.md"
+    "name": "Lcars-Ui",
+    "filename": "reference/lcars-ui.md"
+  },
+  {
+    "name": "Match-Explorer-Ui",
+    "filename": "reference/match-explorer-ui.md"
+  },
+  {
+    "name": "Molam-Ui",
+    "filename": "reference/molam-ui.md"
   },
   {
     "name": "Sw Search",
