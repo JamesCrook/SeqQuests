@@ -739,6 +739,12 @@ function updateBreadcrumbs(index, fromBreadcrumbClick = false, clickedBreadcrumb
     sep.dataset.childNode = childNodeNum;
     sep.dataset.score = childScore || '';
     
+    sep.addEventListener('click', () => {
+      if (parentNodeNum !== '?' && childNodeNum !== '?') {
+        window.open(`./match_explorer.html?diff=${parentNodeNum}:${childNodeNum}`, '_diff');
+      }
+    });
+
     container.appendChild(sep);
   });
   
@@ -775,6 +781,12 @@ function updateBreadcrumbs(index, fromBreadcrumbClick = false, clickedBreadcrumb
     sep.dataset.childNode = childNodeNum;
     sep.dataset.score = childScore || '';
     
+    sep.addEventListener('click', () => {
+      if (parentNodeNum !== '?' && childNodeNum !== '?') {
+        window.open(`./match_explorer.html?diff=${parentNodeNum}:${childNodeNum}`, '_diff');
+      }
+    });
+
     container.appendChild(sep);
     
     const span = document.createElement('span');
