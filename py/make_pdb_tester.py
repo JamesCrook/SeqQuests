@@ -28,12 +28,25 @@ SIDECHAIN_EXTRA = {
     'VAL': [(' CG1', 0.0, 1.2, 0.5), (' CG2', 0.0, -1.2, 0.5)],
     'LEU': [(' CG ', 0.0, 0.0, 1.5), (' CD1', 0.0, 1.2, 2.2), (' CD2', 0.0, -1.2, 2.2)],
     'ILE': [(' CG1', 0.0, 1.0, 1.0), (' CG2', 0.0, -1.2, 0.5), (' CD1', 0.0, 1.0, 2.5)],
-    'PRO': [(' CG ', 1.0, 0.0, 1.0), (' CD ', 1.5, 0.0, 0.0)],
+    # PRO: Expanded to prevent the CD atom from clashing with the backbone N
+    'PRO': [
+        (' CG ', -0.7, 0.9, 1.1), 
+        (' CD ', -1.3, 1.5, -0.1)
+    ],
     'PHE': [(' CG ', 0.0, 0.0, 1.4), (' CD1', 0.0, 1.2, 2.1), (' CD2', 0.0, -1.2, 2.1),
             (' CE1', 0.0, 1.2, 3.5), (' CE2', 0.0, -1.2, 3.5), (' CZ ', 0.0, 0.0, 4.2)],
-    'TRP': [(' CG ', 0.0, 0.0, 1.4), (' CD1', 0.0, 1.1, 2.1), (' CD2', 0.0, -0.7, 2.3),
-            (' NE1', 0.0, 0.7, 3.2), (' CE2', 0.0, -0.4, 3.5), (' CE3', 0.0, -1.9, 2.8),
-            (' CZ2', 0.0, -1.4, 4.4), (' CZ3', 0.0, -2.7, 3.7), (' CH2', 0.0, -2.4, 4.7)],
+    # TRP: Adjusted both the 5-membered pyrrole and 6-membered benzene rings
+    'TRP': [
+        (' CG ', 0.0, 0.0, 1.5), 
+        (' CD1', 0.0, 1.3, 2.4), 
+        (' CD2', 0.0, -1.0, 2.6),
+        (' NE1', 0.0, 1.0, 3.7), 
+        (' CE2', 0.0, -0.5, 3.9), 
+        (' CE3', 0.0, -2.4, 2.6), # <-- z is d from chain. y is along chain
+        (' CZ2', 0.0, -1.4, 5.0), 
+        (' CZ3', 0.0, -3.3, 3.9), 
+        (' CH2', 0.0, -2.8, 5.0)
+    ],
     'MET': [(' CG ', 0.0, 0.0, 1.5), (' SD ', 0.0, 0.0, 3.0), (' CE ', 0.0, 1.2, 3.8)],
     'SER': [(' OG ', 0.0, 0.0, 1.4)],
     'THR': [(' OG1', 0.0, 1.1, 0.8), (' CG2', 0.0, -1.1, 0.8)],
@@ -41,8 +54,14 @@ SIDECHAIN_EXTRA = {
     'TYR': [(' CG ', 0.0, 0.0, 1.4), (' CD1', 0.0, 1.2, 2.1), (' CD2', 0.0, -1.2, 2.1),
             (' CE1', 0.0, 1.2, 3.5), (' CE2', 0.0, -1.2, 3.5), (' CZ ', 0.0, 0.0, 4.2),
             (' OH ', 0.0, 0.0, 5.6)],
-    'HIS': [(' CG ', 0.0, 0.0, 1.4), (' ND1', 0.0, 1.0, 2.2), (' CD2', 0.0, -0.8, 2.3),
-            (' CE1', 0.0, 0.6, 3.4), (' NE2', 0.0, -0.6, 3.4)],
+    # HIS: Widened the imidazole ring to ensure the 1-3 distances are > 2.0A
+    'HIS': [
+        (' CG ', 0.0, 0.0, 1.5), 
+        (' ND1', 0.0, 1.2, 2.4), 
+        (' CD2', 0.0, -1.2, 2.5),
+        (' CE1', 0.0, 0.7, 3.7), 
+        (' NE2', 0.0, -0.7, 3.8)
+    ],
     'ASP': [(' CG ', 0.0, 0.0, 1.5), (' OD1', 0.0, 1.1, 2.2), (' OD2', 0.0, -1.1, 2.2)],
     'GLU': [(' CG ', 0.0, 0.0, 1.5), (' CD ', 0.0, 0.0, 3.0),
             (' OE1', 0.0, 1.1, 3.7), (' OE2', 0.0, -1.1, 3.7)],
@@ -60,7 +79,7 @@ SIDECHAIN_EXTRA = {
 BOND_N_CA  = 1.47
 BOND_CA_C  = 1.52
 BOND_C_N   = 1.33     # peptide bond
-BOND_C_O   = 2.50     # pushed out (real ~1.24) to avoid false O–N bonding
+BOND_C_O   = 1.50     # pushed out (real ~1.24) to avoid false O–N bonding
 BOND_CA_CB = 1.52
 
 # Bond angles at backbone atoms (degrees)
@@ -159,7 +178,7 @@ def generate_linear_pdb(sequence, chain='A'):
             o_dir = perp_a
         else:
             o_dir = perp_b
-        ox = cx + BOND_C_O * math.cos(o_dir)
+        ox = cx + BOND_C_O * (math.cos(o_dir) - 0.5)
         oy = cy + BOND_C_O * math.sin(o_dir)
         serial += 1
         lines.append(pdb_atom_line(serial, ' O  ', resname, chain, resseq,
@@ -174,15 +193,10 @@ def generate_linear_pdb(sequence, chain='A'):
 
             extras = SIDECHAIN_EXTRA.get(resname, [])
             for atom_name, dx, dy, dz in extras:
-                if resname == 'PRO':
-                    # Proline: keep original orientation (ring back to N)
-                    sx = cax + dx
-                    sy = cay + dy
-                else:
-                    # Rotate 90° CCW about the CA–CB axis (Z):
-                    #   (dx, dy) → (-dy, dx)
-                    sx = cax + (-dy)
-                    sy = cay + dx
+                # Rotate 90° CCW about the CA–CB axis (Z):
+                #   (dx, dy) → (-dy, dx)
+                sx = cax + (-dy)
+                sy = cay + dx
                 sz = cb_z + dz * side_z
                 elem = atom_name.strip()[0]
                 serial += 1
@@ -205,7 +219,7 @@ def generate_linear_pdb(sequence, chain='A'):
 
 # --- Main ---
 if __name__ == '__main__':
-    DEFAULT_SEQ = list('GATSDEQNVLIKRMCFYWHP')
+    DEFAULT_SEQ = list('GATSDEQNVLIMCRKHWYFP')
 
     if len(sys.argv) > 1:
         seq = list(sys.argv[1].upper())

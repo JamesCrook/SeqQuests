@@ -12,6 +12,7 @@ sw_align_module.js
 
 # Automatically produced images
 docs/images/*.png
+dev_*
 
 # Jules
 verification/

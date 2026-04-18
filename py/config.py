@@ -19,6 +19,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 FASTA_PATH = DATA_DIR / 'swissprot_trembl.fasta'
 NCBI_TAXONOMY_DB = DATA_DIR / 'ncbi_taxonomy.db'
 PDB_CACHE_DIR = DATA_DIR / 'pdb_cache'
+SWISS_PROT_SQL = DATA_DIR / 'swiss_prot.db'
 
 # Create subdirectories
 PDB_CACHE_DIR.mkdir(exist_ok=True)
