@@ -464,10 +464,15 @@ window.initializeApp = async function() {
 
     findings = parseFindings(findingsData);
 
-    newSource();
+    const urlParams = new URLSearchParams(window.location.search);
+    const diffId = urlParams.get('diff');
 
-    // Handle URL Params
-    handleUrlParams();
+    if (diffId) {
+      await handleDiffParam(diffId);
+    } else {
+      await newSource();
+      handleUrlParams();
+    }
 
     // Initialize the new orchestrator instead of the old manual listeners
     await initOrchestratedMultiscroller();
@@ -508,6 +513,40 @@ function handleUrlParams() {
         });
       }
     }
+  }
+}
+
+async function handleDiffParam(diffId) {
+  const parts = diffId.split(':');
+  if (parts.length === 2) {
+    const id1 = parts[0];
+    const id2 = parts[1];
+
+    usingRealFindings = true; // Force fetching from Uniprot
+    if(typeof setConnectionStatus === 'function') {
+      setConnectionStatus(true);
+    }
+
+    const mockFinding = {
+      header: `${id1}-${id2} s(0) Length: 0/0`,
+      details: ["Custom comparison via URL"]
+    };
+
+    parsedFindings = [mockFinding];
+
+    populateFindingsList(parsedFindings);
+
+    const entriesCount = document.getElementById('entriesCount');
+    if(entriesCount) {
+      entriesCount.textContent = `1 entries`;
+    }
+
+    const sourcesSelect = document.getElementById('sources');
+    if(sourcesSelect) {
+      sourcesSelect.disabled = true;
+    }
+
+    await selectEntry(0);
   }
 }
 
@@ -635,7 +674,7 @@ async function loadSequenceDetails(finding, index) {
 
   // Extract IDs and lengths from header
   const headerMatch = finding.header.match(
-    /([A-Z0-9]+)-([A-Z0-9]+).*Length: (\d+)\/(\d+)/);
+    /([A-Za-z0-9_]+)-([A-Za-z0-9_]+).*Length: (\d+)\/(\d+)/);
   if(!headerMatch) {
     isLoadingSequence = false;
     return;
@@ -685,7 +724,7 @@ async function loadSequenceDetails(finding, index) {
             <div class="stats-bar">
                 <div class="stat-item">
                     <div class="stat-label">Match Score</div>
-                    <div class="stat-value">${finding.header.match(/s\((\d+)\)/)[1]}</div>
+                    <div class="stat-value">${finding.header.match(/s\((\d+)\)/)?.[1] || score}</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Identity</div>
@@ -693,11 +732,11 @@ async function loadSequenceDetails(finding, index) {
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Length 1</div>
-                    <div class="stat-value">${len1}</div>
+                    <div class="stat-value">${pairInfo.seq1 ? pairInfo.seq1.length : len1}</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Length 2</div>
-                    <div class="stat-value">${len2}</div>
+                    <div class="stat-value">${pairInfo.seq2 ? pairInfo.seq2.length : len2}</div>
                 </div>
             </div>
 
