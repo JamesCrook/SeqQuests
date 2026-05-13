@@ -5,9 +5,9 @@ SeqQuests is a sequence analysis package. The SeqQuests repo also contains datas
 SeqQuests provides:
 * A fast metal-accelerated Smith-Waterman local similarity search (2 days for 570,000 sequences all-on-all on Mac M4 Pro)
 * Tooling for making, browsing and reducing an all-on-all Swiss-Prot protein sequence comparison 
-* LCARs (Star Trek TNG) inspired web user interface for protein sequence work.
+* Molam 3D molecular viewer
 
-The code can be run via CLI/bash without using the web UI. However, the web UI makes exploring results easier. The web UI also can create, configure, start, stop and delete jobs, and monitor their progress.
+The Smith-Waterman code can be run via CLI/bash without using the web UI. However, the web UI makes exploring results easier. The web UI also can create, configure, start, stop and delete jobs, and monitor their progress.
 
 ## Current Status
 
@@ -38,6 +38,9 @@ Right now the part of SeqQuests most likely of interest is the /findings/ folder
 │  ├─ tree_builder.py        #  Reduces all-on-all results to a tree
 │  ├─ filter_twilight.py     #  Automatic removal of known-already sequence-pairs
 │  └─ web_server.py          #  Web browser front end
+├─ website/                  # 
+│  └─ tools/                 #
+│     └─ molam.html          # 3D molecular viewer
 ├─ docs/                     # Docs (work in progress).
 │  ├─ explanations/          #  Background rather than how to
 │  ├─ how-to/                #  Recipes organised by related topics
@@ -47,18 +50,12 @@ Right now the part of SeqQuests most likely of interest is the /findings/ folder
 ├─ LICENSE.md                # Copyright licenses
 ├─ CITATION.cff              # Citing this work
 └─ README.md                 # This README
+
 ```
 
 C++/Objective-C provides accelerated versions of code that needs to be fast.
 
 The web UI uses API-endpoints provided by a FastAPI web server. 
-
-## Links for AI Assistants
-Much of the code was created with AI assistance (Claude, Gemini, Jules). AI also helped with tracking down many cases where protein similarities were already known.
-
-AI assistants are guided to instructions they should follow by text like the text below:
-
-See [docs/reference/specs/specs.md](./docs/reference/specs/specs.md) for IMPORTANT REQUIREMENTS for AI assistant work.
 
 ## Getting started
 
